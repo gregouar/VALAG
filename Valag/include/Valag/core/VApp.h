@@ -4,11 +4,10 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include <string>
-
 #include "Valag/core/GameState.h"
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
+#include "Valag/gfx/VInstance.h"
 
 namespace vlg
 {
@@ -27,21 +26,14 @@ class VApp
         void printscreen();
 
         //sf::Vector2u getWindowSize();
+        //const std::string &getName();
 
-        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,
-                                                            uint64_t obj, size_t location, int32_t code,
-                                                            const char* layerPrefix, const char* msg, void* userData);
     protected:
         bool    init();
 
         bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
         bool    createWindow();
-
-        bool    initVulkan();
-        bool    checkValidationLayerSupport();
-        std::vector<const char*> getRequiredExtensions();
         bool    createVulkanInstance();
-        bool    setupDebugCallback();
 
         void    loop();
 
@@ -51,11 +43,10 @@ class VApp
         bool        m_running;
         std::string m_name;
 
-        StatesManager   m_statesManager;
-        EventsManager   m_eventsManager;
-        GLFWwindow     *m_window;
-        VkInstance      m_vulkanInstance;
-        VkDebugReportCallbackEXT m_debugCallback;
+        StatesManager       m_statesManager;
+        EventsManager       m_eventsManager;
+        GLFWwindow         *m_window;
+        VInstance          *m_vulkanInstance;
 
         unsigned int m_sceenshotNbr;
 

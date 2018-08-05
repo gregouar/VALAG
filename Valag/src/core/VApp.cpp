@@ -1,12 +1,8 @@
 #include "Valag/core/VApp.h"
 
-#include "Valag/VulkanExtProxies.h"
-
 #include "Valag/utils/Parser.h"
 #include "Valag/utils/Logger.h"
 #include "Valag/core/Config.h"
-
-#include <cstring>
 
 namespace vlg
 {
@@ -20,17 +16,8 @@ const char *VApp::DEFAULT_WINDOW_WIDTH = "1024";
 const char *VApp::DEFAULT_WINDOW_HEIGHT = "768";
 const char *VApp::DEFAULT_VSYNC = "false";
 
+
 const bool VApp::ENABLE_PROFILER = false;
-
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_LUNARG_standard_validation"
-};
-
-#ifdef NDEBUG
-    const bool enableValidationLayers = false;
-#else
-    const bool enableValidationLayers = true;
-#endif
 
 
 VApp::VApp() : VApp(DEFAULT_APP_NAME)
@@ -40,6 +27,7 @@ VApp::VApp() : VApp(DEFAULT_APP_NAME)
 
 VApp::VApp(const std::string& name) :
     m_name(name),
+    m_vulkanInstance(nullptr),
     m_sceenshotNbr(1)
 {
 
@@ -92,7 +80,7 @@ bool VApp::init()
 
     m_eventsManager.init(m_window);
 
-    if(!this->initVulkan())
+    if(!this->createVulkanInstance())
         throw std::runtime_error("Cannot initialize Vulkan");
 
     return (true);
@@ -153,104 +141,16 @@ bool VApp::createWindow()
     return (m_window != nullptr);
 }
 
-bool VApp::initVulkan()
-{
-    if(!this->createVulkanInstance())
-        return (false);
-
-    if(!this->setupDebugCallback())
-        return (false);
-
-    return (true);
-}
-
-bool VApp::checkValidationLayerSupport()
-{
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    for (const char* layerName : validationLayers)
-    {
-        bool layerFound = false;
-
-        for (const auto& layerProperties : availableLayers)
-        {
-            if (strcmp(layerName, layerProperties.layerName) == 0)
-            {
-                layerFound = true;
-                break;
-            }
-        }
-
-        if (!layerFound)
-            return (false);
-    }
-
-    return (true);
-}
-
-std::vector<const char*> VApp::getRequiredExtensions()
-{
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-    if (enableValidationLayers) {
-        extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    }
-
-    return extensions;
-}
-
 bool VApp::createVulkanInstance()
 {
-    if (enableValidationLayers && !this->checkValidationLayerSupport())
-        throw std::runtime_error("Validation layers requested not available");
+    if(m_vulkanInstance != nullptr)
+        delete m_vulkanInstance;
 
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName    = m_name.c_str();
-    appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName         = "VALAG";
-    appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion          = VK_API_VERSION_1_0;
+    m_vulkanInstance = new VInstance(m_name);
 
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-
-    std::vector<const char*> extensions = getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
-
-    if (enableValidationLayers)
-    {
-        createInfo.enabledLayerCount    = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames  = validationLayers.data();
-    } else {
-        createInfo.enabledLayerCount    = 0;
-    }
-
-    return (vkCreateInstance(&createInfo, nullptr, &m_vulkanInstance) == VK_SUCCESS);
+    return (true);
 }
 
-bool VApp::setupDebugCallback()
-{
-    if (!enableValidationLayers)
-        return (true);
-
-    VkDebugReportCallbackCreateInfoEXT createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-    createInfo.pfnCallback = VApp::debugCallback;
-
-    return (CreateDebugReportCallbackEXT(m_vulkanInstance, &createInfo, nullptr, &m_debugCallback) == VK_SUCCESS);
-}
 
 void VApp::loop()
 {
@@ -275,22 +175,15 @@ void VApp::loop()
 
 void VApp::cleanup()
 {
-    if (enableValidationLayers)
-        DestroyDebugReportCallbackEXT(m_vulkanInstance, m_debugCallback, nullptr);
-
-    vkDestroyInstance(m_vulkanInstance, nullptr);
+    if(m_vulkanInstance != nullptr)
+    {
+        delete m_vulkanInstance;
+        m_vulkanInstance = nullptr;
+    }
 
     glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VApp::debugCallback(  VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,
-                                                            uint64_t obj, size_t location, int32_t code,
-                                                            const char* layerPrefix, const char* msg, void* userData)
-{
-    Logger::error(msg);
-
-    return VK_FALSE;
-}
 
 }
