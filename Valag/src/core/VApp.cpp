@@ -146,7 +146,7 @@ bool VApp::createVulkanInstance()
     if(m_vulkanInstance != nullptr)
         delete m_vulkanInstance;
 
-    m_vulkanInstance = new VInstance(m_name);
+    m_vulkanInstance = new VInstance(m_window,m_name);
 
     return (true);
 }
