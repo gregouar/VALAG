@@ -2,6 +2,7 @@
 
 #include "Valag/utils/Parser.h"
 #include "Valag/utils/Logger.h"
+#include "Valag/utils/Clock.h"
 #include "Valag/core/Config.h"
 
 namespace vlg
@@ -20,14 +21,15 @@ const char *VApp::DEFAULT_VSYNC = "false";
 const bool VApp::ENABLE_PROFILER = false;
 
 
-VApp::VApp() : VApp(DEFAULT_APP_NAME)
+/*VApp::VApp() : VApp(DEFAULT_APP_NAME)
 {
     //ctor
-}
+}*/
 
-VApp::VApp(const std::string& name) :
-    m_name(name),
+VApp::VApp(const VAppCreateInfos &infos) :
+    m_createInfos(infos),
     m_vulkanInstance(nullptr),
+    m_sceneRenderer(nullptr),
     m_sceenshotNbr(1)
 {
 
@@ -83,6 +85,9 @@ bool VApp::init()
     if(!this->createVulkanInstance())
         throw std::runtime_error("Cannot initialize Vulkan");
 
+    if(!this->createSceneRenderer())
+        throw std::runtime_error("Cannot create scene renderer");
+
     return (true);
 }
 
@@ -136,7 +141,7 @@ bool VApp::createWindow()
     if(!Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN))
         monitor = nullptr;
 
-    m_window = glfwCreateWindow(w,h,m_name.c_str(), monitor, nullptr);
+    m_window = glfwCreateWindow(w,h,m_createInfos.name.c_str(), monitor, nullptr);
 
     return (m_window != nullptr);
 }
@@ -146,16 +151,31 @@ bool VApp::createVulkanInstance()
     if(m_vulkanInstance != nullptr)
         delete m_vulkanInstance;
 
-    m_vulkanInstance = new VInstance(m_window,m_name);
+    m_vulkanInstance = new VInstance(m_window,m_createInfos.name);
 
     return (true);
 }
 
+bool VApp::createSceneRenderer()
+{
+    if(m_sceneRenderer != nullptr)
+        delete m_sceneRenderer;
+
+    m_sceneRenderer = new SceneRenderer(m_vulkanInstance);
+
+    return (true);
+}
 
 void VApp::loop()
 {
+    Clock clock;
+
+
+    clock.restart();
     while(m_running)
     {
+        Time elapsedTime = clock.restart();
+
         m_eventsManager.update();
 
         ///m_window.clear();
@@ -165,7 +185,7 @@ void VApp::loop()
         else {
             m_statesManager.handleEvents(&m_eventsManager);
 
-            m_statesManager.update(/**elapsed_time**/);
+            m_statesManager.update(elapsedTime);
 
            /// m_stateManager.draw(&m_window);
         }
@@ -175,6 +195,12 @@ void VApp::loop()
 
 void VApp::cleanup()
 {
+    if(m_sceneRenderer != nullptr)
+    {
+        delete m_sceneRenderer;
+        m_sceneRenderer = nullptr;
+    }
+
     if(m_vulkanInstance != nullptr)
     {
         delete m_vulkanInstance;

@@ -304,13 +304,6 @@ bool VInstance::pickPhysicalDevice()
 
 bool VInstance::createLogicalDevice()
 {
-    /*VkDeviceQueueCreateInfo queueCreateInfo = {};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily;
-    queueCreateInfo.queueCount = 1;
-    float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;*/
-
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<int> uniqueQueueFamilies = {m_queueFamilyIndices.graphicsFamily,
                                          m_queueFamilyIndices.presentFamily};

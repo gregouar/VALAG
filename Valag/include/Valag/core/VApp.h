@@ -8,15 +8,24 @@
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
 #include "Valag/gfx/VInstance.h"
+#include "Valag/gfx/SceneRenderer.h"
 
 namespace vlg
 {
 
+struct VAppCreateInfos
+{
+    std::string name;
+
+    float xyAngle;
+    float zAngle;
+};
+
 class VApp
 {
     public:
-        VApp();
-        VApp(const std::string &name);
+        //VApp();
+        VApp(const VAppCreateInfos &infos);
         virtual ~VApp();
 
 
@@ -34,6 +43,7 @@ class VApp
         bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
         bool    createWindow();
         bool    createVulkanInstance();
+        bool    createSceneRenderer();
 
         void    loop();
 
@@ -41,12 +51,14 @@ class VApp
 
     private:
         bool        m_running;
-        std::string m_name;
+        //std::string m_name;
+        VAppCreateInfos     m_createInfos;
 
         StatesManager       m_statesManager;
         EventsManager       m_eventsManager;
         GLFWwindow         *m_window;
         VInstance          *m_vulkanInstance;
+        SceneRenderer      *m_sceneRenderer;
 
         unsigned int m_sceenshotNbr;
 

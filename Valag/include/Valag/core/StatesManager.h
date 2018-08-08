@@ -25,7 +25,7 @@ class StatesManager
         GameState* peekState();
 
         void handleEvents(const EventsManager *eventsManager);
-        void update(/** sf::Time **/);
+        void update(const Time &elapsedTime);
         void draw(/**sf::RenderTarget* **/);
 
         VApp* getApp();

@@ -2,6 +2,7 @@
 #define GAMESTATE_H
 
 #include "Valag/core/EventsManager.h"
+#include "Valag/Types.h"
 
 namespace vlg
 {
@@ -20,7 +21,7 @@ class GameState
         virtual void obscuring() = 0;
 
         virtual void handleEvents(const EventsManager *eventsManager) = 0;
-        virtual void update(/**sf::Time**/) = 0;
+        virtual void update(const Time &elapsedTime) = 0;
         virtual void draw(/**sf::RenderTarget* **/) = 0;
 
         void setManager(StatesManager *);

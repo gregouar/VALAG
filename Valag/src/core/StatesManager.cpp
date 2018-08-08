@@ -76,16 +76,18 @@ void StatesManager::handleEvents(const EventsManager *eventsManager)
         m_states[i]->handleEvents(eventsManager);
 }
 
-void StatesManager::update(/**sf::Time time**/)
+void StatesManager::update(const Time &elapsedTime)
 {
-    ///for(std::size_t i = 0; i < m_states.size() ; ++i)
-       /// m_states[i]->Update(time);
+    /*for(std::size_t i = 0; i < m_states.size() ; ++i)
+        m_states[i]->update(elapsedTime);*/
+    for(auto state : m_states)
+        state->update(elapsedTime);
 }
 
 void StatesManager::draw(/**sf::RenderTarget* renderer**/)
 {
-    ///for(std::size_t i = 0; i < m_states.size() ; ++i)
-       /// m_states[i]->draw(renderer);
+    for(auto state : m_states)
+        state->draw(/**renderer**/);
 }
 
 void StatesManager::attachApp(VApp* app)
