@@ -1,24 +1,42 @@
 #include "states/TestingState.h"
 
 #include "Valag/core/StatesManager.h"
+#include "Valag/utils/Clock.h"
 
-TestingState::TestingState()
+#include "Valag/gfx/SceneNode.h"
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
+
+TestingState::TestingState() :
+    m_firstEntering(true),
+    m_scene(nullptr)
 {
-    m_firstEntering = true;
 }
 
 TestingState::~TestingState()
 {
+    if(m_scene != nullptr)
+        delete m_scene;
 }
 
 void TestingState::init()
 {
     m_firstEntering = false;
+
+    m_scene = new vlg::Scene();
+
+    vlg::TextureHandler* textureHandler =  vlg::TextureHandler::instance();
+
+    textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread);
+
+    vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
+
+
 }
 
 void TestingState::entered()
 {
-    /// m_totalTime = sf::Time::Zero;
+    m_totalTime = vlg::TimeZero();
 
     if(m_firstEntering)
         this->init();
@@ -149,9 +167,17 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
 }
 
-void TestingState::update(/**sf::Time time**/)
+void TestingState::update(const vlg::Time &elapsedTime)
 {
-    ///m_totalTime += time;
+    m_totalTime += elapsedTime;
+    m_nbrFps++;
+
+    if(m_totalTime.count() > 1)
+    {
+        m_totalTime -= std::chrono::seconds(1);
+        std::cout<<"FPS : "<<m_nbrFps<<std::endl;
+        m_nbrFps = 0;
+    }
 }
 
 void TestingState::draw(/**sf::RenderTarget* renderer**/)
