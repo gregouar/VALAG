@@ -30,6 +30,7 @@ struct SwapchainSupportDetails {
     std::vector<VkPresentModeKHR>   presentModes;
 };
 
+
 class VInstance
 {
     friend class TextureAsset;
@@ -71,10 +72,11 @@ class VInstance
 
         VkDevice getDevice();
         VkPhysicalDevice getPhysicalDevice();
-        VkCommandPool getCommandPool();
+        //VkCommandPool getCommandPool(CommandPoolName commandPoolName);
+        //int getGraphicsFamily();
 
-        VkCommandBuffer beginSingleTimeCommands();
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
 
         static VInstance *getCurrentInstance();
         static void setCurrentInstance(VInstance *instance);
@@ -99,7 +101,8 @@ class VInstance
         VkFormat    m_swapchainImageFormat;
         VkExtent2D  m_swapchainExtent;
 
-        VkCommandPool m_commandPool;
+        VkCommandPool m_commandPool,
+                      m_texturesLoadingCommandPool;
 
         static VInstance *static_currentInstance;
 

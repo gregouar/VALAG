@@ -74,6 +74,12 @@ enum PBRScreenType
     PBRExtraScreen0,
 };
 
+enum CommandPoolName
+{
+    MAIN_COMMANDPOOL,
+    TEXTURESLOADING_COMMANDPOOL,
+};
+
 typedef std::chrono::duration<double, std::chrono::seconds::period> Time;
 
 typedef unsigned int AssetTypeID;

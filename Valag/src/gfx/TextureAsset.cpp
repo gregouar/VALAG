@@ -87,6 +87,13 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
 
     VkDevice device = vulkanInstance->getDevice();
 
+    CommandPoolName commandPoolName;
+
+    if(m_loadType == LoadType_Now)
+        commandPoolName = MAIN_COMMANDPOOL;
+    else
+        commandPoolName = TEXTURESLOADING_COMMANDPOOL;
+
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -105,9 +112,12 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                m_textureImage, m_textureImageMemory);
 
-    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        VulkanHelpers::copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,commandPoolName);
+        VulkanHelpers::copyBufferToImage(stagingBuffer, m_textureImage,
+                                         static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight),commandPoolName);
+    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,commandPoolName);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);

@@ -129,14 +129,16 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
     return (true);
 }
 
- void VulkanHelpers::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+
+ void VulkanHelpers::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                           CommandPoolName commandPoolName)
  {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
 
     if(vulkanInstance == nullptr)
         throw std::runtime_error("No Vulkan instance in transitionImageLayout()");
 
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
 
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -179,17 +181,18 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
         1, &barrier
     );
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer);
+    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
-void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,
+                                      CommandPoolName commandPoolName)
 {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
 
     if(vulkanInstance == nullptr)
         throw std::runtime_error("No Vulkan instance in copyBufferToImage()");
 
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
 
     VkBufferImageCopy region = {};
     region.bufferOffset = 0;
@@ -208,7 +211,7 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer);
+    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
 

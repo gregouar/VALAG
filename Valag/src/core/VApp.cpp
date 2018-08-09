@@ -6,8 +6,7 @@
 #include "Valag/core/Config.h"
 
 
-#include "Valag/core/AssetHandler.h"
-#include "Valag/gfx/TextureAsset.h"
+#include "Valag/gfx/TexturesHandler.h"
 
 namespace vlg
 {
@@ -91,6 +90,9 @@ bool VApp::init()
         throw std::runtime_error("Cannot initialize Vulkan");
 
     m_vulkanInstance->setActive();
+
+    //if(! TexturesHandler::instance()->createCommandPool())
+       // throw std::runtime_error("Cannot create command pool for texturesHandler");
 
     if(!this->createSceneRenderer())
         throw std::runtime_error("Cannot create scene renderer");

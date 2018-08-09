@@ -502,12 +502,14 @@ bool VInstance::createCommandPool()
     poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily;
     poolInfo.flags = 0; // Optional
 
-    return (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS);
+    return (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS)
+        && (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_texturesLoadingCommandPool) == VK_SUCCESS);
 }
 
 void VInstance::cleanup()
 {
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    vkDestroyCommandPool(m_device, m_texturesLoadingCommandPool, nullptr);
 
     for (auto imageView : m_swapchainImageViews)
         vkDestroyImageView(m_device, imageView, nullptr);
@@ -534,17 +536,27 @@ VkPhysicalDevice VInstance::getPhysicalDevice()
 }
 
 
-VkCommandPool VInstance::getCommandPool()
+/*VkCommandPool VInstance::getCommandPool()
 {
     return m_commandPool;
 }
 
-VkCommandBuffer VInstance::beginSingleTimeCommands()
+int VInstance::getGraphicsFamily()
+{
+    return m_queueFamilyIndices.graphicsFamily;
+}*/
+
+VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolName)
 {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = m_commandPool;
+
+    if(commandPoolName == MAIN_COMMANDPOOL)
+        allocInfo.commandPool = m_commandPool;
+    else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
+        allocInfo.commandPool = m_texturesLoadingCommandPool;
+
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -559,7 +571,8 @@ VkCommandBuffer VInstance::beginSingleTimeCommands()
     return commandBuffer;
 }
 
-void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+
+void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -571,7 +584,14 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_graphicsQueue);
 
-    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+    VkCommandPool commandPool;
+
+    if(commandPoolName == MAIN_COMMANDPOOL)
+        commandPool = m_commandPool;
+    else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
+        commandPool = m_texturesLoadingCommandPool;
+
+    vkFreeCommandBuffers(m_device, commandPool, 1, &commandBuffer);
 }
 
 
