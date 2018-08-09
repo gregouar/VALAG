@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 
+#include "Valag/VulkanHelpers.h"
+
 namespace vlg
 {
 
@@ -30,9 +32,16 @@ struct SwapchainSupportDetails {
 
 class VInstance
 {
+    friend class TextureAsset;
+    friend class VulkanHelpers;
+
     public:
         VInstance(GLFWwindow *window, const std::string name = "");
         virtual ~VInstance();
+
+        bool isInitialized();
+
+        void setActive();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,
                                                             uint64_t obj, size_t location, int32_t code,
@@ -55,9 +64,20 @@ class VInstance
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
         bool    createSwapchain();
         bool    createImageViews();
+        bool    createCommandPool();
 
         void init();
         void cleanup();
+
+        VkDevice getDevice();
+        VkPhysicalDevice getPhysicalDevice();
+        VkCommandPool getCommandPool();
+
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+        static VInstance *getCurrentInstance();
+        static void setCurrentInstance(VInstance *instance);
 
     private:
         std::string m_name;
@@ -79,10 +99,16 @@ class VInstance
         VkFormat    m_swapchainImageFormat;
         VkExtent2D  m_swapchainExtent;
 
+        VkCommandPool m_commandPool;
+
+        static VInstance *static_currentInstance;
+
+        bool m_isInit;
+
     public:
 
-        static const std::vector<const char*> validationLayers;
-        static const std::vector<const char*> deviceExtensions;
+        static const std::vector<const char*> const_validationLayers;
+        static const std::vector<const char*> const_deviceExtensions;
 
 };
 

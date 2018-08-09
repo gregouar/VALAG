@@ -70,7 +70,7 @@ AssetType* AssetHandler<AssetType>::loadAssetFromFile(const AssetTypeID& id,
     }
 
     AssetType* newAsset = this->addAsset(id);
-    newAsset->loadFromFile(filePath, loadType);
+    newAsset->prepareLoadFromFile(filePath, loadType);
     if(loadType == LoadType_Now) {
         newAsset->loadNow();
     } else {
@@ -95,7 +95,7 @@ AssetType* AssetHandler<AssetType>::loadAssetFromMemory(const AssetTypeID& id,
                                         void *data, std::size_t dataSize, AssetLoadType loadType)
 {
     Asset* newAsset = this->addAsset(id);
-    newAsset->loadFromMemory(data, dataSize, loadType);
+    newAsset->prepareLoadFromMemory(data, dataSize, loadType);
     if(loadType == LoadType_Now)
         newAsset->loadNow();
     else
@@ -117,7 +117,7 @@ AssetType* AssetHandler<AssetType>::loadAssetFromStream(const AssetTypeID& id,
                                         sf::InputStream *stream, AssetLoadType loadType)
 {
     Asset* newAsset = AddAsset(id);
-    newAsset->LoadFromStream(stream, loadType);
+    newAsset->prepareLoadFromStream(stream, loadType);
     if(loadType == LoadType_Now)
         newAsset->LoadNow();
     else
@@ -173,8 +173,12 @@ void AssetHandler<AssetType>::addToLoadingThread(AssetType* asset)
 
         m_assetsToLoadInThread.push_back(asset);
         if(m_assetsToLoadInThread.size() == 1)
+        {
+            if(m_loadThread.joinable())
+                m_loadThread.join();
             m_loadThread = std::thread(&AssetHandler<AssetType>::loadInThread, this);
             ///m_loadThread->Launch();
+        }
     }
 }
 
@@ -285,7 +289,8 @@ void AssetHandler<AssetType>::cleanAll()
 
     this->unlockLoadMutex();
 
-    m_loadThread.join();
+    if(m_loadThread.joinable())
+        m_loadThread.join();
 }
 
 template<typename AssetType>

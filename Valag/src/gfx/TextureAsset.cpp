@@ -2,6 +2,11 @@
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/utils/Logger.h"
 
+#include "Valag/gfx/VInstance.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 namespace vlg
 {
 
@@ -9,6 +14,8 @@ TextureAsset::TextureAsset()
 {
     ///m_texture = new sf::Texture();
     m_createdTexture = true;
+
+    m_creatingInstance = nullptr;
 
     m_allowLoadFromFile = true;
     m_allowLoadFromMemory = true;
@@ -22,6 +29,8 @@ TextureAsset::TextureAsset(const AssetTypeID& id) : Asset(id)
 {
     ///m_texture = new sf::Texture();
     m_createdTexture = true;
+
+    m_creatingInstance = nullptr;
 
     m_allowLoadFromFile = true;
     m_allowLoadFromMemory = true;
@@ -52,33 +61,112 @@ TextureAsset::~TextureAsset()
 {
     ///if(m_createdTexture && m_texture != nullptr)
        /// delete m_texture;
+
+    if(m_creatingInstance != nullptr)
+    {
+        vkDestroyImage(m_creatingInstance->getDevice(), m_textureImage, nullptr);
+        vkFreeMemory(m_creatingInstance->getDevice(), m_textureImageMemory, nullptr);
+    }
+
 }
 
-bool TextureAsset::loadNow()
+bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
+{
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+    if(vulkanInstance == nullptr)
+    {
+        Logger::error("Cannot load texture without Vulkan instance");
+        return (false);
+    }
+
+    if(!vulkanInstance->isInitialized())
+    {
+        Logger::error("Cannot load texture with uninitialized Vulkan instance");
+        return (false);
+    }
+
+    VkDevice device = vulkanInstance->getDevice();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    VulkanHelpers::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    stbi_image_free(pixels);
+
+    VulkanHelpers::createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               m_textureImage, m_textureImageMemory);
+
+    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VulkanHelpers::copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    VulkanHelpers::transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+    m_size.x = texWidth;
+    m_size.y = texHeight;
+    m_creatingInstance = vulkanInstance;
+
+    return (true);
+}
+
+bool TextureAsset::loadFromFile(const std::string &filePath)
+{
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+    if (!pixels)
+    {
+        Logger::error("Cannot load texture from file: "+m_filePath);
+        return (false);
+    }
+
+    this->generateTexture(pixels, texWidth, texHeight);
+
+    Logger::write("Texture loaded from file: "+filePath);
+
+    return (true);
+}
+
+bool TextureAsset::loadFromMemory(void *data, std::size_t dataSize)
+{
+    return (false);
+}
+
+/**bool TextureAsset::loadNow()
 {
     bool loaded = true;
 
     if(!m_loaded) {
         if(m_loadSource == LoadSource_File)
         {
-           /** if(!m_texture->loadFromFile(m_filePath))
+            if(!m_texture->loadFromFile(m_filePath))
             {
                 Logger::Error("Cannot load texture from file: "+m_filePath);
                 loaded = false;
-            } else**/
+            } else
                 Logger::write("Texture loaded from file: "+m_filePath);
         } else if(m_loadSource == LoadSource_Memory) {
-            /**if(!m_texture->loadFromMemory(m_loadData,m_loadDataSize))
+            if(!m_texture->loadFromMemory(m_loadData,m_loadDataSize))
             {
                 Logger::Error("Cannot load texture from memory");
                 loaded = false;
-            }**/
+            }
         } else if(m_loadSource == LoadSource_Stream) {
-            /**if(!m_texture->loadFromStream(*m_loadStream))
+            if(!m_texture->loadFromStream(*m_loadStream))
             {
                 Logger::Error("Cannot load texture from stream");
                 loaded = false;
-            }**/
+            }
         } else {
             Logger::error("Cannot load asset");
             m_loaded = false;
@@ -88,7 +176,7 @@ bool TextureAsset::loadNow()
     }
 
     return Asset::loadNow();
-}
+}**/
 
 /**void TextureAsset::generateMipmap()
 {

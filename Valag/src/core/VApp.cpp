@@ -5,6 +5,10 @@
 #include "Valag/utils/Clock.h"
 #include "Valag/core/Config.h"
 
+
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
+
 namespace vlg
 {
 
@@ -28,6 +32,7 @@ const bool VApp::ENABLE_PROFILER = false;
 
 VApp::VApp(const VAppCreateInfos &infos) :
     m_createInfos(infos),
+    m_window(nullptr),
     m_vulkanInstance(nullptr),
     m_sceneRenderer(nullptr),
     m_sceenshotNbr(1)
@@ -84,6 +89,8 @@ bool VApp::init()
 
     if(!this->createVulkanInstance())
         throw std::runtime_error("Cannot initialize Vulkan");
+
+    m_vulkanInstance->setActive();
 
     if(!this->createSceneRenderer())
         throw std::runtime_error("Cannot create scene renderer");
@@ -170,7 +177,6 @@ void VApp::loop()
 {
     Clock clock;
 
-
     clock.restart();
     while(m_running)
     {
@@ -201,13 +207,17 @@ void VApp::cleanup()
         m_sceneRenderer = nullptr;
     }
 
+    TextureHandler::instance()->cleanAll();
+
     if(m_vulkanInstance != nullptr)
     {
         delete m_vulkanInstance;
         m_vulkanInstance = nullptr;
     }
 
-    glfwDestroyWindow(m_window);
+    if(m_window != nullptr)
+        glfwDestroyWindow(m_window);
+
     glfwTerminate();
 }
 

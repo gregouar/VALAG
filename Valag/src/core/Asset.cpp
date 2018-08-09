@@ -25,7 +25,18 @@ Asset::~Asset()
     //dtor
 }
 
-bool Asset::loadFromFile(const std::string &filePath, AssetLoadType loadType)
+
+bool Asset::loadFromFile(const std::string &)
+{
+    return (false);
+}
+
+bool Asset::loadFromMemory(void *data, std::size_t size)
+{
+    return (false);
+}
+
+bool Asset::prepareLoadFromFile(const std::string &filePath, AssetLoadType loadType)
 {
     if(!m_allowLoadFromFile)
     {
@@ -41,7 +52,7 @@ bool Asset::loadFromFile(const std::string &filePath, AssetLoadType loadType)
     return (true);
 }
 
-bool Asset::loadFromMemory(void *data, std::size_t dataSize, AssetLoadType loadType)
+bool Asset::prepareLoadFromMemory(void *data, std::size_t dataSize, AssetLoadType loadType)
 {
     if(!m_allowLoadFromMemory)
     {
@@ -57,7 +68,7 @@ bool Asset::loadFromMemory(void *data, std::size_t dataSize, AssetLoadType loadT
     return (true);
 }
 
-/**bool Asset::loadFromStream(sf::InputStream *stream, AssetLoadType loadType)
+/**bool Asset::prepareLoadFromStream(sf::InputStream *stream, AssetLoadType loadType)
 {
     if(!m_allowLoadFromStream)
     {
@@ -74,7 +85,43 @@ bool Asset::loadFromMemory(void *data, std::size_t dataSize, AssetLoadType loadT
 
 bool Asset::loadNow()
 {
-    if(!this->isLoaded())
+    bool loaded = true;
+
+    if(!m_loaded)
+    {
+        if(m_loadSource == LoadSource_File)
+        {
+            this->loadFromFile(m_filePath);
+
+            /**if(!m_texture->loadFromFile(m_filePath))
+            {
+                Logger::Error("Cannot load texture from file: "+m_filePath);
+                loaded = false;
+            } else
+                Logger::write("Texture loaded from file: "+m_filePath);**/
+        } else if(m_loadSource == LoadSource_Memory) {
+            this->loadFromMemory(m_loadData, m_loadDataSize);
+
+            /**if(!m_texture->loadFromMemory(m_loadData,m_loadDataSize))
+            {
+                Logger::Error("Cannot load texture from memory");
+                loaded = false;
+            }**/
+        } else if(m_loadSource == LoadSource_Stream) {
+            /**if(!m_texture->loadFromStream(*m_loadStream))
+            {
+                Logger::Error("Cannot load texture from stream");
+                loaded = false;
+            }**/
+        } else {
+            Logger::error("Cannot load asset");
+            m_loaded = false;
+        }
+
+        m_loaded = loaded;
+    }
+
+    if(!m_loaded)
         return (false);
 
     this->sendNotification(Notification_AssetLoaded);

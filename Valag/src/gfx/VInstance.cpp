@@ -13,25 +13,27 @@ namespace vlg
 {
 
 
-const std::vector<const char*> VInstance::validationLayers = {
+const std::vector<const char*> VInstance::const_validationLayers = {
     "VK_LAYER_LUNARG_standard_validation"
 };
 
-const std::vector<const char*> VInstance::deviceExtensions = {
+const std::vector<const char*> VInstance::const_deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
-    const bool enableValidationLayers = false;
+    const bool const_enableValidationLayers = false;
 #else
-    const bool enableValidationLayers = true;
+    const bool const_enableValidationLayers = true;
 #endif
 
+VInstance *VInstance::static_currentInstance = nullptr;
 
 VInstance::VInstance(GLFWwindow *window, const std::string name) :
     m_name(name),
     m_parentWindow(window),
-    m_physicalDevice(VK_NULL_HANDLE)
+    m_physicalDevice(VK_NULL_HANDLE),
+    m_isInit(false)
 {
     this->init();
 }
@@ -41,29 +43,43 @@ VInstance::~VInstance()
     this->cleanup();
 }
 
+bool VInstance::isInitialized()
+{
+    return m_isInit;
+}
+
+void VInstance::setActive()
+{
+    VInstance::setCurrentInstance(this);
+}
 
 void VInstance::init()
 {
     if(!this->createVulkanInstance())
-        throw std::runtime_error("Can not create Vulkan instance");
+        throw std::runtime_error("Cannot create Vulkan instance");
 
     if(!this->setupDebugCallback())
-        throw std::runtime_error("Can not setup debug callback");
+        throw std::runtime_error("Cannot setup debug callback");
 
     if(!this->createSurface())
-        throw std::runtime_error("Can not create window surface");
+        throw std::runtime_error("Cannot create window surface");
 
     if(!this->pickPhysicalDevice())
-        throw std::runtime_error("Can not find suitable physical device");
+        throw std::runtime_error("Cannot find suitable physical device");
 
     if(!this->createLogicalDevice())
-        throw std::runtime_error("Can not create logical device");
+        throw std::runtime_error("Cannot create logical device");
 
     if(!this->createSwapchain())
-        throw std::runtime_error("Can not create logical device");
+        throw std::runtime_error("Cannot create logical device");
 
     if(!this->createImageViews())
-        throw std::runtime_error("Can not create image views");
+        throw std::runtime_error("Cannot create image views");
+
+    if(!this->createCommandPool())
+        throw std::runtime_error("Cannot create command pool");
+
+    m_isInit = true;
 }
 
 bool VInstance::checkValidationLayerSupport()
@@ -74,7 +90,7 @@ bool VInstance::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : validationLayers)
+    for (const char* layerName : const_validationLayers)
     {
         bool layerFound = false;
 
@@ -102,7 +118,7 @@ std::vector<const char*> VInstance::getRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (enableValidationLayers) {
+    if (const_enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
 
@@ -111,7 +127,7 @@ std::vector<const char*> VInstance::getRequiredExtensions()
 
 bool VInstance::createVulkanInstance()
 {
-    if (enableValidationLayers && !this->checkValidationLayerSupport())
+    if (const_enableValidationLayers && !this->checkValidationLayerSupport())
         throw std::runtime_error("Validation layers requested not available");
 
     VkApplicationInfo appInfo = {};
@@ -130,10 +146,10 @@ bool VInstance::createVulkanInstance()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    if (enableValidationLayers)
+    if (const_enableValidationLayers)
     {
-        createInfo.enabledLayerCount    = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames  = validationLayers.data();
+        createInfo.enabledLayerCount    = static_cast<uint32_t>(const_validationLayers.size());
+        createInfo.ppEnabledLayerNames  = const_validationLayers.data();
     } else {
         createInfo.enabledLayerCount    = 0;
     }
@@ -143,7 +159,7 @@ bool VInstance::createVulkanInstance()
 
 bool VInstance::setupDebugCallback()
 {
-    if (!enableValidationLayers)
+    if (!const_enableValidationLayers)
         return (true);
 
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
@@ -166,7 +182,7 @@ bool VInstance::checkDeviceExtensionSupport(const VkPhysicalDevice &device)
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    std::set<std::string> requiredExtensions(const_deviceExtensions.begin(), const_deviceExtensions.end());
 
     for (const auto& extension : availableExtensions)
         requiredExtensions.erase(extension.extensionName);
@@ -327,12 +343,12 @@ bool VInstance::createLogicalDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(const_deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = const_deviceExtensions.data();
 
-    if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+    if (const_enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(const_validationLayers.size());
+        createInfo.ppEnabledLayerNames = const_validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
     }
@@ -479,19 +495,95 @@ bool VInstance::createImageViews()
     return (true);
 }
 
+bool VInstance::createCommandPool()
+{
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily;
+    poolInfo.flags = 0; // Optional
+
+    return (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS);
+}
+
 void VInstance::cleanup()
 {
+    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+
     for (auto imageView : m_swapchainImageViews)
         vkDestroyImageView(m_device, imageView, nullptr);
 
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     vkDestroyDevice(m_device, nullptr);
 
-    if (enableValidationLayers)
+    if (const_enableValidationLayers)
         DestroyDebugReportCallbackEXT(m_vulkanInstance, m_debugCallback, nullptr);
 
     vkDestroySurfaceKHR(m_vulkanInstance, m_surface, nullptr);
     vkDestroyInstance(m_vulkanInstance, nullptr);
+}
+
+
+VkDevice VInstance::getDevice()
+{
+    return m_device;
+}
+
+VkPhysicalDevice VInstance::getPhysicalDevice()
+{
+    return m_physicalDevice;
+}
+
+
+VkCommandPool VInstance::getCommandPool()
+{
+    return m_commandPool;
+}
+
+VkCommandBuffer VInstance::beginSingleTimeCommands()
+{
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    return commandBuffer;
+}
+
+void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+}
+
+
+
+VInstance *VInstance::getCurrentInstance()
+{
+    return VInstance::static_currentInstance;
+}
+
+void VInstance::setCurrentInstance(VInstance *instance)
+{
+    VInstance::static_currentInstance = instance;
 }
 
 
