@@ -8,6 +8,8 @@
 #include "Valag/VulkanExtProxies.h"
 
 #include "Valag/utils/Logger.h"
+#include "Valag/core/Config.h"
+#include "Valag/core/VApp.h"
 
 namespace vlg
 {
@@ -51,6 +53,17 @@ bool VInstance::isInitialized()
 void VInstance::setActive()
 {
     VInstance::setCurrentInstance(this);
+}
+
+VkExtent2D VInstance::getSwapchainExtent()
+{
+    return m_swapchainExtent;
+}
+
+
+VkFormat VInstance::getSwapchainImageFormat()
+{
+    return m_swapchainImageFormat;
 }
 
 void VInstance::init()
@@ -118,9 +131,8 @@ std::vector<const char*> VInstance::getRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (const_enableValidationLayers) {
+    if (const_enableValidationLayers)
         extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    }
 
     return extensions;
 }
@@ -141,6 +153,7 @@ bool VInstance::createVulkanInstance()
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
+
 
     std::vector<const char*> extensions = getRequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
@@ -272,9 +285,12 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device)
     /*if (!deviceFeatures.geometryShader)
         return 0;*/
 
-    if(!checkDeviceExtensionSupport(device))
+    /** could change to just desactivate anisotropic filtering... but probably not useful since a gpu without it can certainly not run the engine**/
+    if(!deviceFeatures.samplerAnisotropy)
         return 0;
 
+    if(!checkDeviceExtensionSupport(device))
+        return 0;
 
     SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device);
     if(swapchainSupport.formats.empty() || swapchainSupport.presentModes.empty())
@@ -336,6 +352,7 @@ bool VInstance::createLogicalDevice()
     }
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -515,10 +532,11 @@ void VInstance::cleanup()
         vkDestroyImageView(m_device, imageView, nullptr);
 
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+
     vkDestroyDevice(m_device, nullptr);
 
     if (const_enableValidationLayers)
-        DestroyDebugReportCallbackEXT(m_vulkanInstance, m_debugCallback, nullptr);
+     DestroyDebugReportCallbackEXT(m_vulkanInstance, m_debugCallback, nullptr);
 
     vkDestroySurfaceKHR(m_vulkanInstance, m_surface, nullptr);
     vkDestroyInstance(m_vulkanInstance, nullptr);
@@ -536,15 +554,25 @@ VkPhysicalDevice VInstance::getPhysicalDevice()
 }
 
 
-/*VkCommandPool VInstance::getCommandPool()
+VkCommandPool VInstance::getCommandPool(CommandPoolName commandPoolName)
 {
+    if(commandPoolName == MAIN_COMMANDPOOL)
+        return m_commandPool;
+    else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
+        return m_texturesLoadingCommandPool;
+
     return m_commandPool;
 }
 
-int VInstance::getGraphicsFamily()
+/*int VInstance::getGraphicsFamily()
 {
     return m_queueFamilyIndices.graphicsFamily;
 }*/
+
+const std::vector<VkImageView> &VInstance::getSwapchainImageViews()
+{
+    return m_swapchainImageViews;
+}
 
 VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolName)
 {
@@ -552,10 +580,7 @@ VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolNa
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-    if(commandPoolName == MAIN_COMMANDPOOL)
-        allocInfo.commandPool = m_commandPool;
-    else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
-        allocInfo.commandPool = m_texturesLoadingCommandPool;
+    allocInfo.commandPool = this->getCommandPool(commandPoolName);
 
     allocInfo.commandBufferCount = 1;
 
@@ -584,14 +609,7 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPool
     vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_graphicsQueue);
 
-    VkCommandPool commandPool;
-
-    if(commandPoolName == MAIN_COMMANDPOOL)
-        commandPool = m_commandPool;
-    else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
-        commandPool = m_texturesLoadingCommandPool;
-
-    vkFreeCommandBuffers(m_device, commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(m_device, this->getCommandPool(commandPoolName), 1, &commandBuffer);
 }
 
 

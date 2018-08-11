@@ -6,6 +6,25 @@
 namespace vlg
 {
 
+std::vector<char> VulkanHelpers::readFile(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open())
+        throw std::runtime_error("Failed to open file: "+filename);
+
+    size_t fileSize = (size_t) file.tellg();
+    std::vector<char> buffer(fileSize);
+
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+
+    return buffer;
+}
+
+
 uint32_t VulkanHelpers::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
@@ -212,6 +231,54 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
+}
+
+VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format)
+{
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+
+    if(vulkanInstance == nullptr)
+        throw std::runtime_error("No Vulkan instance in createImageView()");
+
+    VkDevice device = vulkanInstance->getDevice();
+
+    VkImageViewCreateInfo viewInfo = {};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VkImageView imageView;
+    if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create texture image view");
+
+    return imageView;
+}
+
+VkShaderModule VulkanHelpers::createShaderModule(const std::vector<char>& code)
+{
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+
+    if(vulkanInstance == nullptr)
+        throw std::runtime_error("No Vulkan instance in createShaderModule()");
+
+    VkDevice device = vulkanInstance->getDevice();
+
+    VkShaderModuleCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create shader module");
+
+    return shaderModule;
 }
 
 

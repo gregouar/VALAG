@@ -34,12 +34,13 @@ class TextureAsset : public Asset
         ///virtual sf::Texture* GetTexture();
 
     protected:
-        /** Should use different command pools for different threadq **/
         bool generateTexture(unsigned char* pixels, int texWidth, int texHeight);
 
         ///sf::Texture* m_texture;
-        VkImage m_textureImage;
-        VkDeviceMemory m_textureImageMemory;
+        VkImage         m_textureImage;
+        VkDeviceMemory  m_textureImageMemory;
+        VkImageView     m_textureImageView;
+
         glm::vec2 m_size;
 
     private:

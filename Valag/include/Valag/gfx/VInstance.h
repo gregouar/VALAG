@@ -3,6 +3,7 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 #include <string>
@@ -35,6 +36,8 @@ class VInstance
 {
     friend class TextureAsset;
     friend class VulkanHelpers;
+    friend class DefaultRenderer;
+    friend class SceneRenderer;
 
     public:
         VInstance(GLFWwindow *window, const std::string name = "");
@@ -43,6 +46,9 @@ class VInstance
         bool isInitialized();
 
         void setActive();
+
+        VkExtent2D getSwapchainExtent();
+        VkFormat getSwapchainImageFormat();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,
                                                             uint64_t obj, size_t location, int32_t code,
@@ -72,8 +78,10 @@ class VInstance
 
         VkDevice getDevice();
         VkPhysicalDevice getPhysicalDevice();
-        //VkCommandPool getCommandPool(CommandPoolName commandPoolName);
+        VkCommandPool getCommandPool(CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
         //int getGraphicsFamily();
+
+        const std::vector<VkImageView> &getSwapchainImageViews();
 
         VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
         void endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName = MAIN_COMMANDPOOL);

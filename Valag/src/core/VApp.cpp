@@ -5,8 +5,8 @@
 #include "Valag/utils/Clock.h"
 #include "Valag/core/Config.h"
 
-
-#include "Valag/gfx/TexturesHandler.h"
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
 
 namespace vlg
 {
@@ -14,11 +14,13 @@ namespace vlg
 const char *VApp::DEFAULT_APP_NAME = "VALAGEngine";
 const char *VApp::DEFAULT_CONFIG_FILE = "config.ini";
 const char *VApp::DEFAULT_SCREENSHOTPATH = "../screenshots/";
+const char *VApp::DEFAULT_SHADERPATH = "../shaders/";
 
 const char *VApp::DEFAULT_WINDOW_FULLSCREEN = "false";
 const char *VApp::DEFAULT_WINDOW_WIDTH = "1024";
 const char *VApp::DEFAULT_WINDOW_HEIGHT = "768";
 const char *VApp::DEFAULT_VSYNC = "false";
+const char *VApp::DEFAULT_ANISOTROPIC = "16";
 
 
 const bool VApp::ENABLE_PROFILER = false;
@@ -33,6 +35,7 @@ VApp::VApp(const VAppCreateInfos &infos) :
     m_createInfos(infos),
     m_window(nullptr),
     m_vulkanInstance(nullptr),
+    m_defaultRenderer(nullptr),
     m_sceneRenderer(nullptr),
     m_sceenshotNbr(1)
 {
@@ -93,6 +96,9 @@ bool VApp::init()
 
     //if(! TexturesHandler::instance()->createCommandPool())
        // throw std::runtime_error("Cannot create command pool for texturesHandler");
+
+    if(!this->createDefaultRenderer())
+        throw std::runtime_error("Cannot create default renderer");
 
     if(!this->createSceneRenderer())
         throw std::runtime_error("Cannot create scene renderer");
@@ -165,6 +171,16 @@ bool VApp::createVulkanInstance()
     return (true);
 }
 
+bool VApp::createDefaultRenderer()
+{
+    if(m_defaultRenderer != nullptr)
+        delete m_defaultRenderer;
+
+    m_defaultRenderer = new DefaultRenderer(m_vulkanInstance);
+
+    return (true);
+}
+
 bool VApp::createSceneRenderer()
 {
     if(m_sceneRenderer != nullptr)
@@ -207,6 +223,12 @@ void VApp::cleanup()
     {
         delete m_sceneRenderer;
         m_sceneRenderer = nullptr;
+    }
+
+    if(m_defaultRenderer != nullptr)
+    {
+        delete m_defaultRenderer;
+        m_defaultRenderer = nullptr;
     }
 
     TextureHandler::instance()->cleanAll();

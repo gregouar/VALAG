@@ -64,8 +64,10 @@ TextureAsset::~TextureAsset()
 
     if(m_creatingInstance != nullptr)
     {
-        vkDestroyImage(m_creatingInstance->getDevice(), m_textureImage, nullptr);
-        vkFreeMemory(m_creatingInstance->getDevice(), m_textureImageMemory, nullptr);
+        VkDevice device = m_creatingInstance->getDevice();
+        vkDestroyImage(device, m_textureImage, nullptr);
+        vkFreeMemory(device, m_textureImageMemory, nullptr);
+        vkDestroyImageView(device, m_textureImageView, nullptr);
     }
 
 }
@@ -125,6 +127,8 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
     m_size.x = texWidth;
     m_size.y = texHeight;
     m_creatingInstance = vulkanInstance;
+
+    m_textureImageView = VulkanHelpers::createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM);
 
     return (true);
 }

@@ -8,6 +8,7 @@
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
 #include "Valag/gfx/VInstance.h"
+#include "Valag/gfx/DefaultRenderer.h"
 #include "Valag/gfx/SceneRenderer.h"
 
 namespace vlg
@@ -43,6 +44,7 @@ class VApp
         bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
         bool    createWindow();
         bool    createVulkanInstance();
+        bool    createDefaultRenderer();
         bool    createSceneRenderer();
 
         void    loop();
@@ -58,6 +60,7 @@ class VApp
         EventsManager       m_eventsManager;
         GLFWwindow         *m_window;
         VInstance          *m_vulkanInstance;
+        DefaultRenderer    *m_defaultRenderer;
         SceneRenderer      *m_sceneRenderer;
 
         unsigned int m_sceenshotNbr;
@@ -66,11 +69,14 @@ class VApp
         static const char *DEFAULT_APP_NAME;
         static const char *DEFAULT_CONFIG_FILE;
         static const char *DEFAULT_SCREENSHOTPATH;
+        static const char *DEFAULT_SHADERPATH;
 
         static const char *DEFAULT_WINDOW_FULLSCREEN;
         static const char *DEFAULT_WINDOW_WIDTH;
         static const char *DEFAULT_WINDOW_HEIGHT;
         static const char *DEFAULT_VSYNC;
+        static const char *DEFAULT_ANISOTROPIC;
+
 
         static const bool ENABLE_PROFILER;
 };
