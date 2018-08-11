@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<texture3D>
+	<name>Abbaye</name>
+	<height>460</height>
+	<texture type="albedo">abbey_color.png</texture>
+	<texture type="normal">abbey_normal.png</texture>
+	<texture type="height">abbey_height.png</texture>
+	<material type="roughness">.7</material>
+	<material type="metalness">0</material>
+	<material type="translucency">0</material>
+</texture3D>

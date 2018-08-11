@@ -27,7 +27,18 @@ void TestingState::init()
 
     vlg::TextureHandler* textureHandler =  vlg::TextureHandler::instance();
 
-    textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread);
+    textureHandler->loadAssetFromFile("../data/sand_color.png");
+    textureHandler->loadAssetFromFile("../data/sand_height.png");
+    textureHandler->loadAssetFromFile("../data/sand_normal.png");
+
+    textureHandler->loadAssetFromFile("../data/abbey_color.png",vlg::LoadType_InThread);
+    textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread);
+    textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread);
+
+    textureHandler->loadAssetFromFile("../data/tree_albedo.png");
+    textureHandler->loadAssetFromFile("../data/tree_height.png");
+    textureHandler->loadAssetFromFile("../data/tree_normal.png");
+    textureHandler->loadAssetFromFile("../data/tree_material.png");
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 

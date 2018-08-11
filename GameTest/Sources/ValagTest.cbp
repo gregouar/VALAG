@@ -51,6 +51,7 @@
 		</Linker>
 		<Unit filename="../../Valag/include/Valag/Types.h" />
 		<Unit filename="../../Valag/include/Valag/VulkanExtProxies.h" />
+		<Unit filename="../../Valag/include/Valag/VulkanHelpers.h" />
 		<Unit filename="../../Valag/include/Valag/core/Asset.h" />
 		<Unit filename="../../Valag/include/Valag/core/AssetHandler.h" />
 		<Unit filename="../../Valag/include/Valag/core/Config.h" />
@@ -60,6 +61,7 @@
 		<Unit filename="../../Valag/include/Valag/core/NotificationSender.h" />
 		<Unit filename="../../Valag/include/Valag/core/StatesManager.h" />
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Scene.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneNode.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneObject.h" />
@@ -72,6 +74,7 @@
 		<Unit filename="../../Valag/include/Valag/utils/Singleton.h" />
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/src/VulkanExtProxies.cpp" />
+		<Unit filename="../../Valag/src/VulkanHelpers.cpp" />
 		<Unit filename="../../Valag/src/core/Asset.cpp" />
 		<Unit filename="../../Valag/src/core/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/core/Config.cpp" />
@@ -81,6 +84,7 @@
 		<Unit filename="../../Valag/src/core/NotificationSender.cpp" />
 		<Unit filename="../../Valag/src/core/StatesManager.cpp" />
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
+		<Unit filename="../../Valag/src/gfx/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/Scene.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneNode.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneObject.cpp" />
