@@ -42,7 +42,7 @@ void TestingState::init()
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
-
+    m_testingSprite.setSize(glm::vec2(.5f,.5f));
 }
 
 void TestingState::entered()
@@ -191,7 +191,10 @@ void TestingState::update(const vlg::Time &elapsedTime)
     }
 }
 
-void TestingState::draw(/**sf::RenderTarget* renderer**/)
+void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
 {
-
+    renderer->draw(&m_testingSprite);
 }
+
+
+

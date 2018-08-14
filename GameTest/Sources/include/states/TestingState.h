@@ -3,7 +3,9 @@
 
 #include "Valag/core/GameState.h"
 #include "Valag/utils/Singleton.h"
+#include "Valag/gfx/DefaultRenderer.h"
 #include "Valag/gfx/Scene.h"
+#include "Valag/gfx/Sprite.h"
 
 class TestingState : public vlg::GameState, public Singleton<TestingState>
 {
@@ -17,7 +19,7 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
 
         void handleEvents(const EventsManager *eventsManager);
         void update(const vlg::Time &elapsedTime);
-        void draw(/**sf::RenderTarget* **/);
+        void draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* **/);
 
 
     protected:
@@ -33,6 +35,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         vlg::Time m_totalTime;
 
         int m_nbrFps;
+
+
+        vlg::Sprite m_testingSprite;
 };
 
 #endif // TESTINGSTATE_H

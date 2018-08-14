@@ -30,28 +30,30 @@ DefaultRenderer::~DefaultRenderer()
     this->cleanup();
 }
 
+
+void DefaultRenderer::draw(Sprite *sprite)
+{
+    m_activeSecondaryCommandBuffers.push_back(sprite->recordDrawCommandBuffer(m_defaultPipeline, m_defaultRenderPass, 0));
+}
+
+
+VkCommandBuffer DefaultRenderer::getCommandBuffer(uint32_t imageIndex)
+{
+    return m_commandBuffers[imageIndex];
+}
+
+VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
+{
+    return m_renderFinishedSemaphore[frameIndex];
+}
+
+
 void DefaultRenderer::updateBuffers(uint32_t imageIndex)
 {
-    if(m_vulkanInstance == nullptr)
+    /*if(m_vulkanInstance == nullptr)
         throw std::runtime_error("No vulkan instance in updateBuffers()");
 
-    VkDevice device = m_vulkanInstance->getDevice();
-
-
-    /// TESTING CODE :
-  /*  VkCommandBuffer secondaryCommandBuffer;
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_vulkanInstance->getCommandPool(COMMANDPOOL_SHORTLIVED);
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-    allocInfo.commandBufferCount = 1;
-
-    if (vkAllocateCommandBuffers(device, &allocInfo, &secondaryCommandBuffer) != VK_SUCCESS)
-        throw std::runtime_error("failed to allocate command buffers!");*/
-
-
-    ///***************************************///
+    VkDevice device = m_vulkanInstance->getDevice();*/
 
 
     this->recordPrimaryCommandBuffer(imageIndex);
@@ -59,7 +61,7 @@ void DefaultRenderer::updateBuffers(uint32_t imageIndex)
 
 bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 {
-    vkResetCommandBuffer(m_commandBuffers[imageIndex],0);
+    //vkResetCommandBuffer(m_commandBuffers[imageIndex],0);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -82,11 +84,10 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(m_commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(m_commandBuffers[imageIndex], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-        vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
-
-        //vkCmdDraw(m_commandBuffers[i], 3, 1, 0, 0);
+        //vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
+        //vkCmdDraw(m_commandBuffers[imageIndex], 3, 1, 0, 0);
 
         if(!m_activeSecondaryCommandBuffers.empty())
             vkCmdExecuteCommands(m_commandBuffers[imageIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
@@ -102,16 +103,6 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     }
 
     return (true);
-}
-
-VkCommandBuffer DefaultRenderer::getCommandBuffer(uint32_t imageIndex)
-{
-    return m_commandBuffers[imageIndex];
-}
-
-VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
-{
-    return m_renderFinishedSemaphore[frameIndex];
 }
 
 bool DefaultRenderer::init()
@@ -242,6 +233,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

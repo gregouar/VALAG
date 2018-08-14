@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Valag/core/GameState.h"
+#include "Valag/gfx/DefaultRenderer.h"
 
 namespace vlg
 {
@@ -26,7 +27,7 @@ class StatesManager
 
         void handleEvents(const EventsManager *eventsManager);
         void update(const Time &elapsedTime);
-        void draw(/**sf::RenderTarget* **/);
+        void draw(DefaultRenderer *renderer /**sf::RenderTarget* **/);
 
         VApp* getApp();
 

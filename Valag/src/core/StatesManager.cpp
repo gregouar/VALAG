@@ -84,10 +84,10 @@ void StatesManager::update(const Time &elapsedTime)
         state->update(elapsedTime);
 }
 
-void StatesManager::draw(/**sf::RenderTarget* renderer**/)
+void StatesManager::draw(DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
 {
     for(auto state : m_states)
-        state->draw(/**renderer**/);
+        state->draw(renderer);
 }
 
 void StatesManager::attachApp(VApp* app)

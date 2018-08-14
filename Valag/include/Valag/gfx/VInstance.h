@@ -39,6 +39,7 @@ class VInstance
     friend class VulkanHelpers;
     friend class DefaultRenderer;
     friend class SceneRenderer;
+    friend class Sprite;
 
     public:
         VInstance(GLFWwindow *window, const std::string name = "");

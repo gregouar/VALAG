@@ -213,10 +213,10 @@ void VApp::loop()
 
             m_statesManager.update(elapsedTime);
 
-            this->drawFrame();
-
-           /// m_stateManager.draw(&m_window);
+            m_statesManager.draw(m_defaultRenderer);
         }
+
+        this->drawFrame();
         ///m_window.display();
     }
 

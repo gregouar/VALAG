@@ -2,17 +2,20 @@
 #define DEFAULTRENDERER_H
 
 #include "Valag/gfx/VInstance.h"
+#include "Valag/gfx/Sprite.h"
 
 namespace vlg
 {
 
 class DefaultRenderer
 {
+    friend class VApp;
+
     public:
         DefaultRenderer(VInstance *vulkanInstance);
         virtual ~DefaultRenderer();
 
-        void updateBuffers(uint32_t imageIndex);
+        void draw(Sprite *sprite);
 
         VkCommandBuffer getCommandBuffer(uint32_t imageIndex);
         VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
@@ -27,6 +30,7 @@ class DefaultRenderer
         bool    createPrimaryCommandBuffers();
         bool    createSemaphores();
 
+        void    updateBuffers(uint32_t imageIndex);
         bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
         void cleanup();
