@@ -5,6 +5,37 @@
 
 namespace vlg
 {
+VkVertexInputBindingDescription Vertex2D::getBindingDescription()
+{
+    VkVertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex2D);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 3> Vertex2D::getAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex2D, pos);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex2D, color);
+
+    attributeDescriptions[2].binding = 0;
+    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[2].offset = offsetof(Vertex2D, tex);
+
+    return attributeDescriptions;
+}
 
 std::vector<char> VulkanHelpers::readFile(const std::string& filename)
 {
@@ -35,11 +66,9 @@ uint32_t VulkanHelpers::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlag
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(vulkanInstance->getPhysicalDevice(), &memProperties);
 
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
             return i;
-        }
-    }
 
     throw std::runtime_error("Failed to find suitable memory type!");
 }
@@ -90,6 +119,24 @@ bool VulkanHelpers::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
     }
 
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
+
+    return (true);
+}
+
+bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
+{
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+
+    if(vulkanInstance == nullptr)
+        throw std::runtime_error("No Vulkan instance in copyBufferToImage()");
+
+    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
+
+    VkBufferCopy copyRegion = {};
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
 
     return (true);
 }

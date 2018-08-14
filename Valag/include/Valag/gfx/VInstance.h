@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <mutex>
 
 #include "Valag/VulkanHelpers.h"
 
@@ -43,6 +44,12 @@ class VInstance
         VInstance(GLFWwindow *window, const std::string name = "");
         virtual ~VInstance();
 
+        uint32_t acquireNextImage();
+        void submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaphore finishedRenderingSemaphore);
+        void presentQueue();
+        void waitDeviceIdle();
+        size_t getCurrentFrameIndex();
+
         bool isInitialized();
 
         void setActive();
@@ -71,20 +78,21 @@ class VInstance
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
         bool    createSwapchain();
         bool    createImageViews();
-        bool    createCommandPool();
+        bool    createCommandPools();
+        bool    createSemaphoresAndFences();
 
         void init();
         void cleanup();
 
         VkDevice getDevice();
         VkPhysicalDevice getPhysicalDevice();
-        VkCommandPool getCommandPool(CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
+        VkCommandPool getCommandPool(CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
         //int getGraphicsFamily();
 
         const std::vector<VkImageView> &getSwapchainImageViews();
 
-        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
+        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
 
         static VInstance *getCurrentInstance();
         static void setCurrentInstance(VInstance *instance);
@@ -103,14 +111,24 @@ class VInstance
         VkQueue             m_graphicsQueue;
         VkQueue             m_presentQueue;
 
-        VkSwapchainKHR       m_swapchain;
+        VkFence             m_graphicsQueueAccessFence;
+        std::mutex          m_graphicsQueueAccessMutex;
+
+        VkSwapchainKHR      m_swapchain;
         std::vector<VkImage>     m_swapchainImages;
         std::vector<VkImageView> m_swapchainImageViews;
         VkFormat    m_swapchainImageFormat;
         VkExtent2D  m_swapchainExtent;
 
-        VkCommandPool m_commandPool,
-                      m_texturesLoadingCommandPool;
+        /*VkCommandPool m_commandPool,
+                      m_texturesLoadingCommandPool;*/
+        std::vector<VkCommandPool>  m_commandPools;
+
+        uint32_t    m_curImageIndex;
+        size_t      m_currentFrame;
+        std::vector<VkSemaphore>                 m_imageAvailableSemaphore;
+        std::vector<std::vector<VkSemaphore>>    m_finishedRenderingSemaphores;
+        std::vector<VkFence>                     m_inFlightFences;
 
         static VInstance *static_currentInstance;
 

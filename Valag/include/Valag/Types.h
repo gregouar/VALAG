@@ -76,8 +76,10 @@ enum PBRScreenType
 
 enum CommandPoolName
 {
-    MAIN_COMMANDPOOL,
-    TEXTURESLOADING_COMMANDPOOL,
+    COMMANDPOOL_DEFAULT,
+    COMMANDPOOL_SHORTLIVED, //fort short-lived command buffers
+    COMMANDPOOL_TEXTURESLOADING, //for texture loading thread
+    COMMANDPOOL_NBR_NAMES,
 };
 
 typedef std::chrono::duration<double, std::chrono::seconds::period> Time;

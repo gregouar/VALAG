@@ -92,9 +92,9 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
     CommandPoolName commandPoolName;
 
     if(m_loadType == LoadType_Now)
-        commandPoolName = MAIN_COMMANDPOOL;
+        commandPoolName = COMMANDPOOL_SHORTLIVED;
     else
-        commandPoolName = TEXTURESLOADING_COMMANDPOOL;
+        commandPoolName = COMMANDPOOL_TEXTURESLOADING;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;

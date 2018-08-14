@@ -25,6 +25,8 @@ const char *VApp::DEFAULT_ANISOTROPIC = "16";
 
 const bool VApp::ENABLE_PROFILER = false;
 
+const size_t VApp::MAX_FRAMES_IN_FLIGHT = 2;
+
 
 /*VApp::VApp() : VApp(DEFAULT_APP_NAME)
 {
@@ -211,10 +213,26 @@ void VApp::loop()
 
             m_statesManager.update(elapsedTime);
 
+            this->drawFrame();
+
            /// m_stateManager.draw(&m_window);
         }
         ///m_window.display();
     }
+
+    m_vulkanInstance->waitDeviceIdle();
+}
+
+void VApp::drawFrame()
+{
+    uint32_t imageIndex = m_vulkanInstance->acquireNextImage();
+
+    m_defaultRenderer->updateBuffers(imageIndex);
+
+    m_vulkanInstance->submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(imageIndex),
+                                            m_defaultRenderer->getRenderFinishedSemaphore(m_vulkanInstance->getCurrentFrameIndex()));
+
+    m_vulkanInstance->presentQueue();
 }
 
 void VApp::cleanup()

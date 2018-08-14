@@ -13,8 +13,6 @@
 
 namespace vlg
 {
-
-
 const std::vector<const char*> VInstance::const_validationLayers = {
     "VK_LAYER_LUNARG_standard_validation"
 };
@@ -45,6 +43,79 @@ VInstance::~VInstance()
     this->cleanup();
 }
 
+uint32_t VInstance::acquireNextImage()
+{
+    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(),
+                          m_imageAvailableSemaphore[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+
+    m_finishedRenderingSemaphores[m_currentFrame].clear();
+
+    m_curImageIndex = imageIndex;
+
+    return imageIndex;
+}
+
+void VInstance::submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaphore finishedRenderingSemaphore)
+{
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    VkSemaphore signalSemaphores[] = {finishedRenderingSemaphore};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+
+    m_graphicsQueueAccessMutex.lock();
+        if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
+            throw std::runtime_error("Failed to submit draw command buffer");
+    m_graphicsQueueAccessMutex.unlock();
+
+    m_finishedRenderingSemaphores[m_currentFrame].push_back(finishedRenderingSemaphore);
+}
+
+void VInstance::presentQueue()
+{
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = static_cast<uint32_t>(m_finishedRenderingSemaphores[m_currentFrame].size());
+    presentInfo.pWaitSemaphores = m_finishedRenderingSemaphores[m_currentFrame].data();
+
+    VkSwapchainKHR swapchains[] = {m_swapchain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapchains;
+    presentInfo.pImageIndices = &m_curImageIndex;
+
+    presentInfo.pResults = nullptr;
+
+    vkQueuePresentKHR(m_presentQueue, &presentInfo);
+
+    m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+}
+
+void VInstance::waitDeviceIdle()
+{
+    vkDeviceWaitIdle(this->getDevice());
+}
+
+size_t VInstance::getCurrentFrameIndex()
+{
+    return m_currentFrame;
+}
+
 bool VInstance::isInitialized()
 {
     return m_isInit;
@@ -68,6 +139,8 @@ VkFormat VInstance::getSwapchainImageFormat()
 
 void VInstance::init()
 {
+    m_currentFrame = 0;
+
     if(!this->createVulkanInstance())
         throw std::runtime_error("Cannot create Vulkan instance");
 
@@ -84,13 +157,17 @@ void VInstance::init()
         throw std::runtime_error("Cannot create logical device");
 
     if(!this->createSwapchain())
-        throw std::runtime_error("Cannot create logical device");
+        throw std::runtime_error("Cannot create swapchain");
 
     if(!this->createImageViews())
         throw std::runtime_error("Cannot create image views");
 
-    if(!this->createCommandPool())
-        throw std::runtime_error("Cannot create command pool");
+    if(!this->createCommandPools())
+        throw std::runtime_error("Cannot create command pools");
+
+    if(!this->createSemaphoresAndFences())
+        throw std::runtime_error("Cannot create semaphores and fences");
+
 
     m_isInit = true;
 }
@@ -302,6 +379,8 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device)
 
     m_queueFamilyIndices = indices;
 
+    std::cout<<deviceProperties.deviceName<<" : "<<score<<std::endl;
+
     return score;
 }
 
@@ -512,21 +591,88 @@ bool VInstance::createImageViews()
     return (true);
 }
 
-bool VInstance::createCommandPool()
+bool VInstance::createCommandPools()
 {
+    m_commandPools.resize(COMMANDPOOL_NBR_NAMES);
+
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily;
-    poolInfo.flags = 0; // Optional
 
-    return (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS)
-        && (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_texturesLoadingCommandPool) == VK_SUCCESS);
+    for(size_t i = 0 ; i < COMMANDPOOL_NBR_NAMES ; ++i)
+    {
+        poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily; // Optional
+
+        switch(i)
+        {
+            case COMMANDPOOL_DEFAULT:
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+                break;
+
+            case COMMANDPOOL_SHORTLIVED:
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                break;
+
+            case COMMANDPOOL_TEXTURESLOADING:
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                break;
+
+            default:
+                poolInfo.flags = 0;
+        }
+
+        if(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPools[i]) != VK_SUCCESS)
+            return (false);
+
+    }
+
+    return (true);
+}
+
+bool VInstance::createSemaphoresAndFences()
+{
+    m_imageAvailableSemaphore.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    m_finishedRenderingSemaphores.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    m_inFlightFences.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo = {};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+    {
+        if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore[i]) != VK_SUCCESS)
+            return (false);
+
+        if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+            return (false);
+    }
+
+
+    if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_graphicsQueueAccessFence) != VK_SUCCESS)
+        return (false);
+
+
+    return (true);
 }
 
 void VInstance::cleanup()
 {
-    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-    vkDestroyCommandPool(m_device, m_texturesLoadingCommandPool, nullptr);
+    vkDestroyFence(m_device, m_graphicsQueueAccessFence, nullptr);
+
+    for (auto fence : m_inFlightFences)
+        vkDestroyFence(m_device, fence, nullptr);
+
+    for (auto semaphore : m_imageAvailableSemaphore)
+        vkDestroySemaphore(m_device, semaphore, nullptr);
+
+    for (auto commandPool : m_commandPools)
+        vkDestroyCommandPool(m_device, commandPool, nullptr);
+
+    /*vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    vkDestroyCommandPool(m_device, m_texturesLoadingCommandPool, nullptr);*/
 
     for (auto imageView : m_swapchainImageViews)
         vkDestroyImageView(m_device, imageView, nullptr);
@@ -556,12 +702,15 @@ VkPhysicalDevice VInstance::getPhysicalDevice()
 
 VkCommandPool VInstance::getCommandPool(CommandPoolName commandPoolName)
 {
-    if(commandPoolName == MAIN_COMMANDPOOL)
+    /*if(commandPoolName == MAIN_COMMANDPOOL)
         return m_commandPool;
     else if(commandPoolName == TEXTURESLOADING_COMMANDPOOL)
-        return m_texturesLoadingCommandPool;
+        return m_texturesLoadingCommandPool;*/
 
-    return m_commandPool;
+    if(commandPoolName >= 0 && commandPoolName < COMMANDPOOL_NBR_NAMES)
+        return m_commandPools[commandPoolName];
+
+    return m_commandPools[0];
 }
 
 /*int VInstance::getGraphicsFamily()
@@ -606,9 +755,16 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPool
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_graphicsQueue);
 
+    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkResetFences(m_device, 1, &m_graphicsQueueAccessFence);
+
+    m_graphicsQueueAccessMutex.lock();
+        vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_graphicsQueueAccessFence);
+    m_graphicsQueueAccessMutex.unlock();
+    //vkQueueWaitIdle(m_graphicsQueue);
+
+    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
     vkFreeCommandBuffers(m_device, this->getCommandPool(commandPoolName), 1, &commandBuffer);
 }
 

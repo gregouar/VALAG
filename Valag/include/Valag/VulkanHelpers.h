@@ -3,13 +3,25 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <vector>
+#include <array>
 
 #include "Valag/Types.h"
 
 namespace vlg
 {
+
+struct Vertex2D
+{
+    glm::vec2 pos;
+    glm::vec3 color;
+    glm::vec2 tex;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+};
 
 class VulkanHelpers
 {
@@ -21,12 +33,13 @@ public:
 
     static bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
                   VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    static bool copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
     static bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                             VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
-                                      CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
-    static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, CommandPoolName commandPoolName = MAIN_COMMANDPOOL);
+                                      CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+    static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
     static VkImageView createImageView(VkImage image, VkFormat format);
 

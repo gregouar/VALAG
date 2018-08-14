@@ -48,6 +48,7 @@ class VApp
         bool    createSceneRenderer();
 
         void    loop();
+        void    drawFrame();
 
         void    cleanup();
 
@@ -77,8 +78,8 @@ class VApp
         static const char *DEFAULT_VSYNC;
         static const char *DEFAULT_ANISOTROPIC;
 
-
         static const bool ENABLE_PROFILER;
+        static const size_t MAX_FRAMES_IN_FLIGHT;
 };
 
 }

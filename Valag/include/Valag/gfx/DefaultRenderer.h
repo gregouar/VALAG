@@ -12,7 +12,10 @@ class DefaultRenderer
         DefaultRenderer(VInstance *vulkanInstance);
         virtual ~DefaultRenderer();
 
-        void render();
+        void updateBuffers(uint32_t imageIndex);
+
+        VkCommandBuffer getCommandBuffer(uint32_t imageIndex);
+        VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
 
     protected:
         bool init();
@@ -21,7 +24,10 @@ class DefaultRenderer
         bool    createRenderPass();
         bool    createGraphicsPipeline();
         bool    createFramebuffers();
-        bool    createCommandBuffers();
+        bool    createPrimaryCommandBuffers();
+        bool    createSemaphores();
+
+        bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
         void cleanup();
 
@@ -36,6 +42,9 @@ class DefaultRenderer
         std::vector<VkFramebuffer>      m_swapchainFramebuffers;
         std::vector<VkCommandBuffer>    m_commandBuffers;
 
+        std::vector<VkSemaphore>        m_renderFinishedSemaphore;
+
+        std::vector<VkCommandBuffer>      m_activeSecondaryCommandBuffers;
 
         static const char *DEFAULT_VERTSHADERFILE;
         static const char *DEFAULT_FRAGSHADERFILE;

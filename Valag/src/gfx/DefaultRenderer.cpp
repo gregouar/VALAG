@@ -30,6 +30,90 @@ DefaultRenderer::~DefaultRenderer()
     this->cleanup();
 }
 
+void DefaultRenderer::updateBuffers(uint32_t imageIndex)
+{
+    if(m_vulkanInstance == nullptr)
+        throw std::runtime_error("No vulkan instance in updateBuffers()");
+
+    VkDevice device = m_vulkanInstance->getDevice();
+
+
+    /// TESTING CODE :
+  /*  VkCommandBuffer secondaryCommandBuffer;
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = m_vulkanInstance->getCommandPool(COMMANDPOOL_SHORTLIVED);
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    allocInfo.commandBufferCount = 1;
+
+    if (vkAllocateCommandBuffers(device, &allocInfo, &secondaryCommandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("failed to allocate command buffers!");*/
+
+
+    ///***************************************///
+
+
+    this->recordPrimaryCommandBuffer(imageIndex);
+}
+
+bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
+{
+    vkResetCommandBuffer(m_commandBuffers[imageIndex],0);
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+    if (vkBeginCommandBuffer(m_commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
+    {
+        Logger::error("Failed to begin recording command buffer");
+        return (false);
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_defaultRenderPass;
+    renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_vulkanInstance->getSwapchainExtent();
+
+    VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(m_commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
+
+        //vkCmdDraw(m_commandBuffers[i], 3, 1, 0, 0);
+
+        if(!m_activeSecondaryCommandBuffers.empty())
+            vkCmdExecuteCommands(m_commandBuffers[imageIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
+
+    vkCmdEndRenderPass(m_commandBuffers[imageIndex]);
+
+    m_activeSecondaryCommandBuffers.clear();
+
+    if (vkEndCommandBuffer(m_commandBuffers[imageIndex]) != VK_SUCCESS)
+    {
+        Logger::error("Failed to record primary command buffer");
+        return (false);
+    }
+
+    return (true);
+}
+
+VkCommandBuffer DefaultRenderer::getCommandBuffer(uint32_t imageIndex)
+{
+    return m_commandBuffers[imageIndex];
+}
+
+VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
+{
+    return m_renderFinishedSemaphore[frameIndex];
+}
+
 bool DefaultRenderer::init()
 {
     if(!this->createTextureSampler())
@@ -56,9 +140,15 @@ bool DefaultRenderer::init()
         return (false);
     }
 
-    if(!this->createCommandBuffers())
+    if(!this->createPrimaryCommandBuffers())
     {
-        Logger::error("Cannot create default command buffers");
+        Logger::error("Cannot create primary command buffers");
+        return (false);
+    }
+
+    if(!this->createSemaphores())
+    {
+        Logger::error("Cannot create default renderer semaphores");
         return (false);
     }
 
@@ -91,12 +181,22 @@ bool DefaultRenderer::createRenderPass()
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_defaultRenderPass) == VK_SUCCESS);
 }
@@ -132,14 +232,16 @@ bool DefaultRenderer::createGraphicsPipeline()
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-
-    /** Need to update for vertex **/
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+    auto bindingDescription = Vertex2D::getBindingDescription();
+    auto attributeDescriptions = Vertex2D::getAttributeDescriptions();
+
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -306,7 +408,7 @@ bool DefaultRenderer::createFramebuffers()
     return (true);
 }
 
-bool DefaultRenderer::createCommandBuffers()
+bool DefaultRenderer::createPrimaryCommandBuffers()
 {
     if(m_vulkanInstance == nullptr)
         return (false);
@@ -315,7 +417,7 @@ bool DefaultRenderer::createCommandBuffers()
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_vulkanInstance->getCommandPool();
+    allocInfo.commandPool = m_vulkanInstance->getCommandPool(COMMANDPOOL_DEFAULT);
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 
@@ -325,11 +427,11 @@ bool DefaultRenderer::createCommandBuffers()
         return (false);
     }
 
-    for (size_t i = 0; i < m_commandBuffers.size(); ++i)
+    /*for (size_t i = 0; i < m_commandBuffers.size(); ++i)
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
         if (vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo) != VK_SUCCESS)
         {
@@ -361,7 +463,32 @@ bool DefaultRenderer::createCommandBuffers()
             Logger::error("Failed to record command buffer");
             return (false);
         }
-    }
+    }*/
+
+    return (true);
+}
+
+bool DefaultRenderer::createSemaphores()
+{
+    /*if(m_vulkanInstance == nullptr)
+        return (false);
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    return (vkCreateSemaphore(m_vulkanInstance->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) == VK_SUCCESS);*/
+
+    if(m_vulkanInstance == nullptr)
+        return (false);
+
+    m_renderFinishedSemaphore.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+        if(vkCreateSemaphore(m_vulkanInstance->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS)
+            return (false);
 
     return (true);
 }
@@ -372,6 +499,9 @@ void DefaultRenderer::cleanup()
         return;
 
     VkDevice device = m_vulkanInstance->getDevice();
+
+    for (auto semaphore : m_renderFinishedSemaphore)
+        vkDestroySemaphore(device, semaphore, nullptr);
 
     for (auto framebuffer : m_swapchainFramebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
