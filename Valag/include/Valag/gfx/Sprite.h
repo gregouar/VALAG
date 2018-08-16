@@ -29,9 +29,8 @@ class Sprite
         void createAllBuffers();
         void createDrawCommandBuffer();
         void createVertexBuffer();
-        /*void createModelUBO();
 
-        void updateModelUBO();*/
+        void updateModelUBO(DefaultRenderer *renderer, size_t currentFrame);
 
         void cleanup();
 
@@ -62,17 +61,10 @@ class Sprite
         VkBuffer        m_vertexBuffer;
         VkDeviceMemory  m_vertexBufferMemory;
 
-        /*///I should have a special part of AllocateMemory that handle UBO => allow to pass table of UBO and retrieve them
-        std::vector<VkBuffer>           m_modelBuffers;
-        std::vector<VkDeviceMemory>     m_modelBuffersMemory;
-
-        bool    m_needToUpdateUBO;*/
-        //size_t  m_currentFrame;
-
         size_t      m_modelUBOIndex;
 
-        bool        m_needToUpdateModel;
-        uint32_t    m_modelIndex;
+        std::vector<bool> m_needToUpdateModel;
+        uint32_t    m_modelIndex; ///should I put a vector to be sure ?
 };
 
 }

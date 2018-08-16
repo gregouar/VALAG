@@ -141,45 +141,37 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 }
 
 
-size_t DefaultRenderer::allocModelUBO()
+bool DefaultRenderer::allocModelUBO(size_t &index)
 {
-    size_t index = 0;
+    bool needToUpdate = false;
 
-    if(m_modelBuffers->allocObject(index))
+    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+    {
+        if(m_modelBuffers[i]->allocObject(index))
+            needToUpdate = true;
+    }
+
+    if(needToUpdate)
         this->updateModelDescriptorSets();
 
-    return index;
+    return needToUpdate;
 }
 
-void DefaultRenderer::updateModelUBO(size_t index, void *data)
+void DefaultRenderer::updateModelUBO(size_t index, void *data, size_t frameIndex)
 {
-    m_modelBuffers->updateObject(index, data);
+    m_modelBuffers[frameIndex]->updateObject(index, data);
 }
 
-bool DefaultRenderer::updateModelDescriptorSets(bool firstTime)
+void DefaultRenderer::updateModelDescriptorSets()
 {
     VkDevice device = m_vulkanInstance->getDevice();
-
-    if(!firstTime)
-        vkFreeDescriptorSets(device,m_descriptorPool,static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT),m_modelDescriptorSets.data());
-
-    std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_modelDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    m_modelDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(device, &allocInfo,m_modelDescriptorSets.data()) != VK_SUCCESS)
-        return (false);
 
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_modelBuffers->getBuffer(); //m_modelBuffers[i]
+        bufferInfo.buffer = m_modelBuffers[i]->getBuffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = m_modelBuffers->getBufferRange(); //sizeof(ModelUBO);
+        bufferInfo.range = sizeof(ModelUBO);//m_modelBuffers[i]->getBufferRange();
 
         VkWriteDescriptorSet descriptorWrite = {};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -194,22 +186,19 @@ bool DefaultRenderer::updateModelDescriptorSets(bool firstTime)
 
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
-
-    return (true);
 }
 
 void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
 {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
 
-    /// I SHOULD BIND THEM BOTH IN THE SAME COMMAND
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout, 0, 1, &m_viewDescriptorSets[frameIndex], 0, nullptr);
+    VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
+                                        m_modelDescriptorSets[frameIndex] };
 
-    uint32_t dynamicOffset = m_modelBuffers->getDynamicOffset(modelUBOIndex);
+    uint32_t dynamicOffset = m_modelBuffers[frameIndex]->getDynamicOffset(modelUBOIndex);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout, 1, 1, &m_modelDescriptorSets[frameIndex], 1,&dynamicOffset);
+    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_defaultPipelineLayout,0,2, descriptorSets, 1, &dynamicOffset);
 }
 
 bool DefaultRenderer::init()
@@ -590,16 +579,19 @@ bool DefaultRenderer::createDescriptorSets()
 {
     VkDevice device = m_vulkanInstance->getDevice();
 
-    std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_viewDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
+    {
+        std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_viewDescriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
 
-    m_viewDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(device, &allocInfo,m_viewDescriptorSets.data()) != VK_SUCCESS)
-        return (false);
+        m_viewDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(device, &allocInfo,m_viewDescriptorSets.data()) != VK_SUCCESS)
+            return (false);
+
+    }
 
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
@@ -622,7 +614,20 @@ bool DefaultRenderer::createDescriptorSets()
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 
-    this->updateModelDescriptorSets(true);
+    {
+        std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_modelDescriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
+
+        m_modelDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(device, &allocInfo,m_modelDescriptorSets.data()) != VK_SUCCESS)
+            return (false);
+
+        this->updateModelDescriptorSets();
+    }
 
     return (true);
 }
@@ -720,6 +725,7 @@ bool DefaultRenderer::createUBO()
     m_viewBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
     m_viewBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT);
     m_needToUpdateViewUBO.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    m_modelBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -729,10 +735,9 @@ bool DefaultRenderer::createUBO()
 
         //this->updateViewUBO();
         m_needToUpdateViewUBO[i] = true;
+
+        m_modelBuffers[i] = new DynamicUBO(sizeof(ModelUBO),MODEL_DYNAMICBUFFER_CHUNKSIZE);
     }
-
-    m_modelBuffers = new DynamicUBO(sizeof(ModelUBO),MODEL_DYNAMICBUFFER_CHUNKSIZE);
-
     return (true);
 }
 
@@ -745,7 +750,8 @@ void DefaultRenderer::cleanup()
 
     vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
 
-    delete m_modelBuffers;
+    for(auto modelBuffer : m_modelBuffers)
+        delete modelBuffer;
 
     for(auto ubo : m_viewBuffers)
         vkDestroyBuffer(device, ubo, nullptr);

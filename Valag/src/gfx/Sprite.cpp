@@ -20,7 +20,8 @@ Sprite::Sprite() :
     m_creatingVInstance(nullptr),
     m_vertexBuffer(VK_NULL_HANDLE)
 {
-    //ctor
+    m_needToUpdateModel.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    for(auto b : m_needToUpdateModel) b = true;
 }
 
 Sprite::~Sprite()
@@ -35,7 +36,7 @@ void Sprite::setSize(glm::vec2 size)
     {
         if(m_size != size)
             //m_needToUpdateUBO = true;
-            m_needToUpdateModel = true;
+            for(auto b : m_needToUpdateModel) b = true;
         m_size = size;
     }
 
@@ -45,7 +46,7 @@ void Sprite::setPosition(glm::vec2 position)
 {
     if(m_position != position)
             //m_needToUpdateUBO = true;
-            m_needToUpdateModel = true;
+            for(auto b : m_needToUpdateModel) b = true;
     m_position = position;
 }
 
@@ -58,7 +59,7 @@ void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
     if(m_texturePosition != position || extent != m_textureExtent)
             //m_needToUpdateUBO = true;
-            m_needToUpdateModel = true;
+            for(auto b : m_needToUpdateModel) b = true;
 
     m_texturePosition = position;
     m_textureExtent = extent;
@@ -91,10 +92,6 @@ void Sprite::createDrawCommandBuffer()
 
     if (vkAllocateCommandBuffers(vulkanInstance->getDevice(), &allocInfo, m_drawCommandBuffers.data()) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate command buffers");
-
-
-   // if (vkAllocateCommandBuffers(vulkanInstance->getDevice(), &allocInfo, &m_drawCommandBuffer) != VK_SUCCESS)
-     //   throw std::runtime_error("Failed to allocate command buffers");
 }
 
 void Sprite::createVertexBuffer()
@@ -138,79 +135,33 @@ void Sprite::createVertexBuffer()
     m_creatingVInstance = vulkanInstance;
 }
 
-/*void Sprite::createModelUBO()
+void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
 {
-    VkDeviceSize bufferSize = sizeof(ModelUBO);
-
-    m_modelBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    m_modelBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    for (size_t i = 0; i < m_modelBuffers.size(); ++i)
-    {
-        VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    m_modelBuffers[i], m_modelBuffersMemory[i]);
-
-    }
-
-    m_needToUpdateUBO = true;
-    m_currentFrame = 0;
-}*/
-
-/*void Sprite::updateModelUBO()
-{
-    m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
-
-    if(m_creatingVInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in updateModelUBO()");
-
-    VkDevice device = m_creatingVInstance->getDevice();
-
     ModelUBO modelUBO = {};
-    modelUBO.model = glm::mat4(m_size.x,0,0,m_position.x,
-                             0,m_size.y, 0, m_position.y,
-                             0,0,1,0,
-                             0,0,0,1 );
+    modelUBO.model = glm::mat4(1.0);
+    modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, 0.0));
+    modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
 
-    void* data;
-    vkMapMemory(device, m_modelBuffersMemory[m_currentFrame], 0, sizeof(modelUBO), 0, &data);
-        memcpy(data, &modelUBO, sizeof(modelUBO));
-    vkUnmapMemory(device, m_modelBuffersMemory[m_currentFrame]);
+    renderer->updateModelUBO(m_modelUBOIndex, &modelUBO,currentFrame);
+    m_needToUpdateModel[currentFrame] = false;
+}
 
-    m_needToUpdateUBO = false;
-}*/
-
-VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer/*VkPipeline pipeline*/, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
+VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
-    //m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
-
     if(m_needToCreateBuffers)
     {
         this->createAllBuffers();
-        m_modelUBOIndex = renderer->allocModelUBO();
-        m_needToUpdateModel = true;
+        if(renderer->allocModelUBO(m_modelUBOIndex))
+            m_needToUpdateDrawCommandBuffer = true;
+        for(auto b : m_needToUpdateModel) b = true;
     }
 
     ///Should move this to method
-    if(m_needToUpdateModel)
-    {
-        ModelUBO modelUBO = {};
-        modelUBO.model = glm::mat4(1.0);
-        modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, 0.0));
-        modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
-
-        renderer->updateModelUBO(m_modelUBOIndex, &modelUBO);
-    }
-
-    /*if(m_needToUpdateUBO)
-        this->updateModelUBO();*/
-    /*if(m_needToCreateVertexBuffer)
-        this->createVertexBuffer();
-
-    if(m_needToCreateDrawCommandBuffer)
-        this->createDrawCommandBuffer();*/
+    if(m_needToUpdateModel[currentFrame])
+        this->updateModelUBO(renderer, currentFrame);
 
     if(m_needToUpdateDrawCommandBuffer)
-        this->recordDrawCommandBuffers(renderer/*pipeline*/, renderPass, subpass, framebuffer);
+        this->recordDrawCommandBuffers(renderer, renderPass, subpass, framebuffer);
 
     return m_drawCommandBuffers[currentFrame];
 
@@ -218,6 +169,7 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer/*VkPipeli
 
 void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer,/*VkPipeline pipeline,*/ VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
+    //std::cout<<"DRAWCOMMAND"<<std::endl;
     for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkCommandBufferInheritanceInfo inheritanceInfo = {};
@@ -265,12 +217,6 @@ void Sprite::cleanup()
         vkDestroyBuffer(device, m_vertexBuffer, nullptr);
         vkFreeMemory(device, m_vertexBufferMemory, nullptr);
     }
-
-    /*for(auto ubo : m_modelBuffers)
-        vkDestroyBuffer(device, ubo, nullptr);
-
-    for(auto uboMemory : m_modelBuffersMemory)
-        vkFreeMemory(device, uboMemory, nullptr);*/
 }
 
 }

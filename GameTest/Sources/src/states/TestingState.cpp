@@ -46,10 +46,11 @@ void TestingState::init()
     //m_testingSprite.setPosition(glm::vec2(100,200));
     m_testingSprites.resize(3);
 
-    for(size_t i = 0 ; i < m_testingSprites.size() ; ++i)
+    auto it = m_testingSprites.begin();
+    for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
     {
-        m_testingSprites[i].setSize(glm::vec2(50,50+i*20));
-        m_testingSprites[i].setPosition(glm::vec2(70+i*80,200+10*i));
+        it->setSize(glm::vec2(50,50+i*20));
+        it->setPosition(glm::vec2(70+i*80,200+10*i));
     }
 }
 
@@ -83,6 +84,16 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     if(eventsManager->isAskingToClose())
         m_manager->stop();
 
+    if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
+        (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
+
+
+    if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
+    {
+        m_testingSprites.push_back(vlg::Sprite ());
+        (--m_testingSprites.end())->setPosition(eventsManager->mousePosition());
+        (--m_testingSprites.end())->setSize(glm::vec2(100,100));
+    }
 
    /** if(event_manager->KeyIsPressed(sf::Keyboard::Left))
         m_camMove.x = -1;

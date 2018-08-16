@@ -43,9 +43,9 @@ class DefaultRenderer
         void    updateViewUBO();
         bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
-        size_t  allocModelUBO();
-        void    updateModelUBO(size_t index, void *data);
-        bool    updateModelDescriptorSets(bool firstTime = false);
+        bool  allocModelUBO(size_t &index); ///Could use vector of indices
+        void    updateModelUBO(size_t index, void *data, size_t frameIndex);
+        void    updateModelDescriptorSets();
 
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
 
@@ -79,7 +79,7 @@ class DefaultRenderer
 
         /*std::vector<VkBuffer>           m_modelDynamicBuffers;
         std::vector<VkDeviceMemory>     m_modelDynamicBuffersMemory;*/
-        DynamicUBO                     *m_modelBuffers; /// I should have one of these for each frame
+        std::vector<DynamicUBO*>        m_modelBuffers;
         std::vector<VkDescriptorSet>    m_modelDescriptorSets;
         VkDescriptorSetLayout           m_modelDescriptorSetLayout;
 

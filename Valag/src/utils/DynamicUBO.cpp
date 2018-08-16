@@ -3,38 +3,21 @@
 #include "Vulkan/vulkan.h"
 
 
-/// Source : https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
+/// Inspiration from : https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
 
-void* alignedAlloc(size_t size, size_t alignment)
-{
-	void *data = nullptr;
-#if defined(_MSC_VER) || defined(__MINGW32__)
-	data = _aligned_malloc(size, alignment);
-#else
-	int res = posix_memalign(&data, alignment, size);
-	if (res != 0)
-		data = nullptr;
-#endif
-	return data;
-}
-
-void alignedFree(void* data)
-{
-#if	defined(_MSC_VER) || defined(__MINGW32__)
-	_aligned_free(data);
-#else
-	free(data);
-#endif
-}
 
 
 namespace vlg
 {
 
-DynamicUBO::DynamicUBO(size_t objectSize, size_t chunkSize )
+DynamicUBO::DynamicUBO(size_t objectSize, size_t chunkSize ) :
+    m_objectSize(objectSize),
+    m_chunkSize(chunkSize)
 {
-    m_currentIndex = 0;
-    this->createBuffers(objectSize, chunkSize);
+    m_firstTime = true;
+    m_totalSize = 0;
+    this->computeDynamicAlignment();
+    this->expandBuffers();
 }
 
 DynamicUBO::~DynamicUBO()
@@ -45,19 +28,22 @@ DynamicUBO::~DynamicUBO()
 bool DynamicUBO::allocObject(size_t &index)
 {
     bool r = false;
-    if(m_currentIndex > m_totalSize)
+    if(m_availableIndices.empty())
     {
         this->expandBuffers();
         r = true;
     }
 
-    index = m_currentIndex++;
+    index = *m_availableIndices.begin();
+    m_availableIndices.pop_front();
 
     return r;
 }
 
 bool DynamicUBO::freeObject(size_t index)
 {
+    m_availableIndices.push_back(index);
+
     return (true);
 }
 
@@ -70,22 +56,9 @@ bool DynamicUBO::updateObject(size_t index, void *newData)
 
     VkDevice device = vulkanInstance->getDevice();
 
-    // Aligned offset
-   // void* dataOffset = (void*)(((uint64_t)m_localData + (index * m_dynamicAlignment)));
-    //*dataOffset = *newData;
-
-    //memcpy(uniformBuffers.dynamic.mapped, data, m_objectSize);
-
-
-   /* void* data;
-    vkMapMemory(device, m_bufferMemory, 0, m_dynamicAlignment, 0, &data);
-        memcpy(data, dataOffset, m_dynamicAlignment);
-    vkUnmapMemory(device, m_bufferMemory);*/
-
     void* data;
     vkMapMemory(device, m_bufferMemory, this->getDynamicOffset(index), m_dynamicAlignment, 0, &data);
         memcpy(data, newData, m_objectSize);
-
 
     VkMappedMemoryRange memoryRange = {};
     memoryRange.sType   = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -109,12 +82,7 @@ VkBuffer DynamicUBO::getBuffer()
     return m_buffer;
 }
 
-VkDeviceSize DynamicUBO::getBufferRange()
-{
-    return m_bufferRange;
-}
-
-void DynamicUBO::createBuffers(size_t objectSize, size_t chunkSize)
+void DynamicUBO::computeDynamicAlignment()
 {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
 
@@ -126,36 +94,57 @@ void DynamicUBO::createBuffers(size_t objectSize, size_t chunkSize)
 
     size_t minUboAlignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
 
-    m_objectSize = objectSize;
-
-	m_dynamicAlignment = objectSize;
+	m_dynamicAlignment = m_objectSize;
 	if (minUboAlignment > 0)
 		m_dynamicAlignment = (m_dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+}
 
-    m_chunkSize = chunkSize;
-    m_totalSize = m_chunkSize;
+void DynamicUBO::createBuffers()
+{
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
 
-    size_t bufferSize = m_chunkSize * m_dynamicAlignment;
-    m_bufferRange = bufferSize;
-    /*localData = alignedAlloc(bufferSize, m_dynamicAlignment);
-    assert(localData);*/
+    if(vulkanInstance == nullptr)
+        throw std::runtime_error("No Vulkan instance in DynamicUBO::createBuffers()");
 
-    VulkanHelpers::createBuffer(bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+    m_bufferSize = m_totalSize * m_dynamicAlignment;
+    VulkanHelpers::createBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                                ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                 m_buffer, m_bufferMemory);
 
 }
 
 void DynamicUBO::expandBuffers()
 {
-    ///INCREASE m_totalSize by m_chunkSize
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+    VkDevice device = vulkanInstance->getDevice();
+
+    VkBuffer        oldBuffer = m_buffer;
+    VkDeviceMemory  oldbufferMemory = m_bufferMemory;
+    VkDeviceSize    oldBufferSize = m_bufferSize;
+
+    for(size_t i = 0 ; i < m_chunkSize ; ++i)
+        m_availableIndices.push_back(m_totalSize+i);
+    m_totalSize += m_chunkSize;
+    this->createBuffers();
+
+    if(!m_firstTime)
+    {
+        VulkanHelpers::copyBuffer(m_buffer, oldBuffer, oldBufferSize);
+
+        vkDestroyBuffer(device, oldBuffer, nullptr);
+        vkFreeMemory(device, oldbufferMemory, nullptr);
+    }
+
+    m_firstTime = false;
 }
 
 void DynamicUBO::cleanup()
 {
-    //alignedFree(m_localData);
+    VInstance *vulkanInstance = VInstance::getCurrentInstance();
+    VkDevice device = vulkanInstance->getDevice();
 
-    //vkDestroyBuffer()
-    //vkFreeMemory()
+    vkDestroyBuffer(device, m_buffer, nullptr);
+    vkFreeMemory(device, m_bufferMemory, nullptr);
 }
 
 
