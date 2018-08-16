@@ -37,7 +37,7 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         int m_nbrFps;
 
 
-        vlg::Sprite m_testingSprite;
+        std::vector<vlg::Sprite> m_testingSprites;
 };
 
 #endif // TESTINGSTATE_H

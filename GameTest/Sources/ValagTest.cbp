@@ -70,10 +70,13 @@
 		<Unit filename="../../Valag/include/Valag/gfx/TextureAsset.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/VInstance.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Clock.h" />
+		<Unit filename="../../Valag/include/Valag/utils/DynamicUBO.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Logger.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Parser.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Singleton.h" />
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
+		<Unit filename="../../Valag/shaders/defaultShader.frag" />
+		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/src/VulkanExtProxies.cpp" />
 		<Unit filename="../../Valag/src/VulkanHelpers.cpp" />
 		<Unit filename="../../Valag/src/core/Asset.cpp" />
@@ -94,6 +97,7 @@
 		<Unit filename="../../Valag/src/gfx/TextureAsset.cpp" />
 		<Unit filename="../../Valag/src/gfx/VInstance.cpp" />
 		<Unit filename="../../Valag/src/utils/Clock.cpp" />
+		<Unit filename="../../Valag/src/utils/DynamicUBO.cpp" />
 		<Unit filename="../../Valag/src/utils/Logger.cpp" />
 		<Unit filename="../../Valag/src/utils/Parser.cpp" />
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />

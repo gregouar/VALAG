@@ -10,6 +10,8 @@
 namespace vlg
 {
 
+class DefaultRenderer;
+
 class Sprite
 {
     friend class DefaultRenderer;
@@ -24,12 +26,20 @@ class Sprite
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
 
     protected:
+        void createAllBuffers();
         void createDrawCommandBuffer();
         void createVertexBuffer();
+        /*void createModelUBO();
+
+        void updateModelUBO();*/
+
         void cleanup();
 
         ///Specifying framebuffer may induce better performances
-        VkCommandBuffer recordDrawCommandBuffer(VkPipeline pipeline, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
+        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
+                                                uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
+        void recordDrawCommandBuffers(DefaultRenderer *renderer, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
+                                                uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
 
         glm::vec2 m_size;
@@ -39,17 +49,30 @@ class Sprite
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
 
-        bool m_needToCreateDrawCommandBuffer;
+        bool m_needToCreateBuffers;
         bool m_needToUpdateDrawCommandBuffer;
-        bool m_needToCreateVertexBuffer;
-
-
 
     private:
         VInstance      *m_creatingVInstance;
-        VkCommandBuffer m_drawCommandBuffer; //Would maybe need double buffering
+        std::vector<VkCommandBuffer>    m_drawCommandBuffers;
+
+        ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
+        ///Could use the same vertexBuffer for all Sprites though, should try to use static here
+        ///But then this would mean passing TexCoord in UBO
         VkBuffer        m_vertexBuffer;
         VkDeviceMemory  m_vertexBufferMemory;
+
+        /*///I should have a special part of AllocateMemory that handle UBO => allow to pass table of UBO and retrieve them
+        std::vector<VkBuffer>           m_modelBuffers;
+        std::vector<VkDeviceMemory>     m_modelBuffersMemory;
+
+        bool    m_needToUpdateUBO;*/
+        //size_t  m_currentFrame;
+
+        size_t      m_modelUBOIndex;
+
+        bool        m_needToUpdateModel;
+        uint32_t    m_modelIndex;
 };
 
 }

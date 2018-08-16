@@ -40,6 +40,7 @@ class VInstance
     friend class DefaultRenderer;
     friend class SceneRenderer;
     friend class Sprite;
+    friend class DynamicUBO;
 
     public:
         VInstance(GLFWwindow *window, const std::string name = "");

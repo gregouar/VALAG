@@ -24,6 +24,13 @@ struct Vertex2D
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 };
 
+struct ViewUBO {
+    glm::mat4 view;
+};
+struct ModelUBO {
+    glm::mat4 model;
+};
+
 class VulkanHelpers
 {
 

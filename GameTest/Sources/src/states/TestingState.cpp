@@ -42,7 +42,15 @@ void TestingState::init()
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
-    m_testingSprite.setSize(glm::vec2(.5f,.5f));
+    //m_testingSprite.setSize(glm::vec2(150,150));
+    //m_testingSprite.setPosition(glm::vec2(100,200));
+    m_testingSprites.resize(3);
+
+    for(size_t i = 0 ; i < m_testingSprites.size() ; ++i)
+    {
+        m_testingSprites[i].setSize(glm::vec2(50,50+i*20));
+        m_testingSprites[i].setPosition(glm::vec2(70+i*80,200+10*i));
+    }
 }
 
 void TestingState::entered()
@@ -193,7 +201,10 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
 void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
 {
-    renderer->draw(&m_testingSprite);
+    for(auto &sprite : m_testingSprites)
+        renderer->draw(&sprite);
+    //renderer->draw(&m_testingSprite);
+    //renderer->draw(&m_testingSprite2);
 }
 
 

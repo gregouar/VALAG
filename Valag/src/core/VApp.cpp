@@ -229,7 +229,7 @@ void VApp::drawFrame()
 
     m_defaultRenderer->updateBuffers(imageIndex);
 
-    m_vulkanInstance->submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(imageIndex),
+    m_vulkanInstance->submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
                                             m_defaultRenderer->getRenderFinishedSemaphore(m_vulkanInstance->getCurrentFrameIndex()));
 
     m_vulkanInstance->presentQueue();
