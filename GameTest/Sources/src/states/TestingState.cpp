@@ -44,7 +44,7 @@ void TestingState::init()
 
     //m_testingSprite.setSize(glm::vec2(150,150));
     //m_testingSprite.setPosition(glm::vec2(100,200));
-    m_testingSprites.resize(3);
+    m_testingSprites.resize(5);
 
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
@@ -214,8 +214,6 @@ void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* ren
 {
     for(auto &sprite : m_testingSprites)
         renderer->draw(&sprite);
-    //renderer->draw(&m_testingSprite);
-    //renderer->draw(&m_testingSprite2);
 }
 
 

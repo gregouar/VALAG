@@ -16,17 +16,21 @@ class DynamicUBO
 
         bool    allocObject(size_t &index);
         bool    freeObject(size_t index);
+        bool    isFull();
 
         bool    updateObject(size_t index, void *data);
+
+        void expandBuffers(bool destroyOldBUffers = true);
 
         uint32_t getDynamicOffset(size_t index);
 
         VkBuffer        getBuffer();
+        VkDeviceMemory  getBufferMemory();
+        size_t          getBufferVersion();
 
     protected:
         void computeDynamicAlignment();
         void createBuffers();
-        void expandBuffers();
         void cleanup();
 
     private:
@@ -41,6 +45,7 @@ class DynamicUBO
 
         std::list<size_t> m_availableIndices;
 
+        size_t m_bufferVersion;
         bool m_firstTime;
 };
 

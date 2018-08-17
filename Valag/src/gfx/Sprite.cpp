@@ -16,12 +16,13 @@ Sprite::Sprite() :
     m_texturePosition({0,0}),
     m_textureExtent({0,0}),
     m_needToCreateBuffers(true),
-    m_needToUpdateDrawCommandBuffer(true),
     m_creatingVInstance(nullptr),
     m_vertexBuffer(VK_NULL_HANDLE)
 {
-    m_needToUpdateModel.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    for(auto b : m_needToUpdateModel) b = true;
+    m_needToUpdateDrawCommandBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
+    m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
+    m_needToUpdateModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
+    m_modelBufferVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
 }
 
 Sprite::~Sprite()
@@ -151,26 +152,36 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
     if(m_needToCreateBuffers)
     {
         this->createAllBuffers();
-        if(renderer->allocModelUBO(m_modelUBOIndex))
-            m_needToUpdateDrawCommandBuffer = true;
-        for(auto b : m_needToUpdateModel) b = true;
+        for(auto b : m_needToUpdateDrawCommandBuffer) b = true;
     }
 
-    ///Should move this to method
+    if(m_needToAllocModel[currentFrame])
+    {
+        if(!renderer->allocModelUBO(m_modelUBOIndex, currentFrame))
+            return VK_NULL_HANDLE;
+
+        m_needToAllocModel[currentFrame] = false;
+    }
+
     if(m_needToUpdateModel[currentFrame])
         this->updateModelUBO(renderer, currentFrame);
 
-    if(m_needToUpdateDrawCommandBuffer)
-        this->recordDrawCommandBuffers(renderer, renderPass, subpass, framebuffer);
+    if(m_modelBufferVersion[currentFrame] != renderer->getModelUBOBufferVersion(currentFrame))
+    {
+        m_needToUpdateDrawCommandBuffer[currentFrame] = true;
+        m_modelBufferVersion[currentFrame] = renderer->getModelUBOBufferVersion(currentFrame);
+    }
+
+    if(m_needToUpdateDrawCommandBuffer[currentFrame])
+        this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer);
 
     return m_drawCommandBuffers[currentFrame];
 
 }
 
-void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer,/*VkPipeline pipeline,*/ VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
+void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame,/*VkPipeline pipeline,*/ VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
-    //std::cout<<"DRAWCOMMAND"<<std::endl;
-    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+   /// for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkCommandBufferInheritanceInfo inheritanceInfo = {};
         inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
@@ -186,22 +197,22 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer,/*VkPipeline pip
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         beginInfo.pInheritanceInfo = &inheritanceInfo; // Optional
 
-        if (vkBeginCommandBuffer(m_drawCommandBuffers[i], &beginInfo) != VK_SUCCESS)
+        if (vkBeginCommandBuffer(m_drawCommandBuffers[currentFrame], &beginInfo) != VK_SUCCESS)
             throw std::runtime_error("Failed to begin recording command buffer");
 
-        renderer->bindAllUBOs(m_drawCommandBuffers[i],i,m_modelUBOIndex);
+        renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
 
         VkBuffer vertexBuffers[] = {m_vertexBuffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(m_drawCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(m_drawCommandBuffers[i], 4, 1, 0, 0);
+        vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);
 
-        if (vkEndCommandBuffer(m_drawCommandBuffers[i]) != VK_SUCCESS)
+        if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
             throw std::runtime_error("Failed to record command buffer");
     }
 
-    m_needToUpdateDrawCommandBuffer = false;
+    m_needToUpdateDrawCommandBuffer[currentFrame] = false;
 }
 
 void Sprite::cleanup()

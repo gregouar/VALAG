@@ -37,7 +37,7 @@ class Sprite
         ///Specifying framebuffer may induce better performances
         VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
-        void recordDrawCommandBuffers(DefaultRenderer *renderer, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
+        void recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
 
@@ -49,7 +49,7 @@ class Sprite
         glm::vec2 m_textureExtent;
 
         bool m_needToCreateBuffers;
-        bool m_needToUpdateDrawCommandBuffer;
+        std::vector<bool> m_needToUpdateDrawCommandBuffer;
 
     private:
         VInstance      *m_creatingVInstance;
@@ -63,8 +63,10 @@ class Sprite
 
         size_t      m_modelUBOIndex;
 
-        std::vector<bool> m_needToUpdateModel;
-        uint32_t    m_modelIndex; ///should I put a vector to be sure ?
+        std::vector<bool>   m_needToAllocModel;
+        std::vector<bool>   m_needToUpdateModel;
+        uint32_t            m_modelIndex; ///should I put a vector to be sure ?
+        std::vector<size_t> m_modelBufferVersion;
 };
 
 }

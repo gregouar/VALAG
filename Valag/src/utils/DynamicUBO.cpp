@@ -14,7 +14,7 @@ DynamicUBO::DynamicUBO(size_t objectSize, size_t chunkSize ) :
     m_objectSize(objectSize),
     m_chunkSize(chunkSize)
 {
-    m_firstTime = true;
+    m_bufferVersion = 0;
     m_totalSize = 0;
     this->computeDynamicAlignment();
     this->expandBuffers();
@@ -45,6 +45,11 @@ bool DynamicUBO::freeObject(size_t index)
     m_availableIndices.push_back(index);
 
     return (true);
+}
+
+bool DynamicUBO::isFull()
+{
+    return (m_availableIndices.empty());
 }
 
 bool DynamicUBO::updateObject(size_t index, void *newData)
@@ -82,6 +87,16 @@ VkBuffer DynamicUBO::getBuffer()
     return m_buffer;
 }
 
+VkDeviceMemory DynamicUBO::getBufferMemory()
+{
+    return m_bufferMemory;
+}
+
+size_t DynamicUBO::getBufferVersion()
+{
+    return m_bufferVersion;
+}
+
 void DynamicUBO::computeDynamicAlignment()
 {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
@@ -113,7 +128,7 @@ void DynamicUBO::createBuffers()
 
 }
 
-void DynamicUBO::expandBuffers()
+void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 {
     VInstance *vulkanInstance = VInstance::getCurrentInstance();
     VkDevice device = vulkanInstance->getDevice();
@@ -127,15 +142,19 @@ void DynamicUBO::expandBuffers()
     m_totalSize += m_chunkSize;
     this->createBuffers();
 
-    if(!m_firstTime)
+    if(m_bufferVersion != 0)
     {
-        VulkanHelpers::copyBuffer(m_buffer, oldBuffer, oldBufferSize);
+        VulkanHelpers::copyBuffer(oldBuffer, m_buffer, oldBufferSize);
 
-        vkDestroyBuffer(device, oldBuffer, nullptr);
-        vkFreeMemory(device, oldbufferMemory, nullptr);
+        /** I should maybe keep buffer in memory until MAX_NBR_FRAMES passed **/
+        if(destroyOldBuffers)
+        {
+            vkDestroyBuffer(device, oldBuffer, nullptr);
+            vkFreeMemory(device, oldbufferMemory, nullptr);
+        }
     }
 
-    m_firstTime = false;
+    ++m_bufferVersion;
 }
 
 void DynamicUBO::cleanup()

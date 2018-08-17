@@ -36,16 +36,16 @@ class DefaultRenderer
         bool    createSemaphores();
 
         bool    createUBO();
-       // bool    createModelBuffers();
-       // void    expandModelBuffers();
 
         void    updateBuffers(uint32_t imageIndex);
         void    updateViewUBO();
         bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
-        bool  allocModelUBO(size_t &index); ///Could use vector of indices
+        bool    allocModelUBO(size_t &index, size_t frameIndex); ///Could use vector of indices
         void    updateModelUBO(size_t index, void *data, size_t frameIndex);
-        void    updateModelDescriptorSets();
+        void    updateModelDescriptorSets(size_t frameIndex);
+        size_t  getModelUBOBufferVersion(size_t frameIndex);
+        void    checkBuffersExpansion();
 
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
 
@@ -65,7 +65,7 @@ class DefaultRenderer
         VkDescriptorPool                m_descriptorPool;
         std::vector<VkDescriptorSet>    m_descriptorSets;
 
-        size_t                          m_currentCommandBuffer;
+        size_t                          m_currentFrame;
         std::vector<VkCommandBuffer>    m_commandBuffers;
 
         std::vector<VkSemaphore>        m_renderFinishedSemaphore;
@@ -77,13 +77,13 @@ class DefaultRenderer
         std::vector<VkDescriptorSet>    m_viewDescriptorSets;
         VkDescriptorSetLayout           m_viewDescriptorSetLayout;
 
-        /*std::vector<VkBuffer>           m_modelDynamicBuffers;
-        std::vector<VkDeviceMemory>     m_modelDynamicBuffersMemory;*/
         std::vector<DynamicUBO*>        m_modelBuffers;
         std::vector<VkDescriptorSet>    m_modelDescriptorSets;
         VkDescriptorSetLayout           m_modelDescriptorSetLayout;
 
-
+        bool                            m_needToExpandModelBuffers;
+        std::vector<VkBuffer>           m_oldModelBuffers;
+        std::vector<VkDeviceMemory>     m_oldModelBuffersMemory;
 
 
         static const char *DEFAULT_VERTSHADERFILE;

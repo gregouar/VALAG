@@ -24,8 +24,11 @@ DefaultRenderer::DefaultRenderer(VInstance *vulkanInstance) :
     m_defaultRenderPass(VK_NULL_HANDLE),
     m_defaultPipelineLayout(VK_NULL_HANDLE),
     m_defaultPipeline(VK_NULL_HANDLE),
-    m_currentCommandBuffer(0)
+    m_currentFrame(0)
 {
+    m_needToExpandModelBuffers = false;
+    m_oldModelBuffers = std::vector<VkBuffer> (VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+    m_oldModelBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
     //m_currentFrameViewUBO = VApp::MAX_FRAMES_IN_FLIGHT - 1;
     this->init();
 }
@@ -38,14 +41,16 @@ DefaultRenderer::~DefaultRenderer()
 
 void DefaultRenderer::draw(Sprite *sprite)
 {
-    m_activeSecondaryCommandBuffers.push_back(sprite->getDrawCommandBuffer(this,m_currentCommandBuffer, m_defaultRenderPass, 0));
+    VkCommandBuffer commandBuffer = sprite->getDrawCommandBuffer(this,m_currentFrame, m_defaultRenderPass, 0);
+    if(commandBuffer != VK_NULL_HANDLE)
+        m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
 
 
 VkCommandBuffer DefaultRenderer::getCommandBuffer()
 {
- //   return m_commandBuffers[m_currentCommandBuffer];
-    return m_commandBuffers[(m_currentCommandBuffer - 1) % VApp::MAX_FRAMES_IN_FLIGHT];
+ //   return m_commandBuffers[m_currentFrame];
+    return m_commandBuffers[(m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT];
 }
 
 VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
@@ -56,18 +61,41 @@ VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
 
 void DefaultRenderer::updateBuffers(uint32_t imageIndex)
 {
-    /*if(m_vulkanInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in updateBuffers()");
 
-    VkDevice device = m_vulkanInstance->getDevice();*/
-
-
-    if(m_needToUpdateViewUBO[m_currentCommandBuffer])
+    if(m_needToUpdateViewUBO[m_currentFrame])
         this->updateViewUBO();
 
     this->recordPrimaryCommandBuffer(imageIndex);
 
-    m_currentCommandBuffer = (m_currentCommandBuffer + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+
+    m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+}
+
+void DefaultRenderer::checkBuffersExpansion()
+{
+    size_t oldFrame = (m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+
+    if(m_vulkanInstance == nullptr)
+        throw std::runtime_error("No vulkan instance in updateBuffers()");
+
+    VkDevice device = m_vulkanInstance->getDevice();
+
+    if(m_oldModelBuffers[oldFrame] != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(device, m_oldModelBuffers[oldFrame], nullptr);
+        vkFreeMemory(device, m_oldModelBuffersMemory[oldFrame], nullptr);
+        m_oldModelBuffers[oldFrame] = VK_NULL_HANDLE;
+    }
+
+    if(m_needToExpandModelBuffers)
+    {
+        m_oldModelBuffers[oldFrame] = m_modelBuffers[oldFrame]->getBuffer();
+        m_oldModelBuffersMemory[oldFrame] = m_modelBuffers[oldFrame]->getBufferMemory();
+        m_modelBuffers[oldFrame]->expandBuffers(false);
+        this->updateModelDescriptorSets(oldFrame);
+        m_needToExpandModelBuffers = false;
+    }
+
 }
 
 void DefaultRenderer::updateViewUBO()
@@ -86,11 +114,11 @@ void DefaultRenderer::updateViewUBO()
 
     /** I should write a helper for updateBufferMemory **/
     void* data;
-    vkMapMemory(device, m_viewBuffersMemory[m_currentCommandBuffer], 0, sizeof(viewUbo), 0, &data);
+    vkMapMemory(device, m_viewBuffersMemory[m_currentFrame], 0, sizeof(viewUbo), 0, &data);
         memcpy(data, &viewUbo, sizeof(viewUbo));
-    vkUnmapMemory(device, m_viewBuffersMemory[m_currentCommandBuffer]);
+    vkUnmapMemory(device, m_viewBuffersMemory[m_currentFrame]);
 
-    m_needToUpdateViewUBO[m_currentCommandBuffer] = false;
+    m_needToUpdateViewUBO[m_currentFrame] = false;
 }
 
 bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
@@ -99,7 +127,7 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    if (vkBeginCommandBuffer(m_commandBuffers[m_currentCommandBuffer], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_commandBuffers[m_currentFrame], &beginInfo) != VK_SUCCESS)
     {
         Logger::error("Failed to begin recording command buffer");
         return (false);
@@ -116,22 +144,22 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(m_commandBuffers[m_currentCommandBuffer], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(m_commandBuffers[m_currentFrame], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
         //vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
         //vkCmdDraw(m_commandBuffers[imageIndex], 3, 1, 0, 0);
 
-      //  vkCmdBindDescriptorSets(m_commandBuffers[m_currentCommandBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS,
-        //                        m_defaultPipelineLayout, 0, 1, &m_viewDescriptorSets[m_currentCommandBuffer], 0, nullptr);
+      //  vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        //                        m_defaultPipelineLayout, 0, 1, &m_viewDescriptorSets[m_currentFrame], 0, nullptr);
 
         if(!m_activeSecondaryCommandBuffers.empty())
-            vkCmdExecuteCommands(m_commandBuffers[m_currentCommandBuffer], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
+            vkCmdExecuteCommands(m_commandBuffers[m_currentFrame], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
 
-    vkCmdEndRenderPass(m_commandBuffers[m_currentCommandBuffer]);
+    vkCmdEndRenderPass(m_commandBuffers[m_currentFrame]);
 
     m_activeSecondaryCommandBuffers.clear();
 
-    if (vkEndCommandBuffer(m_commandBuffers[m_currentCommandBuffer]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_commandBuffers[m_currentFrame]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);
@@ -141,20 +169,28 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 }
 
 
-bool DefaultRenderer::allocModelUBO(size_t &index)
+bool DefaultRenderer::allocModelUBO(size_t &index, size_t frameIndex)
 {
-    bool needToUpdate = false;
+   // bool needToUpdate = false;
 
-    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-    {
-        if(m_modelBuffers[i]->allocObject(index))
-            needToUpdate = true;
-    }
+    /*if(m_modelBuffers[frameIndex]->allocObject(index))
+        needToUpdate = true;
 
     if(needToUpdate)
-        this->updateModelDescriptorSets();
+        this->updateModelDescriptorSets(frameIndex);
 
-    return needToUpdate;
+    return needToUpdate;*/
+
+
+    if(m_modelBuffers[frameIndex]->isFull())
+    {
+        m_needToExpandModelBuffers = true;
+        return (false);
+    }
+
+    m_modelBuffers[frameIndex]->allocObject(index);
+
+    return (true);
 }
 
 void DefaultRenderer::updateModelUBO(size_t index, void *data, size_t frameIndex)
@@ -162,20 +198,20 @@ void DefaultRenderer::updateModelUBO(size_t index, void *data, size_t frameIndex
     m_modelBuffers[frameIndex]->updateObject(index, data);
 }
 
-void DefaultRenderer::updateModelDescriptorSets()
+void DefaultRenderer::updateModelDescriptorSets(size_t frameIndex)
 {
     VkDevice device = m_vulkanInstance->getDevice();
 
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+    //for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_modelBuffers[i]->getBuffer();
+        bufferInfo.buffer = m_modelBuffers[frameIndex]->getBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(ModelUBO);//m_modelBuffers[i]->getBufferRange();
 
         VkWriteDescriptorSet descriptorWrite = {};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_modelDescriptorSets[i];
+        descriptorWrite.dstSet = m_modelDescriptorSets[frameIndex];
         descriptorWrite.dstBinding = 0; //Bind number
         descriptorWrite.dstArrayElement = 0; //Set number
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -186,6 +222,11 @@ void DefaultRenderer::updateModelDescriptorSets()
 
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
+}
+
+size_t DefaultRenderer::getModelUBOBufferVersion(size_t frameIndex)
+{
+    return m_modelBuffers[frameIndex]->getBufferVersion();
 }
 
 void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
@@ -625,9 +666,10 @@ bool DefaultRenderer::createDescriptorSets()
         m_modelDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
         if (vkAllocateDescriptorSets(device, &allocInfo,m_modelDescriptorSets.data()) != VK_SUCCESS)
             return (false);
-
-        this->updateModelDescriptorSets();
     }
+
+    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+        this->updateModelDescriptorSets(i);
 
     return (true);
 }
