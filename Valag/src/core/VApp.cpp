@@ -7,6 +7,7 @@
 
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
+#include "Valag/vulkanImpl/VMemoryAllocator.h"
 
 namespace vlg
 {
@@ -252,6 +253,7 @@ void VApp::cleanup()
     }
 
     TextureHandler::instance()->cleanAll();
+    VMemoryAllocator::instance()->cleanAll();
 
     if(m_vulkanInstance != nullptr)
     {

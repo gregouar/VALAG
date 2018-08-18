@@ -1,9 +1,9 @@
 #ifndef DEFAULTRENDERER_H
 #define DEFAULTRENDERER_H
 
-#include "Valag/gfx/VInstance.h"
+#include "Valag/vulkanImpl/VInstance.h"
+#include "Valag/vulkanImpl/DynamicUBO.h"
 #include "Valag/gfx/Sprite.h"
-#include "Valag/utils/DynamicUBO.h"
 
 namespace vlg
 {

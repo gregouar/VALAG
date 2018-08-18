@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Valag/core/VApp.h"
-#include "Valag/gfx/VInstance.h"
+#include "Valag/vulkanImpl/VInstance.h"
 #include "Valag/gfx/DefaultRenderer.h"
 
 namespace vlg
@@ -16,8 +16,7 @@ Sprite::Sprite() :
     m_texturePosition({0,0}),
     m_textureExtent({0,0}),
     m_needToCreateBuffers(true),
-    m_creatingVInstance(nullptr),
-    m_vertexBuffer(VK_NULL_HANDLE)
+    m_creatingVInstance(nullptr)
 {
     m_needToUpdateDrawCommandBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
@@ -114,24 +113,32 @@ void Sprite::createVertexBuffer()
 
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();
 
-    VkBuffer stagingBuffer;
+    /*VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
     VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                stagingBuffer, stagingBufferMemory);
+                                stagingBuffer, stagingBufferMemory);*/
+
+    VBuffer stagingBuffer;
+    VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                  stagingBuffer);
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.bufferMemory, stagingBuffer.offset, bufferSize, 0, &data);
         memcpy(data, vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
-    VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                m_vertexBuffer, m_vertexBufferMemory);
+    /*VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                m_vertexBuffer, m_vertexBufferMemory);*/
 
-    VulkanHelpers::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+    //VulkanHelpers::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+    VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                    m_vertexBuffer);
+    VMemoryAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    //vkDestroyBuffer(device, stagingBuffer, nullptr);
+    //vkFreeMemory(device, stagingBufferMemory, nullptr);
+    VMemoryAllocator::freeBuffer(stagingBuffer);
 
     m_creatingVInstance = vulkanInstance;
 }
@@ -202,8 +209,8 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
 
         renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
 
-        VkBuffer vertexBuffers[] = {m_vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
+        VkDeviceSize offsets[] = {m_vertexBuffer.offset};
         vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
 
         vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);
@@ -222,12 +229,13 @@ void Sprite::cleanup()
 
     VkDevice device = m_creatingVInstance->getDevice();
 
-        /**Need to add memoryAllocator associated to instance that clean itself at the end**/
-    if(m_vertexBuffer != VK_NULL_HANDLE)
+    /**Need to add memoryAllocator associated to instance that clean itself at the end**/
+    /*if(m_vertexBuffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(device, m_vertexBuffer, nullptr);
         vkFreeMemory(device, m_vertexBufferMemory, nullptr);
-    }
+    }*/
+        VMemoryAllocator::freeBuffer(m_vertexBuffer);
 }
 
 }

@@ -87,6 +87,7 @@ typedef std::chrono::duration<double, std::chrono::seconds::period> Time;
 typedef unsigned int AssetTypeID;
 typedef unsigned int NodeTypeID;
 typedef unsigned int ObjectTypeID;
+typedef size_t VBufferID;
 //typedef unsigned int RenderTargetTypeID;
 typedef std::string AnimationTypeID;
 

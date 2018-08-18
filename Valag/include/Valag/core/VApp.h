@@ -7,7 +7,7 @@
 #include "Valag/core/GameState.h"
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
-#include "Valag/gfx/VInstance.h"
+#include "Valag/vulkanImpl/VInstance.h"
 #include "Valag/gfx/DefaultRenderer.h"
 #include "Valag/gfx/SceneRenderer.h"
 

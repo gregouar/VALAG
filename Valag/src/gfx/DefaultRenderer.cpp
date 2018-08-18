@@ -7,7 +7,7 @@
 #include "Valag/core/Config.h"
 #include "Valag/core/VApp.h"
 
-#include "Valag/VulkanHelpers.h"
+#include "Valag/vulkanImpl/VulkanHelpers.h"
 
 
 namespace vlg

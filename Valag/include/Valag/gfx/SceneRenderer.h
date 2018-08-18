@@ -5,7 +5,7 @@
 #ifndef SCENERENDERER_H
 #define SCENERENDERER_H
 
-#include "Valag/gfx/VInstance.h"
+#include "Valag/vulkanImpl/VInstance.h"
 
 namespace vlg
 {

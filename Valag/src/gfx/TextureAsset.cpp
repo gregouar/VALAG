@@ -2,7 +2,7 @@
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/utils/Logger.h"
 
-#include "Valag/gfx/VInstance.h"
+#include "Valag/vulkanImpl/VInstance.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
