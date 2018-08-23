@@ -1,8 +1,8 @@
 #include "Valag/gfx/DefaultRenderer.h"
 
 #include <sstream>
-#include <glm/gtc/matrix_transform.hpp>
 
+#include "Valag/utils/Profiler.h"
 #include "Valag/utils/Logger.h"
 #include "Valag/core/Config.h"
 #include "Valag/core/VApp.h"
@@ -16,7 +16,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 8;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 1024;
 
 DefaultRenderer::DefaultRenderer(VInstance *vulkanInstance) :
     m_vulkanInstance(vulkanInstance),
@@ -61,12 +61,12 @@ VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
 
 void DefaultRenderer::updateBuffers(uint32_t imageIndex)
 {
-
     if(m_needToUpdateViewUBO[m_currentFrame])
         this->updateViewUBO();
 
+    Profiler::pushClock("Record primary buffer");
     this->recordPrimaryCommandBuffer(imageIndex);
-
+    Profiler::popClock();
 
     m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 }
@@ -145,12 +145,6 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(m_commandBuffers[m_currentFrame], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
-        //vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
-        //vkCmdDraw(m_commandBuffers[imageIndex], 3, 1, 0, 0);
-
-      //  vkCmdBindDescriptorSets(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-        //                        m_defaultPipelineLayout, 0, 1, &m_viewDescriptorSets[m_currentFrame], 0, nullptr);
 
         if(!m_activeSecondaryCommandBuffers.empty())
             vkCmdExecuteCommands(m_commandBuffers[m_currentFrame], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());

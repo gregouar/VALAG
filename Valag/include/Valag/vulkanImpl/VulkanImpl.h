@@ -2,6 +2,7 @@
 
 #include <Vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Valag/Types.h"
 #include "Valag/vulkanImpl/VInstance.h"

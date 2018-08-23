@@ -113,12 +113,6 @@ void Sprite::createVertexBuffer()
 
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();
 
-    /*VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-
-    VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                stagingBuffer, stagingBufferMemory);*/
-
     VBuffer stagingBuffer;
     VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                   stagingBuffer);
@@ -128,16 +122,10 @@ void Sprite::createVertexBuffer()
         memcpy(data, vertices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
-    /*VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                m_vertexBuffer, m_vertexBufferMemory);*/
-
-    //VulkanHelpers::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
     VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                     m_vertexBuffer);
     VMemoryAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
-    //vkDestroyBuffer(device, stagingBuffer, nullptr);
-    //vkFreeMemory(device, stagingBufferMemory, nullptr);
     VMemoryAllocator::freeBuffer(stagingBuffer);
 
     m_creatingVInstance = vulkanInstance;
@@ -207,10 +195,11 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
         if (vkBeginCommandBuffer(m_drawCommandBuffers[currentFrame], &beginInfo) != VK_SUCCESS)
             throw std::runtime_error("Failed to begin recording command buffer");
 
-        renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
-
         VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
         VkDeviceSize offsets[] = {m_vertexBuffer.offset};
+
+        renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
+
         vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
 
         vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);
@@ -224,18 +213,7 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
 
 void Sprite::cleanup()
 {
-    if(m_creatingVInstance == nullptr)
-        return;
-
-    VkDevice device = m_creatingVInstance->getDevice();
-
-    /**Need to add memoryAllocator associated to instance that clean itself at the end**/
-    /*if(m_vertexBuffer != VK_NULL_HANDLE)
-    {
-        vkDestroyBuffer(device, m_vertexBuffer, nullptr);
-        vkFreeMemory(device, m_vertexBufferMemory, nullptr);
-    }*/
-        VMemoryAllocator::freeBuffer(m_vertexBuffer);
+    VMemoryAllocator::freeBuffer(m_vertexBuffer);
 }
 
 }

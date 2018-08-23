@@ -125,6 +125,8 @@ class VInstance
 
         /*VkCommandPool m_commandPool,
                       m_texturesLoadingCommandPool;*/
+
+        ///I should try to do one command pool per frame (and reset) ?
         std::vector<VkCommandPool>  m_commandPools;
 
         uint32_t    m_curImageIndex;

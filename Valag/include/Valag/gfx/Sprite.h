@@ -59,7 +59,6 @@ class Sprite
         //VkDeviceMemory  m_vertexBufferMemory;
         VBuffer     m_vertexBuffer;
 
-
         size_t      m_modelUBOIndex;
 
         std::vector<bool>   m_needToAllocModel;

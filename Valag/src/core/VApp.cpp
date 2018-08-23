@@ -9,6 +9,8 @@
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/vulkanImpl/VMemoryAllocator.h"
 
+#include "Valag/utils/Profiler.h"
+
 namespace vlg
 {
 
@@ -202,6 +204,7 @@ void VApp::loop()
     while(m_running)
     {
         Time elapsedTime = clock.restart();
+        Profiler::resetLoop(ENABLE_PROFILER);
 
         m_eventsManager.update();
 
@@ -212,13 +215,19 @@ void VApp::loop()
         else {
             m_statesManager.handleEvents(&m_eventsManager);
 
+            Profiler::pushClock("States update");
             m_statesManager.update(elapsedTime);
+            Profiler::popClock();
 
+            Profiler::pushClock("States draw");
             m_statesManager.draw(m_defaultRenderer);
+            Profiler::popClock();
         }
 
+        Profiler::pushClock("Draw frame");
         this->drawFrame();
-        ///m_window.display();
+        Profiler::popClock();
+
     }
 
     m_vulkanInstance->waitDeviceIdle();
@@ -226,16 +235,30 @@ void VApp::loop()
 
 void VApp::drawFrame()
 {
+    Profiler::pushClock("Acquire next image");
     uint32_t imageIndex = m_vulkanInstance->acquireNextImage();
+    Profiler::popClock();
 
+
+    Profiler::pushClock("Update buffers");
     m_defaultRenderer->updateBuffers(imageIndex);
+    Profiler::popClock();
 
+
+    Profiler::pushClock("Submit to queue");
     m_vulkanInstance->submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
                                             m_defaultRenderer->getRenderFinishedSemaphore(m_vulkanInstance->getCurrentFrameIndex()));
+    Profiler::popClock();
 
+
+    Profiler::pushClock("Check buffer expansion");
     m_defaultRenderer->checkBuffersExpansion();
+    Profiler::popClock();
 
+
+    Profiler::pushClock("Present");
     m_vulkanInstance->presentQueue();
+    Profiler::popClock();
 }
 
 void VApp::cleanup()

@@ -19,8 +19,13 @@ struct VBuffer
     VkBuffer                buffer;
     VkDeviceMemory          bufferMemory;
     VkDeviceSize            offset;
+    VkDeviceSize            alignedSize;
     uint32_t                memoryTypeIndex;
     VBufferID               bufferID;
+
+    VkBufferUsageFlags      usage;
+    VkMemoryPropertyFlags   properties;
+    size_t                  allocatingBuffer;
 };
 
 struct AllocatedBuffer
@@ -29,6 +34,8 @@ struct AllocatedBuffer
     VkBuffer                buffer;
     VkDeviceMemory          bufferMemory;
     VkDeviceSize            bufferSize;
+
+    std::list<std::pair<VkDeviceSize, VkDeviceSize>> emptyRanges; //<offset, size>
 };
 
 class VMemoryAllocator : public Singleton<VMemoryAllocator>
@@ -51,14 +58,19 @@ class VMemoryAllocator : public Singleton<VMemoryAllocator>
         bool copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName);
         bool allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VBuffer &vbuffer);
 
+        bool searchForSpace(AllocatedBuffer &allocatedBuffer, VkDeviceSize size, VkDeviceSize &offset);
+        bool createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+
         void cleanAll();
 
     private:
-        std::map<uint32_t, std::vector<AllocatedBuffer>> m_buffers;
+        std::map<std::pair<VkBufferUsageFlags, VkMemoryPropertyFlags>, std::vector<AllocatedBuffer>> m_buffers;
 
         std::map<VBufferID, VBuffer>    m_allocatedSubBuffers;
         VBufferID                       m_currentID;
 
+    public:
+        static uint32_t BUFFER_SIZE;
 };
 
 }
