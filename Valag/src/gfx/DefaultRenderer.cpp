@@ -18,8 +18,8 @@ const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
 const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 1024;
 
-DefaultRenderer::DefaultRenderer(VInstance *vulkanInstance) :
-    m_vulkanInstance(vulkanInstance),
+DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
+    m_targetWindow(targetWindow),
     m_defaultTextureSampler(VK_NULL_HANDLE),
     m_defaultRenderPass(VK_NULL_HANDLE),
     m_defaultPipelineLayout(VK_NULL_HANDLE),
@@ -75,10 +75,7 @@ void DefaultRenderer::checkBuffersExpansion()
 {
     size_t oldFrame = (m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 
-    if(m_vulkanInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in updateBuffers()");
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     if(m_oldModelBuffers[oldFrame] != VK_NULL_HANDLE)
     {
@@ -100,10 +97,7 @@ void DefaultRenderer::checkBuffersExpansion()
 
 void DefaultRenderer::updateViewUBO()
 {
-    if(m_vulkanInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in updateViewUBO()");
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     ViewUBO viewUbo = {};
     /** this could need to be updated if I implement resizing **/
@@ -138,7 +132,7 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.renderPass = m_defaultRenderPass;
     renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_vulkanInstance->getSwapchainExtent();
+    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
 
     VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
     renderPassInfo.clearValueCount = 1;
@@ -194,7 +188,7 @@ void DefaultRenderer::updateModelUBO(size_t index, void *data, size_t frameIndex
 
 void DefaultRenderer::updateModelDescriptorSets(size_t frameIndex)
 {
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     //for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
@@ -304,13 +298,10 @@ bool DefaultRenderer::init()
 
 bool DefaultRenderer::createRenderPass()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = m_vulkanInstance->getSwapchainImageFormat();
+    colorAttachment.format = m_targetWindow->getSwapchainImageFormat();
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -350,10 +341,7 @@ bool DefaultRenderer::createRenderPass()
 
 bool DefaultRenderer::createDescriptorSetLayouts()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -381,10 +369,7 @@ bool DefaultRenderer::createDescriptorSetLayouts()
 
 bool DefaultRenderer::createGraphicsPipeline()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     std::ostringstream vertShaderPath,fragShaderPath;
     vertShaderPath << VApp::DEFAULT_SHADERPATH << DEFAULT_VERTSHADERFILE;
@@ -431,14 +416,14 @@ bool DefaultRenderer::createGraphicsPipeline()
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) m_vulkanInstance->getSwapchainExtent().width;
-    viewport.height = (float) m_vulkanInstance->getSwapchainExtent().height;
+    viewport.width = (float) m_targetWindow->getSwapchainExtent().width;
+    viewport.height = (float) m_targetWindow->getSwapchainExtent().height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
-    scissor.extent = m_vulkanInstance->getSwapchainExtent();
+    scissor.extent = m_targetWindow->getSwapchainExtent();
 
     VkPipelineViewportStateCreateInfo viewportState = {};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -538,9 +523,6 @@ bool DefaultRenderer::createGraphicsPipeline()
 
 bool DefaultRenderer::createTextureSampler()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -556,15 +538,12 @@ bool DefaultRenderer::createTextureSampler()
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    return (vkCreateSampler(m_vulkanInstance->getDevice(), &samplerInfo, nullptr, &m_defaultTextureSampler) == VK_SUCCESS);
+    return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_defaultTextureSampler) == VK_SUCCESS);
 }
 
 bool DefaultRenderer::createFramebuffers()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
-    auto swapChainImageViews = m_vulkanInstance->getSwapchainImageViews();
+    auto swapChainImageViews = m_targetWindow->getSwapchainImageViews();
 
     m_swapchainFramebuffers.resize(swapChainImageViews.size());
     m_swapchainExtents.resize(swapChainImageViews.size());
@@ -575,7 +554,7 @@ bool DefaultRenderer::createFramebuffers()
             swapChainImageViews[i]
         };
 
-        m_swapchainExtents[i] = m_vulkanInstance->getSwapchainExtent();
+        m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -586,7 +565,7 @@ bool DefaultRenderer::createFramebuffers()
         framebufferInfo.height = m_swapchainExtents[i].height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(m_vulkanInstance->getDevice(), &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
             return (false);
 
     }
@@ -607,12 +586,12 @@ bool DefaultRenderer::createDescriptorPool()
 
     poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2);
 
-    return (vkCreateDescriptorPool(m_vulkanInstance->getDevice(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
+    return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
 }
 
 bool DefaultRenderer::createDescriptorSets()
 {
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     {
         std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_viewDescriptorSetLayout);
@@ -670,19 +649,16 @@ bool DefaultRenderer::createDescriptorSets()
 
 bool DefaultRenderer::createPrimaryCommandBuffers()
 {
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
     //m_commandBuffers.resize(m_swapchainFramebuffers.size());
     m_commandBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_vulkanInstance->getCommandPool(COMMANDPOOL_DEFAULT);
+    allocInfo.commandPool = VInstance::commandPool(COMMANDPOOL_DEFAULT);
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 
-    if (vkAllocateCommandBuffers(m_vulkanInstance->getDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
     {
         Logger::error("Failed to allocate command buffers");
         return (false);
@@ -739,16 +715,13 @@ bool DefaultRenderer::createSemaphores()
 
     return (vkCreateSemaphore(m_vulkanInstance->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) == VK_SUCCESS);*/
 
-    if(m_vulkanInstance == nullptr)
-        return (false);
-
     m_renderFinishedSemaphore.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        if(vkCreateSemaphore(m_vulkanInstance->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS)
+        if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS)
             return (false);
 
     return (true);
@@ -779,10 +752,7 @@ bool DefaultRenderer::createUBO()
 
 void DefaultRenderer::cleanup()
 {
-    if(m_vulkanInstance == nullptr)
-        return;
-
-    VkDevice device = m_vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
 

@@ -7,7 +7,8 @@
 #include "Valag/core/GameState.h"
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
-#include "Valag/vulkanImpl/VInstance.h"
+
+#include "Valag/vulkanImpl/RenderWindow.h"
 #include "Valag/gfx/DefaultRenderer.h"
 #include "Valag/gfx/SceneRenderer.h"
 
@@ -41,9 +42,9 @@ class VApp
     protected:
         bool    init();
 
-        bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
+        //bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
         bool    createWindow();
-        bool    createVulkanInstance();
+        //bool    createVulkanInstance();
         bool    createDefaultRenderer();
         bool    createSceneRenderer();
 
@@ -59,8 +60,10 @@ class VApp
 
         StatesManager       m_statesManager;
         EventsManager       m_eventsManager;
-        GLFWwindow         *m_window;
-        VInstance          *m_vulkanInstance;
+        //GLFWwindow         *m_window;
+        RenderWindow        m_renderWindow;
+
+        //VInstance          *m_vulkanInstance;
         DefaultRenderer    *m_defaultRenderer;
         SceneRenderer      *m_sceneRenderer;
 

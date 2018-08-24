@@ -69,13 +69,16 @@
 		<Unit filename="../../Valag/include/Valag/utils/Clock.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Logger.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Parser.h" />
+		<Unit filename="../../Valag/include/Valag/utils/Profiler.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Singleton.h" />
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBO.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/RenderWindow.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanHelpers.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanImpl.h" />
 		<Unit filename="../../Valag/shaders/defaultShader.frag" />
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/src/core/Asset.cpp" />
@@ -97,8 +100,10 @@
 		<Unit filename="../../Valag/src/utils/Clock.cpp" />
 		<Unit filename="../../Valag/src/utils/Logger.cpp" />
 		<Unit filename="../../Valag/src/utils/Parser.cpp" />
+		<Unit filename="../../Valag/src/utils/Profiler.cpp" />
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBO.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/RenderWindow.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />

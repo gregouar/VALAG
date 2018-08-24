@@ -1,9 +1,10 @@
 #ifndef DEFAULTRENDERER_H
 #define DEFAULTRENDERER_H
 
-#include "Valag/vulkanImpl/VInstance.h"
+#include "Valag/vulkanImpl/RenderWindow.h"
 #include "Valag/vulkanImpl/DynamicUBO.h"
 #include "Valag/gfx/Sprite.h"
+
 
 namespace vlg
 {
@@ -14,7 +15,7 @@ class DefaultRenderer
     friend class Sprite;
 
     public:
-        DefaultRenderer(VInstance *vulkanInstance);
+        DefaultRenderer(RenderWindow *targetWindow);
         virtual ~DefaultRenderer();
 
         void draw(Sprite *sprite);
@@ -52,7 +53,7 @@ class DefaultRenderer
         void cleanup();
 
     private:
-        VInstance  *m_vulkanInstance;
+        RenderWindow  *m_targetWindow;
 
         VkSampler               m_defaultTextureSampler;
         VkRenderPass            m_defaultRenderPass;

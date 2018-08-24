@@ -45,8 +45,6 @@ class TextureAsset : public Asset
 
     private:
         bool m_createdTexture;
-
-        VInstance *m_creatingInstance;
 };
 
 }

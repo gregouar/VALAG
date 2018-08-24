@@ -5,7 +5,7 @@
 #ifndef SCENERENDERER_H
 #define SCENERENDERER_H
 
-#include "Valag/vulkanImpl/VInstance.h"
+#include "Valag/vulkanImpl/RenderWindow.h"
 
 namespace vlg
 {
@@ -13,7 +13,7 @@ namespace vlg
 class SceneRenderer
 {
     public:
-        SceneRenderer(VInstance *vulkanInstance);
+        SceneRenderer(RenderWindow *targetWindow);
         virtual ~SceneRenderer();
 
     protected:
@@ -21,7 +21,7 @@ class SceneRenderer
         void cleanup();
 
     private:
-        VInstance *m_vulkanInstance;
+        RenderWindow *m_targetWindow;
 };
 
 }

@@ -15,14 +15,14 @@ TextureAsset::TextureAsset()
     ///m_texture = new sf::Texture();
     m_createdTexture = true;
 
-    m_creatingInstance = nullptr;
-
     m_allowLoadFromFile = true;
     m_allowLoadFromMemory = true;
     ///m_allowLoadFromStream = true;
 
     ///m_texture->setRepeated(true);
     ///m_texture->setSmooth(true);
+
+    m_textureImage = VK_NULL_HANDLE;
 }
 
 TextureAsset::TextureAsset(const AssetTypeID& id) : Asset(id)
@@ -30,14 +30,14 @@ TextureAsset::TextureAsset(const AssetTypeID& id) : Asset(id)
     ///m_texture = new sf::Texture();
     m_createdTexture = true;
 
-    m_creatingInstance = nullptr;
-
     m_allowLoadFromFile = true;
     m_allowLoadFromMemory = true;
     ///m_allowLoadFromStream = true;
 
    /// m_texture->setRepeated(true);
    /// m_texture->setSmooth(true);
+
+    m_textureImage = VK_NULL_HANDLE;
 }
 
 
@@ -62,9 +62,9 @@ TextureAsset::~TextureAsset()
     ///if(m_createdTexture && m_texture != nullptr)
        /// delete m_texture;
 
-    if(m_creatingInstance != nullptr)
+    if(m_textureImage != VK_NULL_HANDLE)
     {
-        VkDevice device = m_creatingInstance->getDevice();
+        VkDevice device = VInstance::device();
         vkDestroyImage(device, m_textureImage, nullptr);
         vkFreeMemory(device, m_textureImageMemory, nullptr);
         vkDestroyImageView(device, m_textureImageView, nullptr);
@@ -74,20 +74,7 @@ TextureAsset::~TextureAsset()
 
 bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-    if(vulkanInstance == nullptr)
-    {
-        Logger::error("Cannot load texture without Vulkan instance");
-        return (false);
-    }
-
-    if(!vulkanInstance->isInitialized())
-    {
-        Logger::error("Cannot load texture with uninitialized Vulkan instance");
-        return (false);
-    }
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     CommandPoolName commandPoolName;
 
@@ -126,7 +113,6 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
 
     m_size.x = texWidth;
     m_size.y = texHeight;
-    m_creatingInstance = vulkanInstance;
 
     m_textureImageView = VulkanHelpers::createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_UNORM);
 

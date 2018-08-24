@@ -48,15 +48,12 @@ class Sprite
         std::vector<bool> m_needToUpdateDrawCommandBuffer;
 
     private:
-        VInstance      *m_creatingVInstance;
         std::vector<VkCommandBuffer>    m_drawCommandBuffers;
 
         ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
         ///Could use the same vertexBuffer for all Sprites though, should try to use static here
         ///But then this would mean passing TexCoord in UBO
 
-        //VkBuffer        m_vertexBuffer;
-        //VkDeviceMemory  m_vertexBufferMemory;
         VBuffer     m_vertexBuffer;
 
         size_t      m_modelUBOIndex;

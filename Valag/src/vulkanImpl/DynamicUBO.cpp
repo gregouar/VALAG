@@ -54,12 +54,7 @@ bool DynamicUBO::isFull()
 
 bool DynamicUBO::updateObject(size_t index, void *newData)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in DynamicUBO::updateObject()");
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     void* data;
     vkMapMemory(device, m_bufferMemory, this->getDynamicOffset(index), m_dynamicAlignment, 0, &data);
@@ -70,7 +65,7 @@ bool DynamicUBO::updateObject(size_t index, void *newData)
     memoryRange.memory  = m_bufferMemory;
     memoryRange.size    = m_dynamicAlignment;
     memoryRange.offset  = this->getDynamicOffset(index);
-    vkFlushMappedMemoryRanges(vulkanInstance->getDevice(), 1, &memoryRange);
+    vkFlushMappedMemoryRanges(device, 1, &memoryRange);
 
     vkUnmapMemory(device, m_bufferMemory);
 
@@ -99,13 +94,8 @@ size_t DynamicUBO::getBufferVersion()
 
 void DynamicUBO::computeDynamicAlignment()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in DynamicUBO::createBuffers()");
-
     VkPhysicalDeviceProperties  deviceProperties = {};
-    vkGetPhysicalDeviceProperties(vulkanInstance->getPhysicalDevice(), &deviceProperties);
+    vkGetPhysicalDeviceProperties(VInstance::physicalDevice(), &deviceProperties);
 
     size_t minUboAlignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
 
@@ -116,11 +106,6 @@ void DynamicUBO::computeDynamicAlignment()
 
 void DynamicUBO::createBuffers()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in DynamicUBO::createBuffers()");
-
     m_bufferSize = m_totalSize * m_dynamicAlignment;
     VulkanHelpers::createBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
                                 ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -130,8 +115,7 @@ void DynamicUBO::createBuffers()
 
 void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkBuffer        oldBuffer = m_buffer;
     VkDeviceMemory  oldbufferMemory = m_bufferMemory;
@@ -159,8 +143,7 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 
 void DynamicUBO::cleanup()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     vkDestroyBuffer(device, m_buffer, nullptr);
     vkFreeMemory(device, m_bufferMemory, nullptr);

@@ -31,15 +31,9 @@ const bool VApp::ENABLE_PROFILER = false;
 const size_t VApp::MAX_FRAMES_IN_FLIGHT = 2;
 
 
-/*VApp::VApp() : VApp(DEFAULT_APP_NAME)
-{
-    //ctor
-}*/
 
 VApp::VApp(const VAppCreateInfos &infos) :
     m_createInfos(infos),
-    m_window(nullptr),
-    m_vulkanInstance(nullptr),
     m_defaultRenderer(nullptr),
     m_sceneRenderer(nullptr),
     m_sceenshotNbr(1)
@@ -92,15 +86,12 @@ bool VApp::init()
     if(!this->createWindow())
         throw std::runtime_error("Cannot create window");
 
-    m_eventsManager.init(m_window);
+    VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
 
-    if(!this->createVulkanInstance())
-        throw std::runtime_error("Cannot initialize Vulkan");
+    if(!m_renderWindow.init())
+        throw std::runtime_error("Cannot initialize window");
 
-    m_vulkanInstance->setActive();
-
-    //if(! TexturesHandler::instance()->createCommandPool())
-       // throw std::runtime_error("Cannot create command pool for texturesHandler");
+    m_eventsManager.init(m_renderWindow.getWindowPtr());
 
     if(!this->createDefaultRenderer())
         throw std::runtime_error("Cannot create default renderer");
@@ -111,69 +102,14 @@ bool VApp::init()
     return (true);
 }
 
-bool VApp::checkVideoMode(int w, int h, GLFWmonitor *monitor)
-{
-    int count;
-    const GLFWvidmode* modes = glfwGetVideoModes(monitor, &count);
-
-    bool ok = false;
-
-    for(auto i = 0 ; i < count ; ++i)
-    {
-        if(modes[i].width == w && modes[i].height == h)
-            ok = true;
-    }
-
-    return ok;
-}
-
 bool VApp::createWindow()
 {
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     int w = Config::getInt("window","width",DEFAULT_WINDOW_WIDTH);
     int h = Config::getInt("window","height",DEFAULT_WINDOW_HEIGHT);
+    bool fullscreen = Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN);
 
-    if(!this->checkVideoMode(w,h,monitor))
-    {
-        std::ostringstream error_report;
-        error_report<<"Invalid resolution "<<w<<"x"<<h;
-        Logger::error(error_report);
-
-        w = Parser::parseInt(DEFAULT_WINDOW_WIDTH);
-        h = Parser::parseInt(DEFAULT_WINDOW_HEIGHT);
-
-        if(!this->checkVideoMode(w,h,monitor))
-        {
-            std::ostringstream error_report;
-            error_report<<"Invalid default resolution "<<w<<"x"<<h;
-            Logger::error(error_report);
-
-            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-            w = mode->width;
-            h = mode->height;
-        }
-    }
-
-    if(!Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN))
-        monitor = nullptr;
-
-    m_window = glfwCreateWindow(w,h,m_createInfos.name.c_str(), monitor, nullptr);
-
-    return (m_window != nullptr);
-}
-
-bool VApp::createVulkanInstance()
-{
-    if(m_vulkanInstance != nullptr)
-        delete m_vulkanInstance;
-
-    m_vulkanInstance = new VInstance(m_window,m_createInfos.name);
-
-    return (true);
+    return m_renderWindow.create(w,h,m_createInfos.name,fullscreen);
 }
 
 bool VApp::createDefaultRenderer()
@@ -181,7 +117,7 @@ bool VApp::createDefaultRenderer()
     if(m_defaultRenderer != nullptr)
         delete m_defaultRenderer;
 
-    m_defaultRenderer = new DefaultRenderer(m_vulkanInstance);
+    m_defaultRenderer = new DefaultRenderer(&m_renderWindow);
 
     return (true);
 }
@@ -191,7 +127,7 @@ bool VApp::createSceneRenderer()
     if(m_sceneRenderer != nullptr)
         delete m_sceneRenderer;
 
-    m_sceneRenderer = new SceneRenderer(m_vulkanInstance);
+    m_sceneRenderer = new SceneRenderer(&m_renderWindow);
 
     return (true);
 }
@@ -230,13 +166,13 @@ void VApp::loop()
 
     }
 
-    m_vulkanInstance->waitDeviceIdle();
+    VInstance::waitDeviceIdle();
 }
 
 void VApp::drawFrame()
 {
     Profiler::pushClock("Acquire next image");
-    uint32_t imageIndex = m_vulkanInstance->acquireNextImage();
+    uint32_t imageIndex = m_renderWindow.acquireNextImage();
     Profiler::popClock();
 
 
@@ -246,8 +182,8 @@ void VApp::drawFrame()
 
 
     Profiler::pushClock("Submit to queue");
-    m_vulkanInstance->submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
-                                            m_defaultRenderer->getRenderFinishedSemaphore(m_vulkanInstance->getCurrentFrameIndex()));
+    m_renderWindow.submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
+                                         m_defaultRenderer->getRenderFinishedSemaphore(m_renderWindow.getCurrentFrameIndex()));
     Profiler::popClock();
 
 
@@ -257,7 +193,7 @@ void VApp::drawFrame()
 
 
     Profiler::pushClock("Present");
-    m_vulkanInstance->presentQueue();
+    m_renderWindow.display();
     Profiler::popClock();
 }
 
@@ -278,14 +214,7 @@ void VApp::cleanup()
     TextureHandler::instance()->cleanAll();
     VMemoryAllocator::instance()->cleanAll();
 
-    if(m_vulkanInstance != nullptr)
-    {
-        delete m_vulkanInstance;
-        m_vulkanInstance = nullptr;
-    }
-
-    if(m_window != nullptr)
-        glfwDestroyWindow(m_window);
+    m_renderWindow.destroy();
 
     glfwTerminate();
 }

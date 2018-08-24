@@ -3,8 +3,8 @@
 namespace vlg
 {
 
-SceneRenderer::SceneRenderer(VInstance *vulkanInstance) :
-    m_vulkanInstance(vulkanInstance)
+SceneRenderer::SceneRenderer(RenderWindow *targetWindow) :
+    m_targetWindow(targetWindow)
 {
     this->init();
 }

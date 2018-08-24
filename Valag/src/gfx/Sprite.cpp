@@ -15,8 +15,7 @@ Sprite::Sprite() :
     m_texture(-1),
     m_texturePosition({0,0}),
     m_textureExtent({0,0}),
-    m_needToCreateBuffers(true),
-    m_creatingVInstance(nullptr)
+    m_needToCreateBuffers(true)
 {
     m_needToUpdateDrawCommandBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
@@ -76,32 +75,22 @@ void Sprite::createAllBuffers()
 
 void Sprite::createDrawCommandBuffer()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in createDrawCommandBuffer()");
-
     m_drawCommandBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = vulkanInstance->getCommandPool();
+    allocInfo.commandPool = VInstance::commandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
     allocInfo.commandBufferCount = (uint32_t) m_drawCommandBuffers.size();
 
 
-    if (vkAllocateCommandBuffers(vulkanInstance->getDevice(), &allocInfo, m_drawCommandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_drawCommandBuffers.data()) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate command buffers");
 }
 
 void Sprite::createVertexBuffer()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No vulkan instance in createVertexBuffer()");
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     std::vector<Vertex2D> vertices =
             {
@@ -127,8 +116,6 @@ void Sprite::createVertexBuffer()
     VMemoryAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
     VMemoryAllocator::freeBuffer(stagingBuffer);
-
-    m_creatingVInstance = vulkanInstance;
 }
 
 void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)

@@ -21,13 +21,8 @@ VMemoryAllocator::~VMemoryAllocator()
 
 uint32_t VMemoryAllocator::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("Failed to find suitable memory type");
-
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(vulkanInstance->getPhysicalDevice(), &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(VInstance::physicalDevice(), &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -43,8 +38,7 @@ bool VMemoryAllocator::allocBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 
 bool VMemoryAllocator::allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VBuffer &vbuffer)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     auto itAllocatedBuffers = m_buffers.find({usage, properties});
 
@@ -98,12 +92,7 @@ bool VMemoryAllocator::copyBuffer(VBuffer srcBuffer, VBuffer dstBuffer, VkDevice
 
 bool VMemoryAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in copyBufferToImage()");
-
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
     VkBufferCopy copyRegion = {};
     copyRegion.srcOffset = srcBuffer.offset;
@@ -111,7 +100,7 @@ bool VMemoryAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDe
     copyRegion.dstOffset = dstBuffer.offset;
     vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, dstBuffer.buffer, 1, &copyRegion);
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 
     return (true);
 }
@@ -189,21 +178,7 @@ bool VMemoryAllocator::searchForSpace(AllocatedBuffer &allocatedBuffer, VkDevice
 
 bool VMemoryAllocator::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-    {
-        Logger::error("Cannot allocate buffer memory without Vulkan instance");
-        return (false);
-    }
-
-    if(!vulkanInstance->isInitialized())
-    {
-        Logger::error("Cannot allocate buffer memory with unitialized Vulkan instance");
-        return (false);
-    }
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkBuffer        buffer;
     VkDeviceMemory  bufferMemory;
@@ -250,8 +225,7 @@ bool VMemoryAllocator::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFl
 
 void VMemoryAllocator::cleanAll()
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     for(auto &subBuffer : m_allocatedSubBuffers)
         this->freeBufferImpl(subBuffer.second);

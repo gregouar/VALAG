@@ -331,7 +331,8 @@ void AssetHandler<AssetType>::loadInThread()
                 m_loadingCurAssetMutex.unlock();
                 this->lockLoadMutex();
             }
-            m_assetsToLoadInThread.erase(m_assetsToLoadInThread.begin());
+            if(!m_assetsToLoadInThread.empty())
+                m_assetsToLoadInThread.erase(m_assetsToLoadInThread.begin());
         } else
             Logger::error("Tried to load null asset in thread");
     }

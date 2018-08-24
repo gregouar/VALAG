@@ -58,13 +58,8 @@ std::vector<char> VulkanHelpers::readFile(const std::string& filename)
 
 uint32_t VulkanHelpers::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("Failed to find suitable memory type");
-
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(vulkanInstance->getPhysicalDevice(), &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(VInstance::physicalDevice(), &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -76,21 +71,7 @@ uint32_t VulkanHelpers::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlag
 bool VulkanHelpers::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
                                  VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-    {
-        Logger::error("Cannot allocate buffer memory without Vulkan instance");
-        return (false);
-    }
-
-    if(!vulkanInstance->isInitialized())
-    {
-        Logger::error("Cannot allocate buffer memory with unitialized Vulkan instance");
-        return (false);
-    }
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -125,18 +106,13 @@ bool VulkanHelpers::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 
 bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in copyBufferToImage()");
-
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 
     return (true);
 }
@@ -145,15 +121,7 @@ bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                  VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        return (false);
-
-    if(!vulkanInstance->isInitialized())
-        return (false);
-
-    VkDevice device = vulkanInstance->getDevice();
+    VkDevice device = VInstance::device();
 
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -199,12 +167,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
  void VulkanHelpers::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
                                            CommandPoolName commandPoolName)
  {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in transitionImageLayout()");
-
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -247,18 +210,13 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
         1, &barrier
     );
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
 void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,
                                       CommandPoolName commandPoolName)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in copyBufferToImage()");
-
-    VkCommandBuffer commandBuffer = vulkanInstance->beginSingleTimeCommands(commandPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
     VkBufferImageCopy region = {};
     region.bufferOffset = 0;
@@ -277,18 +235,11 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    vulkanInstance->endSingleTimeCommands(commandBuffer,commandPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
 VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in createImageView()");
-
-    VkDevice device = vulkanInstance->getDevice();
-
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
@@ -301,7 +252,7 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format)
     viewInfo.subresourceRange.layerCount = 1;
 
     VkImageView imageView;
-    if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    if (vkCreateImageView(VInstance::device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create texture image view");
 
     return imageView;
@@ -309,20 +260,13 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format)
 
 VkShaderModule VulkanHelpers::createShaderModule(const std::vector<char>& code)
 {
-    VInstance *vulkanInstance = VInstance::getCurrentInstance();
-
-    if(vulkanInstance == nullptr)
-        throw std::runtime_error("No Vulkan instance in createShaderModule()");
-
-    VkDevice device = vulkanInstance->getDevice();
-
     VkShaderModuleCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    if (vkCreateShaderModule(VInstance::device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
         throw std::runtime_error("Failed to create shader module");
 
     return shaderModule;
