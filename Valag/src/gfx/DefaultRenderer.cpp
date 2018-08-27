@@ -75,7 +75,7 @@ void DefaultRenderer::checkBuffersExpansion()
 {
     //size_t oldFrame = (m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
    /* if(m_oldModelBuffers[m_currentFrame] != VK_NULL_HANDLE)
     {

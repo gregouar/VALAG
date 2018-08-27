@@ -18,6 +18,7 @@ class Sprite
 
         void setSize(glm::vec2 size);
         void setPosition(glm::vec2 position);
+        void setColor(glm::vec4 color);
         void setTexture(AssetTypeID textureID);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
 
@@ -38,9 +39,17 @@ class Sprite
         bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
+    private:
+        std::vector<VkCommandBuffer>    m_drawCommandBuffers;
+
+        ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
+        ///Could use the same vertexBuffer for all Sprites though, should try to use static here
+        ///But then this would mean passing TexCoord in UBO
+
 
         glm::vec2 m_size;
         glm::vec2 m_position;
+        glm::vec4 m_color;
 
         AssetTypeID m_texture;
         bool        m_needToCheckLoading;
@@ -51,14 +60,8 @@ class Sprite
         bool m_needToCreateBuffers;
         std::vector<bool> m_needToUpdateDrawCommandBuffer;
 
-    private:
-        std::vector<VkCommandBuffer>    m_drawCommandBuffers;
-
-        ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
-        ///Could use the same vertexBuffer for all Sprites though, should try to use static here
-        ///But then this would mean passing TexCoord in UBO
-
         VBuffer     m_vertexBuffer;
+        std::vector<bool>   m_needToUpdateVertexBuffer;
 
         size_t      m_modelUBOIndex;
 

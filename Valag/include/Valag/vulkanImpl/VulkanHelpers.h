@@ -15,7 +15,7 @@ namespace vlg
 struct Vertex2D
 {
     glm::vec2 pos;
-    glm::vec3 color;
+    glm::vec4 color;
     glm::vec2 tex;
 
     static VkVertexInputBindingDescription getBindingDescription();

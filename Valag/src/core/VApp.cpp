@@ -116,7 +116,7 @@ bool VApp::createWindow()
 
 bool VApp::createDummyAssets()
 {
-    unsigned char dummyTexturePtr[4] = {0,0,255,255};
+    unsigned char dummyTexturePtr[4] = {255,255,255,255};
     TextureHandler::instance()->enableDummyAsset();
     TextureAsset* dummyTexture = TextureHandler::instance()->getDummyAsset();
 

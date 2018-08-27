@@ -14,6 +14,7 @@ namespace vlg
 Sprite::Sprite() :
     m_size({0,0}),
     m_position({0,0}),
+    m_color({1,1,1,1}),
     m_texture(0),
     m_texturePosition({0,0}),
     m_textureExtent({1,1}),
@@ -22,6 +23,7 @@ Sprite::Sprite() :
     m_needToUpdateDrawCommandBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToUpdateModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
+    m_needToUpdateVertexBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_modelBufferVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
     m_texDescSetVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
 }
@@ -41,7 +43,6 @@ void Sprite::setSize(glm::vec2 size)
             for(auto b : m_needToUpdateModel) b = true;
         m_size = size;
     }
-
 }
 
 void Sprite::setPosition(glm::vec2 position)
@@ -50,6 +51,13 @@ void Sprite::setPosition(glm::vec2 position)
             //m_needToUpdateUBO = true;
             for(auto b : m_needToUpdateModel) b = true;
     m_position = position;
+}
+
+void Sprite::setColor(glm::vec4 color)
+{
+    if(m_color != color)
+        for(auto b : m_needToUpdateVertexBuffer) b = true;
+    m_color = color;
 }
 
 void Sprite::setTexture(AssetTypeID textureID)
@@ -62,7 +70,7 @@ void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
     if(m_texturePosition != position || extent != m_textureExtent)
             //m_needToUpdateUBO = true;
-            for(auto b : m_needToUpdateModel) b = true;
+            for(auto b : m_needToUpdateVertexBuffer) b = true;
 
     m_texturePosition = position;
     m_textureExtent = extent;
@@ -102,10 +110,10 @@ void Sprite::createVertexBuffer()
 
     std::vector<Vertex2D> vertices =
             {
-                {glm::vec2(0,1), {1.0f, 0.0f, 0.0f}, m_texturePosition+glm::vec2(0,m_textureExtent.y)},
-                {glm::vec2(0,0), {0.0f, 1.0f, 0.0f}, m_texturePosition},
-                {glm::vec2(1,1), {0.0f, 0.0f, 1.0f}, m_texturePosition+m_textureExtent},
-                {glm::vec2(1,0), {1.0f, 1.0f, 1.0f}, m_texturePosition+glm::vec2(m_textureExtent.x,0)}
+                {glm::vec2(0,1), m_color, m_texturePosition+glm::vec2(0,m_textureExtent.y)},
+                {glm::vec2(0,0), m_color, m_texturePosition},
+                {glm::vec2(1,1), m_color, m_texturePosition+m_textureExtent},
+                {glm::vec2(1,0), m_color, m_texturePosition+glm::vec2(m_textureExtent.x,0)}
             };
 
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();

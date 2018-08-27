@@ -65,6 +65,7 @@
 		<Unit filename="../../Valag/include/Valag/gfx/SceneObject.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Sprite.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/SpritesBatch.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/TextureAsset.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Clock.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Logger.h" />
@@ -97,6 +98,7 @@
 		<Unit filename="../../Valag/src/gfx/SceneObject.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/Sprite.cpp" />
+		<Unit filename="../../Valag/src/gfx/SpritesBatch.cpp" />
 		<Unit filename="../../Valag/src/gfx/TextureAsset.cpp" />
 		<Unit filename="../../Valag/src/utils/Clock.cpp" />
 		<Unit filename="../../Valag/src/utils/Logger.cpp" />
