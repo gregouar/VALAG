@@ -8,6 +8,8 @@ namespace vlg
 
 class DefaultRenderer;
 
+/** For animated sprite, I should work with array of vertexBuffer, having all their texCoord already saved **/
+
 class Sprite
 {
     friend class DefaultRenderer;
@@ -45,7 +47,6 @@ class Sprite
         ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
         ///Could use the same vertexBuffer for all Sprites though, should try to use static here
         ///But then this would mean passing TexCoord in UBO
-
 
         glm::vec2 m_size;
         glm::vec2 m_position;

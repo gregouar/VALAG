@@ -71,6 +71,7 @@ class DefaultRenderer
         VkDescriptorPool                m_descriptorPool;
 
         size_t                          m_currentFrame;
+        size_t                          m_lastFrame;
         std::vector<VkCommandBuffer>    m_commandBuffers;
 
         std::vector<VkSemaphore>        m_renderFinishedSemaphore;

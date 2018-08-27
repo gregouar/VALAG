@@ -39,7 +39,6 @@ void Sprite::setSize(glm::vec2 size)
     if(size.x >= 0 && size.y >= 0)
     {
         if(m_size != size)
-            //m_needToUpdateUBO = true;
             for(auto b : m_needToUpdateModel) b = true;
         m_size = size;
     }
@@ -48,7 +47,6 @@ void Sprite::setSize(glm::vec2 size)
 void Sprite::setPosition(glm::vec2 position)
 {
     if(m_position != position)
-            //m_needToUpdateUBO = true;
             for(auto b : m_needToUpdateModel) b = true;
     m_position = position;
 }
@@ -56,7 +54,7 @@ void Sprite::setPosition(glm::vec2 position)
 void Sprite::setColor(glm::vec4 color)
 {
     if(m_color != color)
-        for(auto b : m_needToUpdateVertexBuffer) b = true;
+        for(auto b : m_needToUpdateModel) b = true;
     m_color = color;
 }
 
@@ -69,7 +67,6 @@ void Sprite::setTexture(AssetTypeID textureID)
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
     if(m_texturePosition != position || extent != m_textureExtent)
-            //m_needToUpdateUBO = true;
             for(auto b : m_needToUpdateVertexBuffer) b = true;
 
     m_texturePosition = position;
@@ -84,7 +81,6 @@ AssetTypeID Sprite::getTexture()
 void Sprite::createAllBuffers()
 {
     this->createVertexBuffer();
-    //this->createModelUBO();
     this->createDrawCommandBuffer();
 
     m_needToCreateBuffers = false;
@@ -110,10 +106,10 @@ void Sprite::createVertexBuffer()
 
     std::vector<Vertex2D> vertices =
             {
-                {glm::vec2(0,1), m_color, m_texturePosition+glm::vec2(0,m_textureExtent.y)},
-                {glm::vec2(0,0), m_color, m_texturePosition},
-                {glm::vec2(1,1), m_color, m_texturePosition+m_textureExtent},
-                {glm::vec2(1,0), m_color, m_texturePosition+glm::vec2(m_textureExtent.x,0)}
+                {glm::vec2(0,1), /*m_color,*/ m_texturePosition+glm::vec2(0,m_textureExtent.y)},
+                {glm::vec2(0,0), /*m_color,*/ m_texturePosition},
+                {glm::vec2(1,1), /*m_color,*/ m_texturePosition+m_textureExtent},
+                {glm::vec2(1,0), /*m_color,*/ m_texturePosition+glm::vec2(m_textureExtent.x,0)}
             };
 
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();
@@ -140,6 +136,7 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
     modelUBO.model = glm::mat4(1.0);
     modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, 0.0));
     modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
+    modelUBO.color = m_color;
 
     renderer->updateModelUBO(m_modelUBOIndex, &modelUBO,currentFrame);
     m_needToUpdateModel[currentFrame] = false;

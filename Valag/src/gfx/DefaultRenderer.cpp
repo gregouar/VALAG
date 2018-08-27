@@ -49,8 +49,7 @@ void DefaultRenderer::draw(Sprite *sprite)
 
 VkCommandBuffer DefaultRenderer::getCommandBuffer()
 {
- //   return m_commandBuffers[m_currentFrame];
-    return m_commandBuffers[(m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT];
+    return m_commandBuffers[m_lastFrame];
 }
 
 VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
@@ -68,6 +67,7 @@ void DefaultRenderer::updateBuffers(uint32_t imageIndex)
     this->recordPrimaryCommandBuffer(imageIndex);
     Profiler::popClock();
 
+    m_lastFrame = m_currentFrame;
     m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -386,6 +386,7 @@ bool DefaultRenderer::createDescriptorSetLayouts()
         return (false);
 
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_modelDescriptorSetLayout) != VK_SUCCESS)
         return (false);

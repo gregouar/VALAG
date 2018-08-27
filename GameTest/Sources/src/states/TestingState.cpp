@@ -54,6 +54,7 @@ void TestingState::init()
         if(i % 2 == 0)
         it->setTexture(tex);
     }
+
 }
 
 void TestingState::entered()
@@ -99,7 +100,6 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         (--m_testingSprites.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png")->getID());
                                                //m_testingSprites.front().getTexture());
     }
-
 }
 
 void TestingState::update(const vlg::Time &elapsedTime)
@@ -113,6 +113,8 @@ void TestingState::update(const vlg::Time &elapsedTime)
         std::cout<<"FPS : "<<m_nbrFps<<std::endl;
         m_nbrFps = 0;
     }
+
+    m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }
 
 void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
