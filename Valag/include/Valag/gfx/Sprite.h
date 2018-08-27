@@ -43,6 +43,7 @@ class Sprite
         glm::vec2 m_position;
 
         AssetTypeID m_texture;
+        bool        m_needToCheckLoading;
 
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
@@ -65,6 +66,7 @@ class Sprite
         std::vector<bool>   m_needToUpdateModel;
         uint32_t            m_modelIndex; ///should I put a vector to be sure ?
         std::vector<size_t> m_modelBufferVersion;
+        std::vector<size_t> m_texDescSetVersion;
 };
 
 }

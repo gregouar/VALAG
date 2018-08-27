@@ -21,6 +21,7 @@ class TexturesArrayManager
 
         VkDescriptorSetLayout   getDescriptorSetLayout();
         VkDescriptorSet         getDescriptorSet(size_t frameIndex);
+        size_t                  getDescriptorSetVersion(size_t frameIndex);
 
         void checkUpdateDescriptorSets(size_t frameIndex);
 
@@ -42,14 +43,15 @@ class TexturesArrayManager
         std::list<size_t>                   m_availableImageInfos;
         std::vector<VkDescriptorImageInfo>  m_imageInfos;
 
-        std::list<std::pair<AssetTypeID, size_t> >   m_texturesToAdd;
+       // std::list<std::pair<AssetTypeID, size_t> >   m_texturesToAdd;
+        std::map<AssetTypeID, size_t> m_texturesToAdd;
 
        // std::vector<VkImageView>            m_imageViews;
 
         VkSampler                       m_sampler;
         std::vector<bool>               m_needToUpdateDescSet;
-        std::vector<bool>               m_descriptorSetsNbr;
-        std::vector<VkDescriptorSet>    m_descriptorSets[2];
+        std::vector<size_t>             m_descSetVersion;
+        std::vector<VkDescriptorSet>    m_descriptorSets;
         VkDescriptorSetLayout           m_descriptorSetLayout;
         VkDescriptorPool                m_descriptorPool;
 

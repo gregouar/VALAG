@@ -37,8 +37,11 @@ AssetType* AssetHandler<AssetType>::getAsset(const AssetTypeID& assetID)
     if(assetIter == m_assets.end())
     {
         Logger::error("Cannot find asset");
-        return (nullptr);
+        return this->getDummyAsset(); //(nullptr);
     }
+
+    if(!assetIter->second->isLoaded())
+    return this->getDummyAsset();
 
     return assetIter->second;
 }

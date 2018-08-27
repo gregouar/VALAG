@@ -107,7 +107,6 @@ bool VApp::init()
 
 bool VApp::createWindow()
 {
-
     int w = Config::getInt("window","width",DEFAULT_WINDOW_WIDTH);
     int h = Config::getInt("window","height",DEFAULT_WINDOW_HEIGHT);
     bool fullscreen = Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN);
@@ -154,9 +153,15 @@ void VApp::loop()
         Time elapsedTime = clock.restart();
         Profiler::resetLoop(ENABLE_PROFILER);
 
-        m_eventsManager.update();
+        Profiler::pushClock("Acquire next image");
+        m_imageIndex = m_renderWindow.acquireNextImage();
+        Profiler::popClock();
 
-        ///m_window.clear();
+        Profiler::pushClock("Check buffer expansion");
+        m_defaultRenderer->checkBuffersExpansion();
+        Profiler::popClock();
+
+        m_eventsManager.update();
 
         if(m_statesManager.peekState() == nullptr)
             this->stop();
@@ -175,7 +180,6 @@ void VApp::loop()
         Profiler::pushClock("Draw frame");
         this->drawFrame();
         Profiler::popClock();
-
     }
 
     VInstance::waitDeviceIdle();
@@ -183,26 +187,14 @@ void VApp::loop()
 
 void VApp::drawFrame()
 {
-    Profiler::pushClock("Acquire next image");
-    uint32_t imageIndex = m_renderWindow.acquireNextImage();
-    Profiler::popClock();
-
-
     Profiler::pushClock("Update buffers");
-    m_defaultRenderer->updateBuffers(imageIndex);
+    m_defaultRenderer->updateBuffers(m_imageIndex);
     Profiler::popClock();
-
 
     Profiler::pushClock("Submit to queue");
     m_renderWindow.submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
                                          m_defaultRenderer->getRenderFinishedSemaphore(m_renderWindow.getCurrentFrameIndex()));
     Profiler::popClock();
-
-
-    Profiler::pushClock("Check buffer expansion");
-    m_defaultRenderer->checkBuffersExpansion();
-    Profiler::popClock();
-
 
     Profiler::pushClock("Present");
     m_renderWindow.display();

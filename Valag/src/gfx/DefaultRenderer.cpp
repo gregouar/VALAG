@@ -26,9 +26,9 @@ DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_defaultPipeline(VK_NULL_HANDLE),
     m_currentFrame(0)
 {
-    m_needToExpandModelBuffers = false;
-    m_oldModelBuffers = std::vector<VkBuffer> (VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-    m_oldModelBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+    m_needToExpandModelBuffers = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
+   // m_oldModelBuffers = std::vector<VkBuffer> (VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+   // m_oldModelBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
     //m_currentFrameViewUBO = VApp::MAX_FRAMES_IN_FLIGHT - 1;
     this->init();
 }
@@ -55,7 +55,7 @@ VkCommandBuffer DefaultRenderer::getCommandBuffer()
 
 VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
 {
-    return m_renderFinishedSemaphore[frameIndex];
+    return m_renderFinishedSemaphore[frameIndex /*m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT*/];
 }
 
 
@@ -73,27 +73,27 @@ void DefaultRenderer::updateBuffers(uint32_t imageIndex)
 
 void DefaultRenderer::checkBuffersExpansion()
 {
-    size_t oldFrame = (m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+    //size_t oldFrame = (m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 
     VkDevice device = VInstance::device();
 
-    if(m_oldModelBuffers[oldFrame] != VK_NULL_HANDLE)
+   /* if(m_oldModelBuffers[m_currentFrame] != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(device, m_oldModelBuffers[oldFrame], nullptr);
-        vkFreeMemory(device, m_oldModelBuffersMemory[oldFrame], nullptr);
-        m_oldModelBuffers[oldFrame] = VK_NULL_HANDLE;
+        vkDestroyBuffer(device, m_oldModelBuffers[m_currentFrame], nullptr);
+        vkFreeMemory(device, m_oldModelBuffersMemory[m_currentFrame], nullptr);
+        m_oldModelBuffers[m_currentFrame] = VK_NULL_HANDLE;
+    }*/
+
+    if(m_needToExpandModelBuffers[m_currentFrame])
+    {
+        //m_oldModelBuffers[m_currentFrame] = m_modelBuffers[m_currentFrame]->getBuffer();
+        //m_oldModelBuffersMemory[m_currentFrame] = m_modelBuffers[m_currentFrame]->getBufferMemory();
+        m_modelBuffers[m_currentFrame]->expandBuffers(/*false*/);
+        this->updateModelDescriptorSets(m_currentFrame);
+        m_needToExpandModelBuffers[m_currentFrame] = false;
     }
 
-    if(m_needToExpandModelBuffers)
-    {
-        m_oldModelBuffers[oldFrame] = m_modelBuffers[oldFrame]->getBuffer();
-        m_oldModelBuffersMemory[oldFrame] = m_modelBuffers[oldFrame]->getBufferMemory();
-        m_modelBuffers[oldFrame]->expandBuffers(false);
-        this->updateModelDescriptorSets(oldFrame);
-        m_needToExpandModelBuffers = false;
-    }
-
-    m_texturesArrayManager->checkUpdateDescriptorSets(oldFrame);
+    m_texturesArrayManager->checkUpdateDescriptorSets(m_currentFrame);
 }
 
 void DefaultRenderer::updateViewUBO()
@@ -173,7 +173,7 @@ bool DefaultRenderer::allocModelUBO(size_t &index, size_t frameIndex)
 
     if(m_modelBuffers[frameIndex]->isFull())
     {
-        m_needToExpandModelBuffers = true;
+        m_needToExpandModelBuffers[frameIndex] = true;
         return (false);
     }
 
@@ -218,6 +218,10 @@ size_t DefaultRenderer::getModelUBOBufferVersion(size_t frameIndex)
     return m_modelBuffers[frameIndex]->getBufferVersion();
 }
 
+size_t DefaultRenderer::getTextureArrayDescSetVersion(size_t frameIndex)
+{
+    return m_texturesArrayManager->getDescriptorSetVersion(frameIndex);
+}
 
 bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex)
 {

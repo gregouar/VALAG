@@ -24,12 +24,25 @@ bool TexturesArrayManager::bindTexture(AssetTypeID id, size_t frameIndex, int *t
     auto imageIt = m_texturesArray.find(id);
     if(imageIt == m_texturesArray.end())
     {
+        auto asset = TextureHandler::instance()->getAsset(id);
+
+        if(!asset->isLoaded())
+        {
+            (*texArrayID) = 0;
+            return (true);
+        }
+
+        imageIt = m_texturesToAdd.find(id);
+
+        if(imageIt != m_texturesToAdd.end())
+            return (false);
+
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.sampler = nullptr;
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = TextureHandler::instance()->getAsset(id)->getImageView();
+        imageInfo.imageView = asset->getImageView();
 
-        m_texturesToAdd.push_back({id, m_availableImageInfos.front()});
+        m_texturesToAdd[id] = m_availableImageInfos.front();
 
         m_imageInfos[m_availableImageInfos.front()] = imageInfo;
         m_availableImageInfos.pop_front();
@@ -53,22 +66,26 @@ VkDescriptorSetLayout TexturesArrayManager::getDescriptorSetLayout()
 
 VkDescriptorSet TexturesArrayManager::getDescriptorSet(size_t frameIndex)
 {
-    return m_descriptorSets[m_descriptorSetsNbr[frameIndex]][frameIndex];
+    return m_descriptorSets/*[m_descriptorSetsNbr[frameIndex]]*/[frameIndex];
+}
+
+size_t TexturesArrayManager::getDescriptorSetVersion(size_t frameIndex)
+{
+    return m_descSetVersion[frameIndex];
 }
 
 void TexturesArrayManager::checkUpdateDescriptorSets(size_t frameIndex)
 {
-    for(size_t i = 0 ; i < 2 ; ++i) {
+   // for(size_t i = 0 ; i < 2 ; ++i) {
         if(m_needToUpdateDescSet[frameIndex] == true)
         {
-            m_descriptorSetsNbr[frameIndex] = !m_descriptorSetsNbr[frameIndex];
             for(auto tex : m_texturesToAdd)
                 m_texturesArray[tex.first] = tex.second;
             m_texturesToAdd.clear();
             this->updateDescriptorSet(frameIndex);
         }
-        frameIndex = (frameIndex + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
-    }
+       // frameIndex = (frameIndex + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+   // }
 }
 
 bool TexturesArrayManager::createDescriptorSetLayouts()
@@ -121,16 +138,16 @@ bool TexturesArrayManager::createDescriptorPool()
 {
     VkDescriptorPoolSize poolSize[2];
     poolSize[0].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    poolSize[0].descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2);
+    poolSize[0].descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT/* *2 */);
     poolSize[1].type = VK_DESCRIPTOR_TYPE_SAMPLER;
-    poolSize[1].descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2);
+    poolSize[1].descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT/* *2 */);
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = 2;
     poolInfo.pPoolSizes = poolSize;
 
-    poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2 /* *2 */);
+    poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT /* *2*/ /* *2 */);
 
     return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
 }
@@ -146,37 +163,16 @@ bool TexturesArrayManager::createDescriptorSets()
     allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    m_descriptorSetsNbr.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    m_descriptorSets[0].resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    m_descriptorSets[1].resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets[0].data()) != VK_SUCCESS)
+    m_descSetVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
+    m_descriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+   // m_descriptorSets[1].resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets.data()) != VK_SUCCESS)
         return (false);
-    if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets[1].data()) != VK_SUCCESS)
-        return (false);
+   // if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets[1].data()) != VK_SUCCESS)
+     //   return (false);
 
-    /*for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-    {
-        VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_viewBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(ViewUBO);
-
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_viewDescriptorSets[i];
-        descriptorWrite.dstBinding = 0; //Bind number
-        descriptorWrite.dstArrayElement = 0; //Set number
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr; // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-    }*/
-
-    /*for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        this->updateDescriptorSet(i);*/
+    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+        this->updateDescriptorSet(i);
 
     return (true);
 }
@@ -194,7 +190,7 @@ void TexturesArrayManager::updateDescriptorSet(size_t frameIndex)
 	setWrites[0].dstArrayElement = 0;
 	setWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 	setWrites[0].descriptorCount = 1;
-	setWrites[0].dstSet = m_descriptorSets[m_descriptorSetsNbr[frameIndex]][frameIndex];
+	setWrites[0].dstSet = m_descriptorSets/*[m_descriptorSetsNbr[frameIndex]]*/[frameIndex];
 	setWrites[0].pBufferInfo = 0;
 	setWrites[0].pImageInfo = &samplerInfo;
 
@@ -205,12 +201,13 @@ void TexturesArrayManager::updateDescriptorSet(size_t frameIndex)
 	setWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	setWrites[1].descriptorCount = TEXTURES_ARRAY_SIZE; /// static_cast<uint32_t>(/*m_texturesArray.size()*/m_imageInfos[frameIndex].size());//TEXTURES_ARRAY_SIZE;
 	setWrites[1].pBufferInfo = 0;
-	setWrites[1].dstSet = m_descriptorSets[m_descriptorSetsNbr[frameIndex]][frameIndex];
+	setWrites[1].dstSet = m_descriptorSets/*[m_descriptorSetsNbr[frameIndex]]*/[frameIndex];
 	setWrites[1].pImageInfo =  m_imageInfos.data();
 
     vkUpdateDescriptorSets(VInstance::device(), 2, setWrites, 0, nullptr);
 
     m_needToUpdateDescSet[frameIndex] = false;
+    ++m_descSetVersion[frameIndex];
 }
 
 bool TexturesArrayManager::init()
@@ -231,8 +228,11 @@ bool TexturesArrayManager::init()
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = TextureHandler::instance()->getDummyAsset()->getImageView();
 
-        m_availableImageInfos.push_back(i++);
+        if(i != 0)
+            m_availableImageInfos.push_back(i);
+        i++;
     }
+    m_texturesArray[0] = 0;
 
     if(!this->createDescriptorSetLayouts())
         return (false);

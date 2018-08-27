@@ -5,6 +5,8 @@
 #include "Valag/core/VApp.h"
 #include "Valag/vulkanImpl/VInstance.h"
 #include "Valag/gfx/DefaultRenderer.h"
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
 
 namespace vlg
 {
@@ -21,6 +23,7 @@ Sprite::Sprite() :
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToUpdateModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_modelBufferVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
+    m_texDescSetVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
 }
 
 Sprite::~Sprite()
@@ -52,6 +55,7 @@ void Sprite::setPosition(glm::vec2 position)
 void Sprite::setTexture(AssetTypeID textureID)
 {
     m_texture = textureID;
+    m_needToCheckLoading = (textureID != 0) && (!TextureHandler::instance()->getAsset(textureID)->isLoaded());
 }
 
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
@@ -87,7 +91,6 @@ void Sprite::createDrawCommandBuffer()
     allocInfo.commandPool = VInstance::commandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
     allocInfo.commandBufferCount = (uint32_t) m_drawCommandBuffers.size();
-
 
     if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_drawCommandBuffers.data()) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate command buffers");
@@ -159,6 +162,18 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
         m_modelBufferVersion[currentFrame] = renderer->getModelUBOBufferVersion(currentFrame);
     }
 
+    if(m_texDescSetVersion[currentFrame] != renderer->getTextureArrayDescSetVersion(currentFrame))
+    {
+        m_needToUpdateDrawCommandBuffer[currentFrame] = true;
+        m_texDescSetVersion[currentFrame] = renderer->getTextureArrayDescSetVersion(currentFrame);
+    }
+
+    if(m_needToCheckLoading && TextureHandler::instance()->getAsset(m_texture)->isLoaded())
+    {
+        for(auto b : m_needToUpdateDrawCommandBuffer) b = true;
+        m_needToCheckLoading = false;
+    }
+
     if(m_needToUpdateDrawCommandBuffer[currentFrame])
     {
         if(!this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer))
@@ -166,7 +181,6 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
     }
 
     return m_drawCommandBuffers[currentFrame];
-
 }
 
 bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame,/*VkPipeline pipeline,*/ VkRenderPass renderPass,

@@ -47,8 +47,10 @@ class DefaultRenderer
         bool    allocModelUBO(size_t &index, size_t frameIndex); ///Could use vector of indices
         void    updateModelUBO(size_t index, void *data, size_t frameIndex);
         void    updateModelDescriptorSets(size_t frameIndex);
-        size_t  getModelUBOBufferVersion(size_t frameIndex);
         void    checkBuffersExpansion();
+
+        size_t  getModelUBOBufferVersion(size_t frameIndex);
+        size_t  getTextureArrayDescSetVersion(size_t frameIndex);
 
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
@@ -84,9 +86,7 @@ class DefaultRenderer
         std::vector<VkDescriptorSet>    m_modelDescriptorSets;
         VkDescriptorSetLayout           m_modelDescriptorSetLayout;
 
-        bool                            m_needToExpandModelBuffers;
-        std::vector<VkBuffer>           m_oldModelBuffers;
-        std::vector<VkDeviceMemory>     m_oldModelBuffersMemory;
+        std::vector<bool>               m_needToExpandModelBuffers;
 
         TexturesArrayManager           *m_texturesArrayManager;
 

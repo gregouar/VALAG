@@ -63,6 +63,7 @@ class VApp
         EventsManager       m_eventsManager;
         //GLFWwindow         *m_window;
         RenderWindow        m_renderWindow;
+        uint32_t            m_imageIndex;
 
         //VInstance          *m_vulkanInstance;
         DefaultRenderer    *m_defaultRenderer;
