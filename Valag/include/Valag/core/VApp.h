@@ -43,6 +43,7 @@ class VApp
         bool    init();
 
         //bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
+        bool    createDummyAssets();
         bool    createWindow();
         //bool    createVulkanInstance();
         bool    createDefaultRenderer();

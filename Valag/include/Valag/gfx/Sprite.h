@@ -18,8 +18,10 @@ class Sprite
 
         void setSize(glm::vec2 size);
         void setPosition(glm::vec2 position);
-        void setTexture();
+        void setTexture(AssetTypeID textureID);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
+
+        AssetTypeID getTexture();
 
     protected:
         void createAllBuffers();
@@ -33,7 +35,7 @@ class Sprite
         ///Specifying framebuffer may induce better performances
         VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
-        void recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
 
@@ -41,6 +43,7 @@ class Sprite
         glm::vec2 m_position;
 
         AssetTypeID m_texture;
+
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
 

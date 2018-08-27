@@ -9,7 +9,7 @@ AssetHandler<AssetType>::AssetHandler()
 {
     ///m_loadThread = new sf::Thread(&AssetHandler<AssetType>::LoadInThread, this);
     ///m_loadThread = new std::thread(&AssetHandler<AssetType>::LoadInThread, this);
-    m_curNewId = 0;
+    m_curNewId = 1;
     m_assetLoadingInThread = nullptr;
 }
 
@@ -27,6 +27,9 @@ AssetHandler<AssetType>::~AssetHandler()
 template<typename AssetType>
 AssetType* AssetHandler<AssetType>::getAsset(const AssetTypeID& assetID)
 {
+    if(assetID == 0)
+        return this->getDummyAsset();
+
     typename std::map<AssetTypeID, AssetType*>::iterator assetIter;
 
     assetIter = m_assets.find(assetID);
@@ -296,9 +299,15 @@ void AssetHandler<AssetType>::cleanAll()
 template<typename AssetType>
 AssetType* AssetHandler<AssetType>::getDummyAsset()
 {
-    if(!m_hasDummyAsset)
+    if(!m_enableDummyAsset)
         return nullptr;
     return &m_dummyAsset;
+}
+
+template<typename AssetType>
+void AssetHandler<AssetType>::enableDummyAsset(bool enable)
+{
+    m_enableDummyAsset = enable;
 }
 
 
@@ -306,7 +315,7 @@ template<typename AssetType>
 void AssetHandler<AssetType>::setDummyAsset(AssetType dummy)
 {
     m_dummyAsset = dummy;
-    m_hasDummyAsset = true;
+    m_enableDummyAsset = true;
 }
 
 

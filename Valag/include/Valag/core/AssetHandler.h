@@ -45,6 +45,7 @@ template<class AssetType> class AssetHandler : public Singleton<AssetHandler<Ass
         void deleteAsset(const AssetTypeID &assetID);
         void cleanAll();
 
+        void enableDummyAsset(bool enable = true);
         void setDummyAsset(AssetType);
         AssetType* getDummyAsset();
 
@@ -75,7 +76,7 @@ template<class AssetType> class AssetHandler : public Singleton<AssetHandler<Ass
         AssetType* m_assetLoadingInThread;
 
         int m_curNewId;
-        bool m_hasDummyAsset;
+        bool m_enableDummyAsset;
         AssetType m_dummyAsset;
 };
 

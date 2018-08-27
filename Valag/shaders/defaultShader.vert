@@ -5,7 +5,7 @@ layout(binding = 0, set = 0) uniform ViewUBO {
     mat4 view;
 } viewUbo;
 
-layout(binding = 0, set = 1) uniform ModelUBO {
+layout(binding = 0, set = 2) uniform ModelUBO {
     mat4 model;
 } modelUbo;
 

@@ -65,9 +65,10 @@ TextureAsset::~TextureAsset()
     if(m_textureImage != VK_NULL_HANDLE)
     {
         VkDevice device = VInstance::device();
+
+        vkDestroyImageView(device, m_textureImageView, nullptr);
         vkDestroyImage(device, m_textureImage, nullptr);
         vkFreeMemory(device, m_textureImageMemory, nullptr);
-        vkDestroyImageView(device, m_textureImageView, nullptr);
     }
 
 }
@@ -94,8 +95,6 @@ bool TextureAsset::generateTexture(stbi_uc* pixels, int texWidth, int texHeight)
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
         memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(device, stagingBufferMemory);
-
-    stbi_image_free(pixels);
 
     VulkanHelpers::createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -132,6 +131,8 @@ bool TextureAsset::loadFromFile(const std::string &filePath)
 
     this->generateTexture(pixels, texWidth, texHeight);
 
+    stbi_image_free(pixels);
+
     Logger::write("Texture loaded from file: "+filePath);
 
     return (true);
@@ -140,6 +141,11 @@ bool TextureAsset::loadFromFile(const std::string &filePath)
 bool TextureAsset::loadFromMemory(void *data, std::size_t dataSize)
 {
     return (false);
+}
+
+VkImageView TextureAsset::getImageView()
+{
+    return m_textureImageView;
 }
 
 /**bool TextureAsset::loadNow()

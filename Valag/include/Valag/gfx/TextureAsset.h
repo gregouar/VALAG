@@ -16,6 +16,8 @@ class VInstance;
 
 class TextureAsset : public Asset
 {
+    friend class VApp;
+
     public:
         TextureAsset();
         TextureAsset(const AssetTypeID&);
@@ -32,6 +34,8 @@ class TextureAsset : public Asset
         ///void setSmooth(bool = true);
 
         ///virtual sf::Texture* GetTexture();
+
+        VkImageView     getImageView();
 
     protected:
         bool generateTexture(unsigned char* pixels, int texWidth, int texHeight);

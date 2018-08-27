@@ -88,6 +88,9 @@ bool VApp::init()
 
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
 
+    if(!this->createDummyAssets())
+        throw std::runtime_error("Cannot create dummy assets");
+
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
 
@@ -110,6 +113,15 @@ bool VApp::createWindow()
     bool fullscreen = Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN);
 
     return m_renderWindow.create(w,h,m_createInfos.name,fullscreen);
+}
+
+bool VApp::createDummyAssets()
+{
+    unsigned char dummyTexturePtr[4] = {0,0,255,255};
+    TextureHandler::instance()->enableDummyAsset();
+    TextureAsset* dummyTexture = TextureHandler::instance()->getDummyAsset();
+
+    return dummyTexture->generateTexture(dummyTexturePtr,1,1);
 }
 
 bool VApp::createDefaultRenderer()

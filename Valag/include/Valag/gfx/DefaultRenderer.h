@@ -3,6 +3,7 @@
 
 #include "Valag/vulkanImpl/RenderWindow.h"
 #include "Valag/vulkanImpl/DynamicUBO.h"
+#include "Valag/vulkanImpl/TexturesArrayManager.h"
 #include "Valag/gfx/Sprite.h"
 
 
@@ -37,6 +38,7 @@ class DefaultRenderer
         bool    createSemaphores();
 
         bool    createUBO();
+        bool    createTexturesArrayManager();
 
         void    updateBuffers(uint32_t imageIndex);
         void    updateViewUBO();
@@ -48,6 +50,7 @@ class DefaultRenderer
         size_t  getModelUBOBufferVersion(size_t frameIndex);
         void    checkBuffersExpansion();
 
+        bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
 
         void cleanup();
@@ -64,7 +67,6 @@ class DefaultRenderer
         std::vector<VkExtent2D>         m_swapchainExtents; //Could be needed if I implement resizing
 
         VkDescriptorPool                m_descriptorPool;
-        std::vector<VkDescriptorSet>    m_descriptorSets;
 
         size_t                          m_currentFrame;
         std::vector<VkCommandBuffer>    m_commandBuffers;
@@ -85,6 +87,8 @@ class DefaultRenderer
         bool                            m_needToExpandModelBuffers;
         std::vector<VkBuffer>           m_oldModelBuffers;
         std::vector<VkDeviceMemory>     m_oldModelBuffersMemory;
+
+        TexturesArrayManager           *m_texturesArrayManager;
 
 
         static const char *DEFAULT_VERTSHADERFILE;

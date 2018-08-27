@@ -13,6 +13,7 @@ Asset::Asset()
    /// m_allowLoadFromStream = false;
     m_loadSource = LoadSource_None;
     m_loaded = false;
+    m_loadType = LoadType_Now;
 }
 
 Asset::Asset(const AssetTypeID &id) : Asset()

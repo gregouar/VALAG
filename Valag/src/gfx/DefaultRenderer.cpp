@@ -93,6 +93,7 @@ void DefaultRenderer::checkBuffersExpansion()
         m_needToExpandModelBuffers = false;
     }
 
+    m_texturesArrayManager->checkUpdateDescriptorSets(oldFrame);
 }
 
 void DefaultRenderer::updateViewUBO()
@@ -217,17 +218,32 @@ size_t DefaultRenderer::getModelUBOBufferVersion(size_t frameIndex)
     return m_modelBuffers[frameIndex]->getBufferVersion();
 }
 
+
+bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex)
+{
+    int texArrayID;
+
+    if(!m_texturesArrayManager->bindTexture(textureID, frameIndex, &texArrayID))
+        return (false);
+
+    vkCmdPushConstants(commandBuffer, m_defaultPipelineLayout,
+            VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int), (void*)&texArrayID);
+
+    return (true);
+}
+
 void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
 {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
 
     VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
+                                        m_texturesArrayManager->getDescriptorSet(frameIndex),
                                         m_modelDescriptorSets[frameIndex] };
 
     uint32_t dynamicOffset = m_modelBuffers[frameIndex]->getDynamicOffset(modelUBOIndex);
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,0,2, descriptorSets, 1, &dynamicOffset);
+                            m_defaultPipelineLayout,0,3, descriptorSets, 1, &dynamicOffset);
 }
 
 bool DefaultRenderer::init()
@@ -249,6 +265,14 @@ bool DefaultRenderer::init()
         Logger::error("Cannot create default descriptor set layout");
         return (false);
     }
+
+
+    if(!this->createTexturesArrayManager())
+    {
+        Logger::error("Cannot create default textures array manager");
+        return (false);
+    }
+
 
     if(!this->createGraphicsPipeline())
     {
@@ -291,7 +315,6 @@ bool DefaultRenderer::init()
         Logger::error("Cannot create default renderer semaphores");
         return (false);
     }
-
 
     return (true);
 }
@@ -346,7 +369,7 @@ bool DefaultRenderer::createDescriptorSetLayouts()
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1 /*1*/;
+    uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
@@ -362,7 +385,6 @@ bool DefaultRenderer::createDescriptorSetLayouts()
 
     if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_modelDescriptorSetLayout) != VK_SUCCESS)
         return (false);
-
 
     return (true);
 }
@@ -481,11 +503,23 @@ bool DefaultRenderer::createGraphicsPipeline()
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     //pipelineLayoutInfo.setLayoutCount = 0;
 
-    VkDescriptorSetLayout descriptorSetLayouts[] = {m_viewDescriptorSetLayout, m_modelDescriptorSetLayout};
-    pipelineLayoutInfo.setLayoutCount = 2;
+    VkDescriptorSetLayout descriptorSetLayouts[] = {m_viewDescriptorSetLayout,
+                                                    m_texturesArrayManager->getDescriptorSetLayout(),
+                                                    m_modelDescriptorSetLayout};
+    pipelineLayoutInfo.setLayoutCount = 3;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
-    pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-    pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+
+
+    VkPushConstantRange pushConstantRange = {};
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(int);
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+
+    //pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+    //pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_defaultPipelineLayout) != VK_SUCCESS)
     {
@@ -750,9 +784,17 @@ bool DefaultRenderer::createUBO()
     return (true);
 }
 
+bool DefaultRenderer::createTexturesArrayManager()
+{
+    m_texturesArrayManager = new TexturesArrayManager();
+    return (true);
+}
+
 void DefaultRenderer::cleanup()
 {
     VkDevice device = VInstance::device();
+
+    delete m_texturesArrayManager;
 
     vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
 

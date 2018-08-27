@@ -12,9 +12,9 @@ namespace vlg
 Sprite::Sprite() :
     m_size({0,0}),
     m_position({0,0}),
-    m_texture(-1),
+    m_texture(0),
     m_texturePosition({0,0}),
-    m_textureExtent({0,0}),
+    m_textureExtent({1,1}),
     m_needToCreateBuffers(true)
 {
     m_needToUpdateDrawCommandBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
@@ -49,9 +49,9 @@ void Sprite::setPosition(glm::vec2 position)
     m_position = position;
 }
 
-void Sprite::setTexture()
+void Sprite::setTexture(AssetTypeID textureID)
 {
-
+    m_texture = textureID;
 }
 
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
@@ -62,6 +62,11 @@ void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 
     m_texturePosition = position;
     m_textureExtent = extent;
+}
+
+AssetTypeID Sprite::getTexture()
+{
+    return m_texture;
 }
 
 void Sprite::createAllBuffers()
@@ -155,13 +160,17 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
     }
 
     if(m_needToUpdateDrawCommandBuffer[currentFrame])
-        this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer);
+    {
+        if(!this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer))
+            return VK_NULL_HANDLE;
+    }
 
     return m_drawCommandBuffers[currentFrame];
 
 }
 
-void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame,/*VkPipeline pipeline,*/ VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
+bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame,/*VkPipeline pipeline,*/ VkRenderPass renderPass,
+                                      uint32_t subpass, VkFramebuffer framebuffer)
 {
    /// for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
@@ -185,6 +194,13 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
         VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
         VkDeviceSize offsets[] = {m_vertexBuffer.offset};
 
+        if(!renderer->bindTexture(m_drawCommandBuffers[currentFrame], m_texture, currentFrame))
+        {
+            if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
+                throw std::runtime_error("Failed to record command buffer");
+            return (false);
+        }
+
         renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
 
         vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
@@ -196,6 +212,7 @@ void Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
     }
 
     m_needToUpdateDrawCommandBuffer[currentFrame] = false;
+    return (true);
 }
 
 void Sprite::cleanup()

@@ -35,7 +35,7 @@ void TestingState::init()
     textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread);
     textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread);
 
-    textureHandler->loadAssetFromFile("../data/tree_albedo.png");
+    vlg::AssetTypeID tex = textureHandler->loadAssetFromFile("../data/tree_albedo.png")->getID();
     textureHandler->loadAssetFromFile("../data/tree_height.png");
     textureHandler->loadAssetFromFile("../data/tree_normal.png");
     textureHandler->loadAssetFromFile("../data/tree_material.png");
@@ -44,13 +44,15 @@ void TestingState::init()
 
     //m_testingSprite.setSize(glm::vec2(150,150));
     //m_testingSprite.setPosition(glm::vec2(100,200));
-    m_testingSprites.resize(10);
+    m_testingSprites.resize(5);
 
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
     {
         it->setSize(glm::vec2(50,50+i*20));
         it->setPosition(glm::vec2(70+i*80,200+10*i));
+        if(i % 2 == 0)
+        it->setTexture(tex);
     }
 }
 
@@ -93,6 +95,8 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
       //  m_testingSprites.push_back(vlg::Sprite ()); WTF ????
         (--m_testingSprites.end())->setPosition(eventsManager->mousePosition());
         (--m_testingSprites.end())->setSize(glm::vec2(100,100));
+        (--m_testingSprites.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png")->getID());
+                                               //m_testingSprites.front().getTexture());
     }
 
 }

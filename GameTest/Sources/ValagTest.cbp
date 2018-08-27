@@ -74,6 +74,7 @@
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBO.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/RenderWindow.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/TexturesArrayManager.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
@@ -104,6 +105,7 @@
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBO.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/RenderWindow.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/TexturesArrayManager.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />
