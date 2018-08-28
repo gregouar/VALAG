@@ -79,6 +79,7 @@ class Sprite : public NotificationSender, public Drawable
         uint32_t            m_modelIndex; ///should I put a vector to be sure ?
         std::vector<size_t> m_modelBufferVersion;
         std::vector<size_t> m_texDescSetVersion;
+        bool                m_preventDrawing;
 };
 
 }

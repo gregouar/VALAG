@@ -18,7 +18,8 @@ Sprite::Sprite() :
     m_texture(0),
     m_texturePosition({0,0}),
     m_textureExtent({1,1}),
-    m_needToCreateBuffers(true)
+    m_needToCreateBuffers(true),
+    m_preventDrawing(false)
 {
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToUpdateModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
@@ -143,6 +144,7 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
 
 bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
 {
+    m_preventDrawing = false;
     bool needToUpdateDrawCMB = false;
 
     if(m_needToCreateBuffers)
@@ -151,7 +153,11 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
     if(m_needToAllocModel[currentFrame])
     {
         if(!renderer->allocModelUBO(m_modelUBOIndex, currentFrame))
-            return VK_NULL_HANDLE;
+        {
+            m_preventDrawing = true;
+            return (false);
+        }
+            //return VK_NULL_HANDLE;
 
         m_needToAllocModel[currentFrame] = false;
     }
@@ -227,6 +233,9 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
     if(this->checkUpdates(renderer, currentFrame))
         m_needToUpdateDrawCMB[currentFrame] = true;
 
+    if(m_preventDrawing)
+        return (VK_NULL_HANDLE);
+
     return Drawable::getDrawCommandBuffer(renderer, currentFrame, renderPass, subpass, framebuffer);
 }
 
@@ -234,6 +243,9 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t c
 bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
                                   uint32_t subpass, VkFramebuffer framebuffer)
 {
+    if(m_preventDrawing)
+        return (false);
+
     VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
     VkDeviceSize offsets[] = {m_vertexBuffer.offset};
 

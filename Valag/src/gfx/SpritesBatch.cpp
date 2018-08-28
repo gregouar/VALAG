@@ -15,7 +15,8 @@ SpritesBatch::~SpritesBatch()
 
 void SpritesBatch::addSprite(Sprite *sprite)
 {
-    m_sprites.insert(sprite);
+    if(m_sprites.insert(sprite).second)
+        for(auto b : m_needToUpdateDrawCMB) b = 0;
 }
 
 bool SpritesBatch::removeSprite(Sprite *sprite)

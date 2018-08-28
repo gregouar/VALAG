@@ -16,7 +16,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 4;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 1024;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_targetWindow(targetWindow),
