@@ -307,8 +307,8 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device,VkSurfaceKHR &sur
     if(!deviceFeatures.samplerAnisotropy)
         return 0;
 
-    /** This could be a serious problem... 200 on intel chipset is really low
-    //std::cout<<deviceProperties.limits.maxPerStageDescriptorSampledImages<<std::endl; **/
+    /** This could be a serious problem... 200 on intel chipset is really low**/
+    //std::cout<<deviceProperties.limits.maxPerStageDescriptorSampledImages<<std::endl;
     //std::cout<<deviceProperties.limits.maxImageArrayLayers<<std::endl;
     if(deviceProperties.limits.maxPerStageDescriptorSampledImages < TexturesArrayManager::TEXTURES_ARRAY_SIZE)
         return 0;

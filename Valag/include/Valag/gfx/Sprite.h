@@ -61,7 +61,7 @@ class Sprite : public NotificationSender, public Drawable
         glm::vec4 m_color;
 
         AssetTypeID m_texture;
-        bool        m_needToCheckLoading;
+        std::vector<bool>   m_needToCheckLoading;
 
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;

@@ -53,7 +53,7 @@ class DefaultRenderer
         size_t  getModelUBOBufferVersion(size_t frameIndex);
         size_t  getTextureArrayDescSetVersion(size_t frameIndex);
 
-        void    bindDefaultPipeline(VkCommandBuffer &commandBuffer);
+        void    bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex);
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
 

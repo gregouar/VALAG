@@ -26,6 +26,7 @@ Sprite::Sprite() :
     m_needToUpdateVertexBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_modelBufferVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
     m_texDescSetVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
+    m_needToCheckLoading = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
 }
 
 Sprite::~Sprite()
@@ -61,7 +62,8 @@ void Sprite::setColor(glm::vec4 color)
 void Sprite::setTexture(AssetTypeID textureID)
 {
     m_texture = textureID;
-    m_needToCheckLoading = (textureID != 0) && (!TextureHandler::instance()->getAsset(textureID)->isLoaded());
+    if(textureID != 0 && !TextureHandler::instance()->getAsset(textureID)->isLoaded())
+        for(auto b : m_needToCheckLoading) b = true;
 }
 
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
@@ -179,10 +181,10 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
         m_texDescSetVersion[currentFrame] = renderer->getTextureArrayDescSetVersion(currentFrame);
     }
 
-    if(m_needToCheckLoading && TextureHandler::instance()->getAsset(m_texture)->isLoaded())
+    if(m_needToCheckLoading[currentFrame] && TextureHandler::instance()->getAsset(m_texture)->isLoaded())
     {
-        for(auto b : m_needToUpdateDrawCMB) b = true;
-        m_needToCheckLoading = false;
+        needToUpdateDrawCMB = true;
+        m_needToCheckLoading[currentFrame] = false;
     }
 
     return needToUpdateDrawCMB;
@@ -283,7 +285,7 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
         if (vkBeginCommandBuffer(m_drawCommandBuffers[currentFrame], &beginInfo) != VK_SUCCESS)
             throw std::runtime_error("Failed to begin recording command buffer");
 
-        renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame]);
+        renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame],currentFrame);
 
         if(!this->recordDrawCMBContent(m_drawCommandBuffers[currentFrame], renderer, currentFrame, renderPass, subpass, framebuffer))
         {

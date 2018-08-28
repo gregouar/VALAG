@@ -236,21 +236,33 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID te
     return (true);
 }
 
-void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer)
+void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex)
 {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
+
+    VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
+                                        m_texturesArrayManager->getDescriptorSet(frameIndex) };
+
+    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_defaultPipelineLayout,0,2, descriptorSets, 0, nullptr);
 }
 
 void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
 {
-    VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
+   /* VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
                                         m_texturesArrayManager->getDescriptorSet(frameIndex),
                                         m_modelDescriptorSets[frameIndex] };
 
     uint32_t dynamicOffset = m_modelBuffers[frameIndex]->getDynamicOffset(modelUBOIndex);
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,0,3, descriptorSets, 1, &dynamicOffset);
+                            m_defaultPipelineLayout,0,3, descriptorSets, 1, &dynamicOffset);*/
+
+
+    uint32_t dynamicOffset = m_modelBuffers[frameIndex]->getDynamicOffset(modelUBOIndex);
+
+    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_defaultPipelineLayout,2,1, &m_modelDescriptorSets[frameIndex], 1, &dynamicOffset);
 }
 
 bool DefaultRenderer::init()

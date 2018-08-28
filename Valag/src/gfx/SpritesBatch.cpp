@@ -56,7 +56,7 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t cu
     if (vkBeginCommandBuffer(m_drawCommandBuffers[currentFrame], &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording command buffer");
 
-    renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame]);
+    renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame], currentFrame);
 
     for(auto sprite : m_sprites)
         sprite->recordDrawCMBContent(m_drawCommandBuffers[currentFrame], renderer, currentFrame, renderPass, subpass, framebuffer);

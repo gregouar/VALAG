@@ -30,15 +30,15 @@ void TestingState::init()
     vlg::TextureHandler* textureHandler =  vlg::TextureHandler::instance();
 
     vlg::AssetTypeID tex3 = textureHandler->loadAssetFromFile("../data/sand_color.png")->getID();
-    textureHandler->loadAssetFromFile("../data/sand_height.png");
-    textureHandler->loadAssetFromFile("../data/sand_normal.png");
+    textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread);
+    textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread);
 
     vlg::AssetTypeID tex4 = textureHandler->loadAssetFromFile("../data/abbey_color.png",vlg::LoadType_InThread)->getID();
     textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread);
     textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread);
 
     vlg::AssetTypeID tex = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
-    vlg::AssetTypeID tex2 = textureHandler->loadAssetFromFile("../data/tree_height.png")->getID();
+    vlg::AssetTypeID tex2 = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
     textureHandler->loadAssetFromFile("../data/tree_normal.png");
     textureHandler->loadAssetFromFile("../data/tree_material.png");
 
@@ -51,15 +51,26 @@ void TestingState::init()
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
     {
-        it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
+        /*it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
         it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
         if(i % 2 == 0)
-        it->setTexture(tex);
+        it->setTexture(tex);*/
+
+        it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
+        it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
+        it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
+
+        if(i % 3 == 0)
+            it->setTexture(tex2);
+        if(i % 3 == 1)
+            it->setTexture(tex3);
+        if(i % 3 == 2)
+            it->setTexture(tex4);
     }
 
 
-    m_testingSpritesInBatch.resize(10000);
+    m_testingSpritesInBatch.resize(10);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
