@@ -36,7 +36,7 @@ void TestingState::init()
     textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread);
 
     vlg::AssetTypeID tex = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
-    textureHandler->loadAssetFromFile("../data/tree_height.png");
+    vlg::AssetTypeID tex2 = textureHandler->loadAssetFromFile("../data/tree_height.png")->getID();
     textureHandler->loadAssetFromFile("../data/tree_normal.png");
     textureHandler->loadAssetFromFile("../data/tree_material.png");
 
@@ -44,7 +44,7 @@ void TestingState::init()
 
     //m_testingSprite.setSize(glm::vec2(150,150));
     //m_testingSprite.setPosition(glm::vec2(100,200));
-    m_testingSprites.resize(5);
+    m_testingSprites.resize(1);
 
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
@@ -54,6 +54,21 @@ void TestingState::init()
         if(i % 2 == 0)
         it->setTexture(tex);
     }
+
+
+    m_testingSpritesInBatch.resize(0);
+
+    it = m_testingSpritesInBatch.begin();
+    for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
+    {
+        it->setSize(glm::vec2(50,50+i*20));
+        it->setPosition(glm::vec2(70+i*80,400+10*i));
+        if(i % 2 == 0)
+        it->setTexture(tex2);
+
+        m_testingSpritesBatch.addSprite(&(*it));
+    }
+
 
 }
 
@@ -121,6 +136,8 @@ void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* ren
 {
     for(auto &sprite : m_testingSprites)
         renderer->draw(&sprite);
+
+    renderer->draw(&m_testingSpritesBatch);
 }
 
 

@@ -16,7 +16,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 1024;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 4;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_targetWindow(targetWindow),
@@ -39,9 +39,9 @@ DefaultRenderer::~DefaultRenderer()
 }
 
 
-void DefaultRenderer::draw(Sprite *sprite)
+void DefaultRenderer::draw(Drawable *drawable)
 {
-    VkCommandBuffer commandBuffer = sprite->getDrawCommandBuffer(this,m_currentFrame, m_defaultRenderPass, 0);
+    VkCommandBuffer commandBuffer = drawable->getDrawCommandBuffer(this,m_currentFrame, m_defaultRenderPass, 0);
     if(commandBuffer != VK_NULL_HANDLE)
         m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
@@ -236,10 +236,13 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID te
     return (true);
 }
 
-void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
+void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer)
 {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
+}
 
+void DefaultRenderer::bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
+{
     VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
                                         m_texturesArrayManager->getDescriptorSet(frameIndex),
                                         m_modelDescriptorSets[frameIndex] };

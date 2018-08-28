@@ -6,6 +6,7 @@
 #include "Valag/gfx/DefaultRenderer.h"
 #include "Valag/gfx/Scene.h"
 #include "Valag/gfx/Sprite.h"
+#include "Valag/gfx/SpritesBatch.h"
 
 class TestingState : public vlg::GameState, public Singleton<TestingState>
 {
@@ -36,8 +37,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
 
         int m_nbrFps;
 
-
-        std::list<vlg::Sprite> m_testingSprites;
+        std::list<vlg::Sprite>  m_testingSprites;
+        std::list<vlg::Sprite>  m_testingSpritesInBatch;
+        vlg::SpritesBatch       m_testingSpritesBatch;
 };
 
 #endif // TESTINGSTATE_H

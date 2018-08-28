@@ -18,6 +18,7 @@
 					<Add directory="GameTest/Sources/include/states" />
 					<Add directory="include" />
 					<Add directory="Valag/include/Valag/utils" />
+					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -32,6 +33,7 @@
 					<Add directory="GameTest/Sources/include/states" />
 					<Add directory="include" />
 					<Add directory="Valag/include/Valag/utils" />
+					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -60,6 +62,7 @@
 		<Unit filename="../../Valag/include/Valag/core/StatesManager.h" />
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/DefaultRenderer.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/Drawable.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Scene.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneNode.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneObject.h" />
@@ -93,6 +96,7 @@
 		<Unit filename="../../Valag/src/core/StatesManager.cpp" />
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
 		<Unit filename="../../Valag/src/gfx/DefaultRenderer.cpp" />
+		<Unit filename="../../Valag/src/gfx/Drawable.cpp" />
 		<Unit filename="../../Valag/src/gfx/Scene.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneNode.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneObject.cpp" />

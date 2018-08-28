@@ -2,17 +2,17 @@
 #define SPRITE_H
 
 #include "Valag/vulkanImpl/VulkanImpl.h"
+#include "Valag/gfx/Drawable.h"
+#include "Valag/core/NotificationSender.h"
 
 namespace vlg
 {
-
-class DefaultRenderer;
-
 /** For animated sprite, I should work with array of vertexBuffer, having all their texCoord already saved **/
 
-class Sprite
+class Sprite : public NotificationSender, public Drawable
 {
     friend class DefaultRenderer;
+    friend class SpritesBatch;
 
     public:
         Sprite();
@@ -26,23 +26,31 @@ class Sprite
 
         AssetTypeID getTexture();
 
+
+        ///Specifying framebuffer may induce better performances
+        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
+                                                uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
+
     protected:
         void createAllBuffers();
-        void createDrawCommandBuffer();
+        //void createDrawCommandBuffer();
         void createVertexBuffer();
 
         void updateModelUBO(DefaultRenderer *renderer, size_t currentFrame);
 
         void cleanup();
 
-        ///Specifying framebuffer may induce better performances
-        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
-                                                uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
+        bool checkUpdates(DefaultRenderer *renderer, size_t currentFrame);
+
         bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
+
+        bool recordDrawCMBContent(VkCommandBuffer &commandBuffer, DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+                                                uint32_t subpass, VkFramebuffer framebuffer);
+
     private:
-        std::vector<VkCommandBuffer>    m_drawCommandBuffers;
+        //std::vector<VkCommandBuffer>    m_drawCommandBuffers;
 
         ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
         ///Could use the same vertexBuffer for all Sprites though, should try to use static here
@@ -59,7 +67,7 @@ class Sprite
         glm::vec2 m_textureExtent;
 
         bool m_needToCreateBuffers;
-        std::vector<bool> m_needToUpdateDrawCommandBuffer;
+       // std::vector<bool> m_needToUpdateDrawCommandBuffer;
 
         VBuffer     m_vertexBuffer;
         std::vector<bool>   m_needToUpdateVertexBuffer;

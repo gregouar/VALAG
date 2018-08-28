@@ -40,6 +40,7 @@ enum NotificationType
     Notification_AssetLoaded,
     Notification_SceneNodeDetroyed,
     Notification_SceneNodeMoved,
+    Notification_UpdateCMB,
    // Notification_LightMoved,
 };
 

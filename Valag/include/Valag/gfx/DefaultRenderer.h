@@ -4,7 +4,7 @@
 #include "Valag/vulkanImpl/RenderWindow.h"
 #include "Valag/vulkanImpl/DynamicUBO.h"
 #include "Valag/vulkanImpl/TexturesArrayManager.h"
-#include "Valag/gfx/Sprite.h"
+#include "Valag/gfx/Drawable.h"
 
 
 namespace vlg
@@ -14,12 +14,13 @@ class DefaultRenderer
 {
     friend class VApp;
     friend class Sprite;
+    friend class SpritesBatch;
 
     public:
         DefaultRenderer(RenderWindow *targetWindow);
         virtual ~DefaultRenderer();
 
-        void draw(Sprite *sprite);
+        void draw(Drawable *drawable);
 
         VkCommandBuffer getCommandBuffer();
         VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
@@ -52,6 +53,7 @@ class DefaultRenderer
         size_t  getModelUBOBufferVersion(size_t frameIndex);
         size_t  getTextureArrayDescSetVersion(size_t frameIndex);
 
+        void    bindDefaultPipeline(VkCommandBuffer &commandBuffer);
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
         void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
 
