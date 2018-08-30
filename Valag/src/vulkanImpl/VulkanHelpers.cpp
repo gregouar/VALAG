@@ -118,7 +118,7 @@ bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 }
 
 
-bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                  VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     VkDevice device = VInstance::device();
@@ -130,7 +130,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = layerCount; //layer count
     imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -164,7 +164,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
 }
 
 
- void VulkanHelpers::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+ void VulkanHelpers::transitionImageLayout(VkImage image, uint32_t layer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
                                            CommandPoolName commandPoolName)
  {
     VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
@@ -179,7 +179,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.baseArrayLayer = layer;
     barrier.subresourceRange.layerCount = 1;
 
     VkPipelineStageFlags sourceStage;
@@ -213,7 +213,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, VkFormat format
     VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
-void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,
+void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
                                       CommandPoolName commandPoolName)
 {
     VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
@@ -224,7 +224,7 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.baseArrayLayer = layer;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {
@@ -238,18 +238,21 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
     VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
 }
 
-VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format)
+VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, uint32_t layerCount)
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    if(layerCount == 1)
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    else
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    viewInfo.subresourceRange.layerCount = layerCount;
 
     VkImageView imageView;
     if (vkCreateImageView(VInstance::device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)

@@ -29,6 +29,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-DNDEBUG" />
 					<Add directory="Valag/include/Valag/core" />
 					<Add directory="GameTest/Sources/include/states" />
 					<Add directory="include" />
@@ -78,9 +79,10 @@
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBO.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/RenderWindow.h" />
-		<Unit filename="../../Valag/include/Valag/vulkanImpl/TexturesArrayManager.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VBuffersAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
-		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexture.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexturesManager.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanHelpers.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanImpl.h" />
@@ -111,9 +113,10 @@
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBO.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/RenderWindow.cpp" />
-		<Unit filename="../../Valag/src/vulkanImpl/TexturesArrayManager.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VBuffersAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
-		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VTexture.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VTexturesManager.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanHelpers.cpp" />
 		<Unit filename="include/states/TestingState.h" />

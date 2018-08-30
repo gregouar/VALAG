@@ -15,18 +15,27 @@ SpritesBatch::~SpritesBatch()
 
 void SpritesBatch::addSprite(Sprite *sprite)
 {
-    if(m_sprites.insert(sprite).second)
+    //if(m_sprites.insert(sprite).second)
+   // m_sprites.push_back(sprite);
+    if(m_sortedSprites[sprite->getTexture()].insert(sprite).second)
+    {
+        sprite->askForAllNotifications(this);
         for(auto b : m_needToUpdateDrawCMB) b = 0;
+    }
 }
 
 bool SpritesBatch::removeSprite(Sprite *sprite)
 {
-    return m_sprites.erase(sprite);
+
+    //return m_sprites.erase(sprite);
+    //m_sprites.remove(sprite);
+    return m_sortedSprites[sprite->getTexture()].erase(sprite);
 }
 
 VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
-    for(auto sprite : m_sprites)
+    for(auto spriteSet : m_sortedSprites)
+    for(auto sprite : spriteSet.second)
     {
         if(sprite->checkUpdates(renderer, currentFrame))
             m_needToUpdateDrawCMB[currentFrame] = true;
@@ -58,7 +67,8 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t cu
 
     renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame], currentFrame);
 
-    for(auto sprite : m_sprites)
+    for(auto spriteSet : m_sortedSprites)
+    for(auto sprite : spriteSet.second)
         sprite->recordDrawCMBContent(m_drawCommandBuffers[currentFrame], renderer, currentFrame, renderPass, subpass, framebuffer);
 
     /*VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
@@ -91,6 +101,16 @@ void SpritesBatch::notify(NotificationSender* sender, NotificationType notificat
     /// Could check if sender is in m_sprites... or just trust it ?///
     if(notificationType == Notification_UpdateCMB)
         for(auto b : m_needToUpdateDrawCMB) b = true;
+    else if(notificationType == Notification_TextureIsAboutToChange)
+    {
+        Sprite *sprite = dynamic_cast<Sprite*>(sender);
+        m_sortedSprites[sprite->getTexture()].erase(sprite);
+    }
+    else if(notificationType == Notification_TextureChanged)
+    {
+        Sprite *sprite = dynamic_cast<Sprite*>(sender);
+        m_sortedSprites[sprite->getTexture()].insert(sprite);
+    }
 }
 
 

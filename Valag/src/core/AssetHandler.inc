@@ -40,8 +40,8 @@ AssetType* AssetHandler<AssetType>::getAsset(const AssetTypeID& assetID)
         return this->getDummyAsset(); //(nullptr);
     }
 
-    if(!assetIter->second->isLoaded())
-    return this->getDummyAsset();
+    /*if(!assetIter->second->isLoaded())
+    return this->getDummyAsset();*/
 
     return assetIter->second;
 }

@@ -41,6 +41,8 @@ enum NotificationType
     Notification_SceneNodeDetroyed,
     Notification_SceneNodeMoved,
     Notification_UpdateCMB,
+    Notification_TextureChanged,
+    Notification_TextureIsAboutToChange,
    // Notification_LightMoved,
 };
 

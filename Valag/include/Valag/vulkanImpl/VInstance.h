@@ -36,7 +36,7 @@ class VInstance : public Singleton<VInstance>
 {
     friend class VApp;
     friend class RenderWindow;
-    friend class VMemoryAllocator;
+    friend class VBuffersAllocator;
     friend class VulkanHelpers;
 
     friend class Singleton<VInstance>;

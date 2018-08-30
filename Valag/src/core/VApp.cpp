@@ -7,7 +7,7 @@
 
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
-#include "Valag/vulkanImpl/VMemoryAllocator.h"
+#include "Valag/vulkanImpl/VBuffersAllocator.h"
 
 #include "Valag/utils/Profiler.h"
 
@@ -89,13 +89,16 @@ bool VApp::init()
 
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
 
-    if(!this->createDummyAssets())
-        throw std::runtime_error("Cannot create dummy assets");
+    VTexturesManager::instance()->init();
+
+   // if(!this->createDummyAssets())
+     //   throw std::runtime_error("Cannot create dummy assets");
 
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
 
     m_eventsManager.init(m_renderWindow.getWindowPtr());
+
 
     if(!this->createDefaultRenderer())
         throw std::runtime_error("Cannot create default renderer");
@@ -115,14 +118,14 @@ bool VApp::createWindow()
     return m_renderWindow.create(w,h,m_createInfos.name,fullscreen);
 }
 
-bool VApp::createDummyAssets()
+/*bool VApp::createDummyAssets()
 {
     unsigned char dummyTexturePtr[4] = {255,255,255,255};
     TextureHandler::instance()->enableDummyAsset();
     TextureAsset* dummyTexture = TextureHandler::instance()->getDummyAsset();
 
     return dummyTexture->generateTexture(dummyTexturePtr,1,1);
-}
+}*/
 
 bool VApp::createDefaultRenderer()
 {
@@ -160,6 +163,7 @@ void VApp::loop()
 
         Profiler::pushClock("Check buffer expansion");
         m_defaultRenderer->checkBuffersExpansion();
+        VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getCurrentFrameIndex());
         Profiler::popClock();
 
         m_eventsManager.update();
@@ -217,7 +221,7 @@ void VApp::cleanup()
     }
 
     TextureHandler::instance()->cleanAll();
-    VMemoryAllocator::instance()->cleanAll();
+    VBuffersAllocator::instance()->cleanAll();
 
     m_renderWindow.destroy();
 

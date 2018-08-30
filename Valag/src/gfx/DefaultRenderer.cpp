@@ -6,6 +6,10 @@
 #include "Valag/utils/Logger.h"
 #include "Valag/core/Config.h"
 #include "Valag/core/VApp.h"
+#include "Valag/core/VApp.h"
+
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
 
 #include "Valag/vulkanImpl/VulkanHelpers.h"
 
@@ -93,12 +97,12 @@ void DefaultRenderer::checkBuffersExpansion()
         m_needToExpandModelBuffers[m_currentFrame] = false;
     }
 
-    m_texturesArrayManager->checkUpdateDescriptorSets(m_currentFrame);
+    ///m_texturesArrayManager->checkUpdateDescriptorSets(m_currentFrame);
 }
 
 void DefaultRenderer::updateViewUBO()
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
     ViewUBO viewUbo = {};
     /** this could need to be updated if I implement resizing **/
@@ -108,10 +112,12 @@ void DefaultRenderer::updateViewUBO()
                                                       1));
 
     /** I should write a helper for updateBufferMemory **/
-    void* data;
+    /*void* data;
     vkMapMemory(device, m_viewBuffersMemory[m_currentFrame], 0, sizeof(viewUbo), 0, &data);
         memcpy(data, &viewUbo, sizeof(viewUbo));
-    vkUnmapMemory(device, m_viewBuffersMemory[m_currentFrame]);
+    vkUnmapMemory(device, m_viewBuffersMemory[m_currentFrame]);*/
+
+    VBuffersAllocator::writeBuffer(m_viewBuffers[m_currentFrame],&viewUbo,sizeof(viewUbo));
 
     m_needToUpdateViewUBO[m_currentFrame] = false;
 }
@@ -220,20 +226,36 @@ size_t DefaultRenderer::getModelUBOBufferVersion(size_t frameIndex)
 
 size_t DefaultRenderer::getTextureArrayDescSetVersion(size_t frameIndex)
 {
-    return m_texturesArrayManager->getDescriptorSetVersion(frameIndex);
+    return VTexturesManager::instance()->getDescriptorSetVersion(frameIndex);
 }
 
 bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex)
 {
-    int texArrayID;
+    TextureAsset *texAsset = TextureHandler::instance()->getAsset(textureID);
 
-    if(!m_texturesArrayManager->bindTexture(textureID, frameIndex, &texArrayID))
+    int pc[] = {0,0};
+
+    if(texAsset != nullptr && texAsset->isLoaded())
+    {
+        VTexture vtexture = texAsset->getVTexture();
+        pc[0] = vtexture.m_textureId;
+        pc[1] = vtexture.m_textureLayer;
+    }
+
+    vkCmdPushConstants(commandBuffer, m_defaultPipelineLayout,
+            VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int)*2, (void*)pc);
+
+    return (true);
+
+    /*int texArrayID;
+
+    if(!VTexturesManager::bindTexture(textureID, frameIndex, &texArrayID))
         return (false);
 
     vkCmdPushConstants(commandBuffer, m_defaultPipelineLayout,
             VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int), (void*)&texArrayID);
 
-    return (true);
+    return (true);*/
 }
 
 void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex)
@@ -241,7 +263,7 @@ void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
 
     VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
-                                        m_texturesArrayManager->getDescriptorSet(frameIndex) };
+                                        VTexturesManager::instance()->getDescriptorSet(frameIndex) };
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_defaultPipelineLayout,0,2, descriptorSets, 0, nullptr);
@@ -286,7 +308,7 @@ bool DefaultRenderer::init()
     }
 
 
-    if(!this->createTexturesArrayManager())
+    if(!this->createVTexturesManager())
     {
         Logger::error("Cannot create default textures array manager");
         return (false);
@@ -524,7 +546,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     //pipelineLayoutInfo.setLayoutCount = 0;
 
     VkDescriptorSetLayout descriptorSetLayouts[] = {m_viewDescriptorSetLayout,
-                                                    m_texturesArrayManager->getDescriptorSetLayout(),
+                                                    VTexturesManager::instance()->getDescriptorSetLayout(),
                                                     m_modelDescriptorSetLayout};
     pipelineLayoutInfo.setLayoutCount = 3;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
@@ -532,7 +554,7 @@ bool DefaultRenderer::createGraphicsPipeline()
 
     VkPushConstantRange pushConstantRange = {};
 	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(int);
+	pushConstantRange.size = sizeof(int)*2;
 	pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
@@ -664,7 +686,7 @@ bool DefaultRenderer::createDescriptorSets()
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_viewBuffers[i];
+        bufferInfo.buffer = m_viewBuffers[i].buffer;//m_viewBuffers[i];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(ViewUBO);
 
@@ -786,14 +808,18 @@ bool DefaultRenderer::createUBO()
     VkDeviceSize bufferSize = sizeof(ViewUBO);
 
     m_viewBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    m_viewBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    //m_viewBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT);
     m_needToUpdateViewUBO.resize(VApp::MAX_FRAMES_IN_FLIGHT);
     m_modelBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        if(!VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        /*if(!VulkanHelpers::createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                     m_viewBuffers[i], m_viewBuffersMemory[i]))
+            return (false);*/
+
+        if(!VBuffersAllocator::allocBuffer(bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                    m_viewBuffers[i]))
             return (false);
 
         //this->updateViewUBO();
@@ -804,9 +830,9 @@ bool DefaultRenderer::createUBO()
     return (true);
 }
 
-bool DefaultRenderer::createTexturesArrayManager()
+bool DefaultRenderer::createVTexturesManager()
 {
-    m_texturesArrayManager = new TexturesArrayManager();
+    //m_texturesArrayManager = new VTexturesManager();
     return (true);
 }
 
@@ -814,7 +840,7 @@ void DefaultRenderer::cleanup()
 {
     VkDevice device = VInstance::device();
 
-    delete m_texturesArrayManager;
+    //delete m_texturesArrayManager;
 
     vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
 
@@ -822,10 +848,10 @@ void DefaultRenderer::cleanup()
         delete modelBuffer;
 
     for(auto ubo : m_viewBuffers)
-        vkDestroyBuffer(device, ubo, nullptr);
+        VBuffersAllocator::freeBuffer(ubo);
 
-    for(auto uboMemory : m_viewBuffersMemory)
-        vkFreeMemory(device, uboMemory, nullptr);
+    /*for(auto uboMemory : m_viewBuffersMemory)
+        vkFreeMemory(device, uboMemory, nullptr);*/
 
     for (auto semaphore : m_renderFinishedSemaphore)
         vkDestroySemaphore(device, semaphore, nullptr);

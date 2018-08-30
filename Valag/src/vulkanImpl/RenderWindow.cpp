@@ -295,7 +295,8 @@ bool RenderWindow::createSwapchain()
     if(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
         return (false);
 
-    vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, nullptr);
+    imageCount = 0;
+    vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, NULL);
     m_swapchainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, m_swapchainImages.data());
 

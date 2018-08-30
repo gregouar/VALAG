@@ -2,6 +2,7 @@
 #define SPRITESBATCH_H
 
 #include <set>
+#include <list>
 
 #include "Valag/gfx/Sprite.h"
 #include "Valag/core/NotificationListener.h"
@@ -28,7 +29,9 @@ class SpritesBatch : public NotificationListener, public Drawable
         virtual void notify(NotificationSender*, NotificationType);
 
     private:
-        std::set<Sprite*> m_sprites;
+       // std::set<Sprite*> m_sprites;
+      //  std::list<Sprite*> m_sprites;
+       std::map<AssetTypeID, std::set<Sprite*> > m_sortedSprites;
 };
 
 }

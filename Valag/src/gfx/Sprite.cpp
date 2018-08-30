@@ -61,9 +61,17 @@ void Sprite::setColor(glm::vec4 color)
 
 void Sprite::setTexture(AssetTypeID textureID)
 {
-    m_texture = textureID;
-    if(textureID != 0 && !TextureHandler::instance()->getAsset(textureID)->isLoaded())
-        for(auto b : m_needToCheckLoading) b = true;
+    if(textureID != m_texture)
+    {
+        sendNotification(Notification_TextureIsAboutToChange);
+
+        m_texture = textureID;
+        if(textureID != 0 && !TextureHandler::instance()->getAsset(textureID)->isLoaded())
+            for(auto b : m_needToCheckLoading) b = true;
+
+
+        sendNotification(Notification_TextureChanged);
+    }
 }
 
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
@@ -104,7 +112,7 @@ void Sprite::createAllBuffers()
 
 void Sprite::createVertexBuffer()
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
     std::vector<Vertex2D> vertices =
             {
@@ -117,19 +125,21 @@ void Sprite::createVertexBuffer()
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();
 
     VBuffer stagingBuffer;
-    VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+    VBuffersAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                   stagingBuffer);
 
-    void* data;
+    /*void* data;
     vkMapMemory(device, stagingBuffer.bufferMemory, stagingBuffer.offset, bufferSize, 0, &data);
         memcpy(data, vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBuffer.bufferMemory);
+    vkUnmapMemory(device, stagingBuffer.bufferMemory);*/
 
-    VMemoryAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    VBuffersAllocator::writeBuffer(stagingBuffer,vertices.data(), (size_t) bufferSize);
+
+    VBuffersAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                     m_vertexBuffer);
-    VMemoryAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+    VBuffersAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
-    VMemoryAllocator::freeBuffer(stagingBuffer);
+    VBuffersAllocator::freeBuffer(stagingBuffer);
 }
 
 void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
@@ -251,6 +261,9 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
     VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
     VkDeviceSize offsets[] = {m_vertexBuffer.offset};
 
+    if(m_texture != 0 && !TextureHandler::instance()->getAsset(m_texture)->isLoaded())
+        return (false);
+
     if(!renderer->bindTexture(commandBuffer, m_texture, currentFrame))
         return (false);
 
@@ -324,7 +337,7 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
 
 void Sprite::cleanup()
 {
-    VMemoryAllocator::freeBuffer(m_vertexBuffer);
+    VBuffersAllocator::freeBuffer(m_vertexBuffer);
 }
 
 }

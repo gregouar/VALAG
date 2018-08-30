@@ -3,7 +3,7 @@
 
 #include "Valag/vulkanImpl/RenderWindow.h"
 #include "Valag/vulkanImpl/DynamicUBO.h"
-#include "Valag/vulkanImpl/TexturesArrayManager.h"
+#include "Valag/vulkanImpl/VTexturesManager.h"
 #include "Valag/gfx/Drawable.h"
 
 
@@ -39,7 +39,7 @@ class DefaultRenderer
         bool    createSemaphores();
 
         bool    createUBO();
-        bool    createTexturesArrayManager();
+        bool    createVTexturesManager();
 
         void    updateBuffers(uint32_t imageIndex);
         void    updateViewUBO();
@@ -80,8 +80,10 @@ class DefaultRenderer
         std::vector<VkCommandBuffer>    m_activeSecondaryCommandBuffers;
 
         std::vector<bool>               m_needToUpdateViewUBO;
-        std::vector<VkBuffer>           m_viewBuffers; //Should be in a camera object for SceneRenderer
-        std::vector<VkDeviceMemory>     m_viewBuffersMemory;
+        /*std::vector<VkBuffer>           m_viewBuffers; //Should be in a camera object for SceneRenderer
+        std::vector<VkDeviceMemory>     m_viewBuffersMemory;*/
+        std::vector<VBuffer>            m_viewBuffers;
+
         std::vector<VkDescriptorSet>    m_viewDescriptorSets;
         VkDescriptorSetLayout           m_viewDescriptorSetLayout;
 
@@ -91,8 +93,7 @@ class DefaultRenderer
 
         std::vector<bool>               m_needToExpandModelBuffers;
 
-        TexturesArrayManager           *m_texturesArrayManager;
-
+        //VTexturesManager           *m_texturesArrayManager;
 
         static const char *DEFAULT_VERTSHADERFILE;
         static const char *DEFAULT_FRAGSHADERFILE;

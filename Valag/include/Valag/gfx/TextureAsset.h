@@ -4,8 +4,11 @@
 //#define GLFW_INCLUDE_VULKAN
 //#include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
+//#include <glm/glm.hpp>
+//#include <vulkan/vulkan.h>
+
+#include "Valag/vulkanImpl/vulkanImpl.h"
+#include "Valag/vulkanImpl/VTexture.h"
 
 #include "Valag/core/Asset.h"
 
@@ -35,15 +38,19 @@ class TextureAsset : public Asset
 
         ///virtual sf::Texture* GetTexture();
 
-        VkImageView     getImageView();
+        //VkImageView     getImageView();
+
+        VTexture getVTexture();
 
     protected:
-        bool generateTexture(unsigned char* pixels, int texWidth, int texHeight);
+        //bool generateTexture(unsigned char* pixels, int texWidth, int texHeight);
 
         ///sf::Texture* m_texture;
-        VkImage         m_textureImage;
+        /*VkImage         m_textureImage;
         VkDeviceMemory  m_textureImageMemory;
-        VkImageView     m_textureImageView;
+        VkImageView     m_textureImageView;*/
+
+        VTexture m_vtexture;
 
         glm::vec2 m_size;
 

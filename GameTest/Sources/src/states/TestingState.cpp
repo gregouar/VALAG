@@ -29,18 +29,19 @@ void TestingState::init()
 
     vlg::TextureHandler* textureHandler =  vlg::TextureHandler::instance();
 
-    vlg::AssetTypeID tex3 = textureHandler->loadAssetFromFile("../data/sand_color.png")->getID();
-    textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread);
-    textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread);
+    vlg::AssetTypeID tex[10];
+    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread)->getID();
+    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getID();
+    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getID();
 
-    vlg::AssetTypeID tex4 = textureHandler->loadAssetFromFile("../data/abbey_color.png",vlg::LoadType_InThread)->getID();
-    textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread);
-    textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread);
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_color.png",vlg::LoadType_InThread)->getID();
+    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread)->getID();
+    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread)->getID();
 
-    vlg::AssetTypeID tex = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
-    vlg::AssetTypeID tex2 = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
-    textureHandler->loadAssetFromFile("../data/tree_normal.png");
-    textureHandler->loadAssetFromFile("../data/tree_material.png");
+    tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
+    tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
+    tex[8] = textureHandler->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID();
+    tex[9] = textureHandler->loadAssetFromFile("../data/tree_material.png",vlg::LoadType_InThread)->getID();
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
@@ -62,15 +63,15 @@ void TestingState::init()
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
         if(i % 3 == 0)
-            it->setTexture(tex2);
+            it->setTexture(tex[0]);
         if(i % 3 == 1)
-            it->setTexture(tex3);
+            it->setTexture(tex[2]);
         if(i % 3 == 2)
-            it->setTexture(tex4);
+            it->setTexture(tex[6]);
     }
 
 
-    m_testingSpritesInBatch.resize(10);
+    m_testingSpritesInBatch.resize(10000);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
@@ -79,12 +80,11 @@ void TestingState::init()
         it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
-        if(i % 3 == 0)
-            it->setTexture(tex2);
-        if(i % 3 == 1)
-            it->setTexture(tex3);
-        if(i % 3 == 2)
-            it->setTexture(tex4);
+        /*if(i < 5000)
+            it->setTexture(tex[0]);
+        else
+            it->setTexture(tex[1]);*/
+        it->setTexture(tex[i%10]);
 
         m_testingSpritesBatch.addSprite(&(*it));
     }
@@ -126,11 +126,11 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         (++m_testingSpritesInBatch.begin())->setPosition(eventsManager->mousePosition());
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
-        for(size_t j = 0 ; j < 2000 ; ++j)
+        for(size_t j = 0 ; j < 100 ; ++j)
     {
         m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
       //  m_testingSpritesInBatch.push_back(vlg::Sprite ()); WTF ????
-        (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition());
+        (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
         (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100/*+j*/,100));
         (--m_testingSpritesInBatch.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png")->getID());
                                                //m_testingSprites.front().getTexture());

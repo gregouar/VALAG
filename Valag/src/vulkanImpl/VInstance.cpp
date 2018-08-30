@@ -165,7 +165,7 @@ bool VInstance::createVulkanInstance()
     appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName         = "VALAG";
     appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion          = VK_API_VERSION_1_0;
+    appInfo.apiVersion          = VK_API_VERSION_1_1;
 
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -310,7 +310,7 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device,VkSurfaceKHR &sur
     /** This could be a serious problem... 200 on intel chipset is really low**/
     //std::cout<<deviceProperties.limits.maxPerStageDescriptorSampledImages<<std::endl;
     //std::cout<<deviceProperties.limits.maxImageArrayLayers<<std::endl;
-    if(deviceProperties.limits.maxPerStageDescriptorSampledImages < TexturesArrayManager::TEXTURES_ARRAY_SIZE)
+    if(deviceProperties.limits.maxPerStageDescriptorSampledImages < VTexturesManager::TEXTURES_ARRAY_SIZE)
         return 0;
 
     if(!deviceFeatures.shaderSampledImageArrayDynamicIndexing)
@@ -359,6 +359,7 @@ bool VInstance::pickPhysicalDevice(VkSurfaceKHR &surface)
         return (false);
 
     m_physicalDevice = candidates.rbegin()->second;
+   // m_physicalDevice = candidates.begin()->second;
 
     return (true);
 }
