@@ -37,7 +37,7 @@ struct AllocatedBuffer
 
     std::mutex              mutex;
 
-    std::list<std::pair<VkDeviceSize, VkDeviceSize>> emptyRanges; //<offset, size>
+    std::list<std::pair<VkDeviceSize, VkDeviceSize> > emptyRanges; //<offset, size>
 };
 
 class VBuffersAllocator : public Singleton<VBuffersAllocator>

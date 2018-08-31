@@ -20,7 +20,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 4096;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 256;//1024;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_targetWindow(targetWindow),
@@ -200,8 +200,8 @@ void DefaultRenderer::updateModelDescriptorSets(size_t frameIndex)
     //for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_modelBuffers[frameIndex]->getBuffer();
-        bufferInfo.offset = 0;
+        bufferInfo.buffer = m_modelBuffers[frameIndex]->getBuffer().buffer;
+        bufferInfo.offset = m_modelBuffers[frameIndex]->getBuffer().offset;
         bufferInfo.range = sizeof(ModelUBO);//m_modelBuffers[i]->getBufferRange();
 
         VkWriteDescriptorSet descriptorWrite = {};

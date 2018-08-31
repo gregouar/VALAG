@@ -148,15 +148,15 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
         m_needToAllocModel[currentFrame] = false;
     }
 
-    if(m_needToUpdateModel[currentFrame])
-        this->updateModelUBO(renderer, currentFrame);
-
     if(m_modelBufferVersion[currentFrame] != renderer->getModelUBOBufferVersion(currentFrame))
     {
         needToUpdateDrawCMB = true;
         //m_needToUpdateDrawCMB[currentFrame] = true;
         m_modelBufferVersion[currentFrame] = renderer->getModelUBOBufferVersion(currentFrame);
     }
+
+    if(m_needToUpdateModel[currentFrame])
+        this->updateModelUBO(renderer, currentFrame);
 
     if(m_texDescSetVersion[currentFrame] != renderer->getTextureArrayDescSetVersion(currentFrame))
     {

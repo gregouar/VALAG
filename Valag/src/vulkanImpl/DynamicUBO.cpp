@@ -17,7 +17,7 @@ DynamicUBO::DynamicUBO(size_t objectSize, size_t chunkSize ) :
     m_bufferVersion = 0;
     m_totalSize = 0;
     this->computeDynamicAlignment();
-    this->expandBuffers();
+    this->expandBuffers(false);
 }
 
 DynamicUBO::~DynamicUBO()
@@ -57,17 +57,17 @@ bool DynamicUBO::updateObject(size_t index, void *newData)
     VkDevice device = VInstance::device();
 
     void* data;
-    vkMapMemory(device, m_bufferMemory, this->getDynamicOffset(index), m_dynamicAlignment, 0, &data);
+    vkMapMemory(device, m_buffer.bufferMemory, this->getDynamicOffset(index)+m_buffer.offset, m_dynamicAlignment, 0, &data);
         memcpy(data, newData, m_objectSize);
 
     VkMappedMemoryRange memoryRange = {};
     memoryRange.sType   = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    memoryRange.memory  = m_bufferMemory;
+    memoryRange.memory  = m_buffer.bufferMemory;
     memoryRange.size    = m_dynamicAlignment;
-    memoryRange.offset  = this->getDynamicOffset(index);
+    memoryRange.offset  = this->getDynamicOffset(index)+m_buffer.offset;
     vkFlushMappedMemoryRanges(device, 1, &memoryRange);
 
-    vkUnmapMemory(device, m_bufferMemory);
+    vkUnmapMemory(device, m_buffer.bufferMemory);
 
     return (true);
 }
@@ -77,15 +77,15 @@ uint32_t DynamicUBO::getDynamicOffset(size_t index)
     return index * static_cast<uint32_t>(m_dynamicAlignment);
 }
 
-VkBuffer DynamicUBO::getBuffer()
+VBuffer DynamicUBO::getBuffer()
 {
     return m_buffer;
 }
 
-VkDeviceMemory DynamicUBO::getBufferMemory()
+/*VkDeviceMemory DynamicUBO::getBufferMemory()
 {
     return m_bufferMemory;
-}
+}*/
 
 size_t DynamicUBO::getBufferVersion()
 {
@@ -107,18 +107,22 @@ void DynamicUBO::computeDynamicAlignment()
 void DynamicUBO::createBuffers()
 {
     m_bufferSize = m_totalSize * m_dynamicAlignment;
-    VulkanHelpers::createBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+    /*VulkanHelpers::createBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
                                 ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                m_buffer, m_bufferMemory);
+                                m_buffer, m_bufferMemory);*/
+
+    VBuffersAllocator::allocBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                                ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,m_buffer);
 
 }
 
 void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
-    VkBuffer        oldBuffer = m_buffer;
-    VkDeviceMemory  oldbufferMemory = m_bufferMemory;
+    /*VkBuffer        oldBuffer = m_buffer;
+    VkDeviceMemory  oldbufferMemory = m_bufferMemory;*/
+    VBuffer         oldBuffer = m_buffer;
     VkDeviceSize    oldBufferSize = m_bufferSize;
 
     for(size_t i = 0 ; i < m_chunkSize ; ++i)
@@ -128,13 +132,29 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 
     if(m_bufferVersion != 0)
     {
-        VulkanHelpers::copyBuffer(oldBuffer, m_buffer, oldBufferSize);
+        //VulkanHelpers::copyBuffer(oldBuffer, m_buffer, oldBufferSize);
+        VBuffersAllocator::copyBuffer(oldBuffer,m_buffer, oldBufferSize);
+       // std::cout<<m_buffer.buffer<<" " <<m_buffer.offset<<" "<<m_buffer.alignedSize<<std::endl;
+
+
+        /*VkDevice device = VInstance::device();
+
+        void* data;
+        vkMapMemory(device, m_buffer.bufferMemory,m_buffer.offset, m_bufferSize, 0, &data);
+        VkMappedMemoryRange memoryRange = {};
+        memoryRange.sType   = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        memoryRange.memory  = m_buffer.bufferMemory;
+        memoryRange.size    = m_bufferSize;
+        memoryRange.offset  = m_buffer.offset;
+        vkFlushMappedMemoryRanges(device, 1, &memoryRange);
+        vkUnmapMemory(device, m_buffer.bufferMemory);*/
 
         /** I should maybe keep buffer in memory until MAX_NBR_FRAMES passed **/
         if(destroyOldBuffers)
         {
-            vkDestroyBuffer(device, oldBuffer, nullptr);
-            vkFreeMemory(device, oldbufferMemory, nullptr);
+            VBuffersAllocator::freeBuffer(oldBuffer);
+            //vkDestroyBuffer(device, oldBuffer, nullptr);
+            //vkFreeMemory(device, oldbufferMemory, nullptr);
         }
     }
 
@@ -145,8 +165,9 @@ void DynamicUBO::cleanup()
 {
     VkDevice device = VInstance::device();
 
-    vkDestroyBuffer(device, m_buffer, nullptr);
-    vkFreeMemory(device, m_bufferMemory, nullptr);
+    VBuffersAllocator::freeBuffer(m_buffer);
+    //vkDestroyBuffer(device, m_buffer, nullptr);
+    //vkFreeMemory(device, m_bufferMemory, nullptr);
 }
 
 

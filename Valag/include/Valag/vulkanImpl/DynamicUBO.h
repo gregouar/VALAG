@@ -4,6 +4,7 @@
 #include <list>
 
 #include "Valag/vulkanImpl/VInstance.h"
+#include "Valag/vulkanImpl/VBuffersAllocator.h"
 
 namespace vlg
 {
@@ -24,8 +25,8 @@ class DynamicUBO
 
         uint32_t getDynamicOffset(size_t index);
 
-        VkBuffer        getBuffer();
-        VkDeviceMemory  getBufferMemory();
+        VBuffer        getBuffer();
+        //VkDeviceMemory  getBufferMemory();
         size_t          getBufferVersion();
 
     protected:
@@ -38,9 +39,11 @@ class DynamicUBO
         size_t m_chunkSize;
         size_t m_dynamicAlignment;
 
-        VkBuffer        m_buffer;
+        /*VkBuffer        m_buffer;
         VkDeviceSize    m_bufferSize;
-        VkDeviceMemory  m_bufferMemory;
+        VkDeviceMemory  m_bufferMemory;*/
+        VBuffer         m_buffer;
+        VkDeviceSize    m_bufferSize;
         size_t          m_totalSize;
 
         std::list<size_t> m_availableIndices;

@@ -72,7 +72,7 @@ void TestingState::init()
     }
 
 
-    m_testingSpritesInBatch.resize(10000);
+    m_testingSpritesInBatch.resize(5);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
@@ -127,7 +127,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         (++m_testingSpritesInBatch.begin())->setPosition(eventsManager->mousePosition());
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
-        for(size_t j = 0 ; j < 100 ; ++j)
+        for(size_t j = 0 ; j < 1000 ; ++j)
     {
         m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
         (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
@@ -135,7 +135,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         (--m_testingSpritesInBatch.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         m_testingSpritesBatch.addSprite(&(*(--m_testingSpritesInBatch.end())));
 
-        /*m_testingSprites.resize(m_testingSprites.size() + 1);
+       /* m_testingSprites.resize(m_testingSprites.size() + 1);
         (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
         (--m_testingSprites.end())->setSize(glm::vec2(100,100));
         (--m_testingSprites.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());*/
