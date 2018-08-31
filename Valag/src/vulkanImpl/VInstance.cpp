@@ -106,6 +106,9 @@ void VInstance::init(VkSurfaceKHR &surface)
     if(!this->createCommandPools())
         throw std::runtime_error("Cannot create command pools");
 
+    if(!this->createSingleTimeCMBs())
+        throw std::runtime_error("Cannot create single time command buffers");
+
     if(!this->createSemaphoresAndFences())
         throw std::runtime_error("Cannot create semaphores and fences");
 
@@ -427,11 +430,11 @@ bool VInstance::createCommandPools()
                 break;
 
             case COMMANDPOOL_SHORTLIVED:
-                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ;
                 break;
 
             case COMMANDPOOL_TEXTURESLOADING:
-                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ;
                 break;
 
             default:
@@ -441,6 +444,25 @@ bool VInstance::createCommandPools()
         if(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPools[i]) != VK_SUCCESS)
             return (false);
 
+    }
+
+    return (true);
+}
+
+bool VInstance::createSingleTimeCMBs()
+{
+    m_singleTimeCMB.resize(COMMANDPOOL_NBR_NAMES);
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    for(size_t i = 0 ; i < m_commandPools.size() ; ++i)
+    {
+        allocInfo.commandPool = m_commandPools[i];
+        if(vkAllocateCommandBuffers(m_device, &allocInfo, &m_singleTimeCMB[i]) != VK_SUCCESS)
+            return (false);
     }
 
     return (true);
@@ -508,7 +530,14 @@ VkInstance VInstance::getVulkanInstance()
 
 VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolName)
 {
-    VkCommandBufferAllocateInfo allocInfo = {};
+    if(commandPoolName == COMMANDPOOL_DEFAULT)
+    {
+        Logger::error("Cannot use single time commands in default commandpool");
+        return VK_NULL_HANDLE;
+    }
+
+
+    /*VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
@@ -517,19 +546,19 @@ VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolNa
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);*/
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    vkBeginCommandBuffer(m_singleTimeCMB[commandPoolName], &beginInfo);
 
-    return commandBuffer;
+    return m_singleTimeCMB[commandPoolName];
 }
 
 
-void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName)
+void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer/*, CommandPoolName commandPoolName*/)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -545,10 +574,11 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPool
 
         vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_graphicsQueueAccessFence);
 
-    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-    vkFreeCommandBuffers(m_device, this->getCommandPool(commandPoolName), 1, &commandBuffer);
 
+    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+   // vkFreeCommandBuffers(m_device, this->getCommandPool(commandPoolName), 1, &commandBuffer);
     m_graphicsQueueAccessMutex.unlock();
+
     //vkQueueWaitIdle(m_graphicsQueue);
 
 }

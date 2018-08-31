@@ -19,7 +19,7 @@ VTexture::~VTexture()
 
 bool VTexture::generateTexture(unsigned char* pixels, int texWidth, int texHeight, CommandPoolName commandPoolName)
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
     VBuffer stagingBuffer;
     VkDeviceSize imageSize = texWidth * texHeight * 4;

@@ -20,7 +20,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 1024;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 4096;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_targetWindow(targetWindow),
@@ -730,7 +730,7 @@ bool DefaultRenderer::createPrimaryCommandBuffers()
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool(COMMANDPOOL_DEFAULT);
+    allocInfo.commandPool = VInstance::commandPool(/*COMMANDPOOL_DEFAULT*/COMMANDPOOL_SHORTLIVED);
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 

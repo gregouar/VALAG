@@ -126,7 +126,7 @@ void VBuffersAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkD
     copyRegion.dstOffset = dstBuffer.offset;
     vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, dstBuffer.buffer, 1, &copyRegion);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer,commandPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,commandPoolName*/);
 }
 
 
@@ -158,7 +158,7 @@ void VBuffersAllocator::copyBufferToImageImpl(VBuffer buffer, VkImage image, uin
 
     vkCmdCopyBufferToImage(commandBuffer, buffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer,cmdPoolName);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,cmdPoolName*/);
 }
 
 bool VBuffersAllocator::freeBuffer(VBuffer &vbuffer)

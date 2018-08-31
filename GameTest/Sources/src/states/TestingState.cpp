@@ -40,14 +40,14 @@ void TestingState::init()
 
     tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
     tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
-    tex[8] = textureHandler->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID();
+    tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
     tex[9] = textureHandler->loadAssetFromFile("../data/tree_material.png",vlg::LoadType_InThread)->getID();
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
     //m_testingSprite.setSize(glm::vec2(150,150));
     //m_testingSprite.setPosition(glm::vec2(100,200));
-    m_testingSprites.resize(2);
+    m_testingSprites.resize(5);
 
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
@@ -62,12 +62,13 @@ void TestingState::init()
         it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
-        if(i % 3 == 0)
+       /* if(i % 3 == 0)
             it->setTexture(tex[0]);
         if(i % 3 == 1)
             it->setTexture(tex[2]);
         if(i % 3 == 2)
-            it->setTexture(tex[6]);
+            it->setTexture(tex[6]);*/
+        it->setTexture(tex[i%10]);
     }
 
 
@@ -129,12 +130,15 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         for(size_t j = 0 ; j < 100 ; ++j)
     {
         m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
-      //  m_testingSpritesInBatch.push_back(vlg::Sprite ()); WTF ????
         (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
-        (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100/*+j*/,100));
-        (--m_testingSpritesInBatch.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png")->getID());
-                                               //m_testingSprites.front().getTexture());
+        (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100,100));
+        (--m_testingSpritesInBatch.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         m_testingSpritesBatch.addSprite(&(*(--m_testingSpritesInBatch.end())));
+
+        /*m_testingSprites.resize(m_testingSprites.size() + 1);
+        (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
+        (--m_testingSprites.end())->setSize(glm::vec2(100,100));
+        (--m_testingSprites.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());*/
     }
 }
 

@@ -26,7 +26,7 @@ const char *VApp::DEFAULT_VSYNC = "false";
 const char *VApp::DEFAULT_ANISOTROPIC = "16";
 
 
-const bool VApp::ENABLE_PROFILER = false;
+const bool VApp::ENABLE_PROFILER = true;
 
 /** I should replace that by config double/triple buffering at some point **/
 const size_t VApp::MAX_FRAMES_IN_FLIGHT = 3;
@@ -49,6 +49,8 @@ VApp::~VApp()
 void VApp::run(GameState *startingState)
 {
     m_running = true;
+
+ //   Profiler::resetLoop(ENABLE_PROFILER);
 
     if(!this->init())
         throw std::runtime_error("Could not initialize application");
@@ -84,10 +86,15 @@ bool VApp::init()
 
     glfwInit();
 
+    Profiler::pushClock("Create window");
     if(!this->createWindow())
         throw std::runtime_error("Cannot create window");
+    Profiler::popClock();
 
+
+    Profiler::pushClock("Init vulkan instance");
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
+    Profiler::popClock();
 
     VTexturesManager::instance()->init();
 
@@ -100,11 +107,13 @@ bool VApp::init()
     m_eventsManager.init(m_renderWindow.getWindowPtr());
 
 
+    Profiler::pushClock("Create renderers");
     if(!this->createDefaultRenderer())
         throw std::runtime_error("Cannot create default renderer");
 
     if(!this->createSceneRenderer())
         throw std::runtime_error("Cannot create scene renderer");
+    Profiler::popClock();
 
     return (true);
 }

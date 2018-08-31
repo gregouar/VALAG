@@ -18,7 +18,7 @@ Sprite::Sprite() :
     m_texture(0),
     m_texturePosition({0,0}),
     m_textureExtent({1,1}),
-    m_needToCreateBuffers(true),
+    m_needToCreateVertexBuffer(true),
     m_preventDrawing(false)
 {
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
@@ -88,32 +88,9 @@ AssetTypeID Sprite::getTexture()
     return m_texture;
 }
 
-void Sprite::createAllBuffers()
-{
-    this->createVertexBuffer();
-    this->createDrawCommandBuffers();
-
-    m_needToCreateBuffers = false;
-}
-
-/*void Sprite::createDrawCommandBuffer()
-{
-    m_drawCommandBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-    allocInfo.commandBufferCount = (uint32_t) m_drawCommandBuffers.size();
-
-    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_drawCommandBuffers.data()) != VK_SUCCESS)
-        throw std::runtime_error("Failed to allocate command buffers");
-}*/
 
 void Sprite::createVertexBuffer()
 {
-    //VkDevice device = VInstance::device();
-
     std::vector<Vertex2D> vertices =
             {
                 {glm::vec2(0,1), /*m_color,*/ m_texturePosition+glm::vec2(0,m_textureExtent.y)},
@@ -128,11 +105,6 @@ void Sprite::createVertexBuffer()
     VBuffersAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                   stagingBuffer);
 
-    /*void* data;
-    vkMapMemory(device, stagingBuffer.bufferMemory, stagingBuffer.offset, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBuffer.bufferMemory);*/
-
     VBuffersAllocator::writeBuffer(stagingBuffer,vertices.data(), (size_t) bufferSize);
 
     VBuffersAllocator::allocBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -140,6 +112,8 @@ void Sprite::createVertexBuffer()
     VBuffersAllocator::copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
     VBuffersAllocator::freeBuffer(stagingBuffer);
+
+    m_needToCreateVertexBuffer = false;
 }
 
 void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
@@ -159,8 +133,8 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
     m_preventDrawing = false;
     bool needToUpdateDrawCMB = false;
 
-    if(m_needToCreateBuffers)
-        this->createAllBuffers();
+    if(m_needToCreateVertexBuffer)
+        this->createVertexBuffer();
 
     if(m_needToAllocModel[currentFrame])
     {
@@ -202,46 +176,6 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
 
 VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
-    /*if(m_needToCreateBuffers)
-        this->createAllBuffers();
-
-    if(m_needToAllocModel[currentFrame])
-    {
-        if(!renderer->allocModelUBO(m_modelUBOIndex, currentFrame))
-            return VK_NULL_HANDLE;
-
-        m_needToAllocModel[currentFrame] = false;
-    }
-
-    if(m_needToUpdateModel[currentFrame])
-        this->updateModelUBO(renderer, currentFrame);
-
-    if(m_modelBufferVersion[currentFrame] != renderer->getModelUBOBufferVersion(currentFrame))
-    {
-        m_needToUpdateDrawCMB[currentFrame] = true;
-        m_modelBufferVersion[currentFrame] = renderer->getModelUBOBufferVersion(currentFrame);
-    }
-
-    if(m_texDescSetVersion[currentFrame] != renderer->getTextureArrayDescSetVersion(currentFrame))
-    {
-        m_needToUpdateDrawCMB[currentFrame] = true;
-        m_texDescSetVersion[currentFrame] = renderer->getTextureArrayDescSetVersion(currentFrame);
-    }
-
-    if(m_needToCheckLoading && TextureHandler::instance()->getAsset(m_texture)->isLoaded())
-    {
-        for(auto b : m_needToUpdateDrawCMB) b = true;
-        m_needToCheckLoading = false;
-    }*/
-
-    /*if(m_needToUpdateDrawCommandBuffer[currentFrame])
-    {
-        if(!this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer))
-            return VK_NULL_HANDLE;
-    }
-
-    return m_drawCommandBuffers[currentFrame];*/
-
     if(this->checkUpdates(renderer, currentFrame))
         m_needToUpdateDrawCMB[currentFrame] = true;
 
@@ -306,26 +240,6 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
                 throw std::runtime_error("Failed to record command buffer");
             return (false);
         }
-
-        /*
-
-        VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
-        VkDeviceSize offsets[] = {m_vertexBuffer.offset};
-
-        if(!renderer->bindTexture(m_drawCommandBuffers[currentFrame], m_texture, currentFrame))
-        {
-            if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
-                throw std::runtime_error("Failed to record command buffer");
-            return (false);
-        }
-
-        renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
-
-        vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
-
-        vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);
-
-        */
 
         if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
             throw std::runtime_error("Failed to record command buffer");

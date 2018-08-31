@@ -32,8 +32,6 @@ class Sprite : public NotificationSender, public Drawable
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
     protected:
-        void createAllBuffers();
-        //void createDrawCommandBuffer();
         void createVertexBuffer();
 
         void updateModelUBO(DefaultRenderer *renderer, size_t currentFrame);
@@ -56,6 +54,11 @@ class Sprite : public NotificationSender, public Drawable
         ///Could use the same vertexBuffer for all Sprites though, should try to use static here
         ///But then this would mean passing TexCoord in UBO
 
+        ///Otherwise, for animated Sprites, I should probably create one vertex buffer per frame (or offset whatever)
+        ///And then rerecord a secondary CMB for all animated sprites (I think I cannot hope to sync frames and animation for batching sec CMB)
+        ///Or I need to pass texture animation as dynamic UBO => cant use it for 3D meshes though
+        ///Or for terrain and so on...
+
         glm::vec2 m_size;
         glm::vec2 m_position;
         glm::vec4 m_color;
@@ -66,9 +69,8 @@ class Sprite : public NotificationSender, public Drawable
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
 
-        bool m_needToCreateBuffers;
-       // std::vector<bool> m_needToUpdateDrawCommandBuffer;
 
+        bool        m_needToCreateVertexBuffer;
         VBuffer     m_vertexBuffer;
         std::vector<bool>   m_needToUpdateVertexBuffer;
 

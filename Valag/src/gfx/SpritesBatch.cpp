@@ -1,6 +1,7 @@
 #include "Valag/gfx/SpritesBatch.h"
 
 #include "Valag/core/VApp.h"
+#include "Valag/utils/Profiler.h"
 
 namespace vlg
 {

@@ -74,6 +74,7 @@ class VInstance : public Singleton<VInstance>
 
         bool    createLogicalDevice();
         bool    createCommandPools();
+        bool    createSingleTimeCMBs();
         bool    createSemaphoresAndFences();
 
         void init(VkSurfaceKHR &surface);
@@ -86,8 +87,8 @@ class VInstance : public Singleton<VInstance>
         QueueFamilyIndices  getQueueFamilyIndices();
         VkInstance          getVulkanInstance();
 
-        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
-        void            endSingleTimeCommands(VkCommandBuffer commandBuffer, CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
+        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+        void            endSingleTimeCommands(VkCommandBuffer commandBuffer/*, CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT*/);
 
     private:
         std::string m_name;
@@ -106,6 +107,8 @@ class VInstance : public Singleton<VInstance>
 
         ///I should try to do one command pool per frame (and reset) ?
         std::vector<VkCommandPool>  m_commandPools;
+
+        std::vector<VkCommandBuffer> m_singleTimeCMB;
 
         bool m_isInit;
 
