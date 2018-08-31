@@ -72,7 +72,7 @@ void TestingState::init()
     }
 
 
-    m_testingSpritesInBatch.resize(5);
+    m_testingSpritesInBatch.resize(10000);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)

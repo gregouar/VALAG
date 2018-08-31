@@ -32,7 +32,7 @@ class Sprite : public NotificationSender, public Drawable
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
     protected:
-        void createVertexBuffer();
+       // void createVertexBuffer();
 
         void updateModelUBO(DefaultRenderer *renderer, size_t currentFrame);
 
@@ -70,9 +70,9 @@ class Sprite : public NotificationSender, public Drawable
         glm::vec2 m_textureExtent;
 
 
-        bool        m_needToCreateVertexBuffer;
+        /*bool        m_needToCreateVertexBuffer;
         VBuffer     m_vertexBuffer;
-        std::vector<bool>   m_needToUpdateVertexBuffer;
+        std::vector<bool>   m_needToUpdateVertexBuffer;*/
 
         size_t      m_modelUBOIndex;
 

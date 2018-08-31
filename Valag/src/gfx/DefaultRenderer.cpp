@@ -20,7 +20,7 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 256;//1024;
+const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 4096;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
     m_targetWindow(targetWindow),
@@ -462,13 +462,14 @@ bool DefaultRenderer::createGraphicsPipeline()
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = Vertex2D::getBindingDescription();
-    auto attributeDescriptions = Vertex2D::getAttributeDescriptions();
+    //auto bindingDescription = Vertex2D::getBindingDescription();
+    //auto attributeDescriptions = Vertex2D::getAttributeDescriptions();
 
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    /*vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
 
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};

@@ -14,11 +14,6 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
-					<Add directory="Valag/include/Valag/core" />
-					<Add directory="GameTest/Sources/include/states" />
-					<Add directory="include" />
-					<Add directory="Valag/include/Valag/utils" />
-					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -30,14 +25,24 @@
 				<Compiler>
 					<Add option="-O2" />
 					<Add option="-DNDEBUG" />
-					<Add directory="Valag/include/Valag/core" />
-					<Add directory="GameTest/Sources/include/states" />
-					<Add directory="include" />
-					<Add directory="Valag/include/Valag/utils" />
-					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+				</Linker>
+			</Target>
+			<Target title="Profile">
+				<Option output="../Game/bin/ValagTestProfiled" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="../Game/bin" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-std=c++14" />
+					<Add option="-pg" />
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add option="-pg -lgmon" />
 				</Linker>
 			</Target>
 		</Build>
@@ -46,6 +51,11 @@
 			<Add option="-std=c++14" />
 			<Add option="-fexceptions" />
 			<Add directory="../../Valag/include" />
+			<Add directory="Valag/include/Valag/core" />
+			<Add directory="GameTest/Sources/include/states" />
+			<Add directory="include" />
+			<Add directory="Valag/include/Valag/utils" />
+			<Add directory="Valag/include/Valag/gfx" />
 		</Compiler>
 		<Linker>
 			<Add library="vulkan-1" />

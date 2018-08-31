@@ -163,7 +163,7 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 
 void DynamicUBO::cleanup()
 {
-    VkDevice device = VInstance::device();
+   // VkDevice device = VInstance::device();
 
     VBuffersAllocator::freeBuffer(m_buffer);
     //vkDestroyBuffer(device, m_buffer, nullptr);

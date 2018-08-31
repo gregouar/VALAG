@@ -18,12 +18,12 @@ Sprite::Sprite() :
     m_texture(0),
     m_texturePosition({0,0}),
     m_textureExtent({1,1}),
-    m_needToCreateVertexBuffer(true),
+    //m_needToCreateVertexBuffer(true),
     m_preventDrawing(false)
 {
     m_needToAllocModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_needToUpdateModel = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
-    m_needToUpdateVertexBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
+  //  m_needToUpdateVertexBuffer = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
     m_modelBufferVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
     m_texDescSetVersion = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
     m_needToCheckLoading = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
@@ -77,7 +77,8 @@ void Sprite::setTexture(AssetTypeID textureID)
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
     if(m_texturePosition != position || extent != m_textureExtent)
-            for(auto b : m_needToUpdateVertexBuffer) b = true;
+        for(auto b : m_needToUpdateModel) b = true;
+            //for(auto b : m_needToUpdateVertexBuffer) b = true;
 
     m_texturePosition = position;
     m_textureExtent = extent;
@@ -89,14 +90,14 @@ AssetTypeID Sprite::getTexture()
 }
 
 
-void Sprite::createVertexBuffer()
+/*void Sprite::createVertexBuffer()
 {
     std::vector<Vertex2D> vertices =
             {
-                {glm::vec2(0,1), /*m_color,*/ m_texturePosition+glm::vec2(0,m_textureExtent.y)},
-                {glm::vec2(0,0), /*m_color,*/ m_texturePosition},
-                {glm::vec2(1,1), /*m_color,*/ m_texturePosition+m_textureExtent},
-                {glm::vec2(1,0), /*m_color,*/ m_texturePosition+glm::vec2(m_textureExtent.x,0)}
+                {glm::vec2(0,1),  m_texturePosition+glm::vec2(0,m_textureExtent.y)},
+                {glm::vec2(0,0),  m_texturePosition},
+                {glm::vec2(1,1),  m_texturePosition+m_textureExtent},
+                {glm::vec2(1,0),  m_texturePosition+glm::vec2(m_textureExtent.x,0)}
             };
 
     VkDeviceSize bufferSize = sizeof(Vertex2D) * vertices.size();
@@ -114,7 +115,7 @@ void Sprite::createVertexBuffer()
     VBuffersAllocator::freeBuffer(stagingBuffer);
 
     m_needToCreateVertexBuffer = false;
-}
+}*/
 
 void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
 {
@@ -123,6 +124,8 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
     modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, 0.0));
     modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
     modelUBO.color = m_color;
+    modelUBO.texPos = m_texturePosition;
+    modelUBO.texExt = m_textureExtent;
 
     renderer->updateModelUBO(m_modelUBOIndex, &modelUBO,currentFrame);
     m_needToUpdateModel[currentFrame] = false;
@@ -133,8 +136,8 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
     m_preventDrawing = false;
     bool needToUpdateDrawCMB = false;
 
-    if(m_needToCreateVertexBuffer)
-        this->createVertexBuffer();
+    //if(m_needToCreateVertexBuffer)
+      //  this->createVertexBuffer();
 
     if(m_needToAllocModel[currentFrame])
     {
@@ -192,8 +195,8 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
     if(m_preventDrawing)
         return (false);
 
-    VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
-    VkDeviceSize offsets[] = {m_vertexBuffer.offset};
+   // VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
+    //VkDeviceSize offsets[] = {m_vertexBuffer.offset};
 
     if(m_texture != 0 && !TextureHandler::instance()->getAsset(m_texture)->isLoaded())
         return (false);
@@ -203,7 +206,7 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
 
     renderer->bindAllUBOs(commandBuffer,currentFrame,m_modelUBOIndex);
 
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+   // vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
     vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 
@@ -251,7 +254,7 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentF
 
 void Sprite::cleanup()
 {
-    VBuffersAllocator::freeBuffer(m_vertexBuffer);
+   // VBuffersAllocator::freeBuffer(m_vertexBuffer);
 }
 
 }
