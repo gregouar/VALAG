@@ -52,7 +52,7 @@ public:
     static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
                                    CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
-    static VkImageView createImageView(VkImage image, VkFormat format, uint32_t layerCount);
+    static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount);
 
     static VkShaderModule createShaderModule(const std::vector<char>& code);
 

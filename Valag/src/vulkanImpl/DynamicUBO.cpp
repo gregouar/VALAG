@@ -107,9 +107,6 @@ void DynamicUBO::computeDynamicAlignment()
 void DynamicUBO::createBuffers()
 {
     m_bufferSize = m_totalSize * m_dynamicAlignment;
-    /*VulkanHelpers::createBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                                ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                m_buffer, m_bufferMemory);*/
 
     VBuffersAllocator::allocBuffer(m_bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
                                 ,VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,m_buffer);
@@ -118,10 +115,6 @@ void DynamicUBO::createBuffers()
 
 void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 {
-    //VkDevice device = VInstance::device();
-
-    /*VkBuffer        oldBuffer = m_buffer;
-    VkDeviceMemory  oldbufferMemory = m_bufferMemory;*/
     VBuffer         oldBuffer = m_buffer;
     VkDeviceSize    oldBufferSize = m_bufferSize;
 
@@ -132,10 +125,7 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 
     if(m_bufferVersion != 0)
     {
-        //VulkanHelpers::copyBuffer(oldBuffer, m_buffer, oldBufferSize);
         VBuffersAllocator::copyBuffer(oldBuffer,m_buffer, oldBufferSize);
-       // std::cout<<m_buffer.buffer<<" " <<m_buffer.offset<<" "<<m_buffer.alignedSize<<std::endl;
-
 
         /*VkDevice device = VInstance::device();
 
@@ -149,13 +139,8 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
         vkFlushMappedMemoryRanges(device, 1, &memoryRange);
         vkUnmapMemory(device, m_buffer.bufferMemory);*/
 
-        /** I should maybe keep buffer in memory until MAX_NBR_FRAMES passed **/
         if(destroyOldBuffers)
-        {
             VBuffersAllocator::freeBuffer(oldBuffer);
-            //vkDestroyBuffer(device, oldBuffer, nullptr);
-            //vkFreeMemory(device, oldbufferMemory, nullptr);
-        }
     }
 
     ++m_bufferVersion;
@@ -163,11 +148,7 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
 
 void DynamicUBO::cleanup()
 {
-   // VkDevice device = VInstance::device();
-
     VBuffersAllocator::freeBuffer(m_buffer);
-    //vkDestroyBuffer(device, m_buffer, nullptr);
-    //vkFreeMemory(device, m_bufferMemory, nullptr);
 }
 
 

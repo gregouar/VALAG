@@ -27,6 +27,7 @@ class RenderWindow
         VkExtent2D  getSwapchainExtent();
         VkFormat    getSwapchainImageFormat();
         const std::vector<VkImageView> &getSwapchainImageViews();
+        const std::vector<VkImageView> &getDepthStencilImageViews();
 
     protected:
         uint32_t    acquireNextImage();
@@ -41,6 +42,7 @@ class RenderWindow
         VkPresentModeKHR    chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
         VkExtent2D          chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
         bool                createSwapchain();
+        bool                createDepthStencil();
         bool                createImageViews();
         bool                createSemaphoresAndFences();
 
@@ -52,11 +54,15 @@ class RenderWindow
         GLFWwindow         *m_window;
         VkSurfaceKHR        m_surface;
 
-        VkSwapchainKHR      m_swapchain;
-        std::vector<VkImage>     m_swapchainImages;
-        std::vector<VkImageView> m_swapchainImageViews;
+        VkSwapchainKHR              m_swapchain;
+        std::vector<VkImage>        m_swapchainImages;
+        std::vector<VkImageView>    m_swapchainImageViews;
         VkFormat    m_swapchainImageFormat;
         VkExtent2D  m_swapchainExtent;
+
+        std::vector<VkImage>        m_depthStencilImages;
+        std::vector<VkDeviceMemory> m_depthStencilImagesMemory;
+        std::vector<VkImageView>    m_depthStencilImagesViews;
 
         uint32_t    m_curImageIndex;
         size_t      m_currentFrame;

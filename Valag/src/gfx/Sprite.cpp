@@ -12,12 +12,12 @@ namespace vlg
 {
 
 Sprite::Sprite() :
-    m_size({0,0}),
-    m_position({0,0}),
-    m_color({1,1,1,1}),
+    m_size({0.0f,0.0f}),
+    m_position({0.0f,0.0f,0.0f}),
+    m_color({1.0f,1.0f,1.0f,1.0f}),
     m_texture(0),
-    m_texturePosition({0,0}),
-    m_textureExtent({1,1}),
+    m_texturePosition({0.0f,0.0f}),
+    m_textureExtent({1.0f,1.0f}),
     //m_needToCreateVertexBuffer(true),
     m_preventDrawing(false)
 {
@@ -47,6 +47,11 @@ void Sprite::setSize(glm::vec2 size)
 
 void Sprite::setPosition(glm::vec2 position)
 {
+    this->setPosition(glm::vec3(position.x, position.y, 0.0));
+}
+
+void Sprite::setPosition(glm::vec3 position)
+{
     if(m_position != position)
             for(auto b : m_needToUpdateModel) b = true;
     m_position = position;
@@ -66,7 +71,7 @@ void Sprite::setTexture(AssetTypeID textureID)
         sendNotification(Notification_TextureIsAboutToChange);
 
         m_texture = textureID;
-        if(textureID != 0 && !TextureHandler::instance()->getAsset(textureID)->isLoaded())
+        if(textureID != 0 && !TexturesHandler::instance()->getAsset(textureID)->isLoaded())
             for(auto b : m_needToCheckLoading) b = true;
 
 
@@ -121,7 +126,7 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t currentFrame)
 {
     ModelUBO modelUBO = {};
     modelUBO.model = glm::mat4(1.0);
-    modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, 0.0));
+    modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, m_position.z));
     modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
     modelUBO.color = m_color;
     modelUBO.texPos = m_texturePosition;
@@ -168,7 +173,7 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t currentFrame)
         m_texDescSetVersion[currentFrame] = renderer->getTextureArrayDescSetVersion(currentFrame);
     }
 
-    if(m_needToCheckLoading[currentFrame] && TextureHandler::instance()->getAsset(m_texture)->isLoaded())
+    if(m_needToCheckLoading[currentFrame] && TexturesHandler::instance()->getAsset(m_texture)->isLoaded())
     {
         needToUpdateDrawCMB = true;
         m_needToCheckLoading[currentFrame] = false;
@@ -198,7 +203,7 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
    // VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
     //VkDeviceSize offsets[] = {m_vertexBuffer.offset};
 
-    if(m_texture != 0 && !TextureHandler::instance()->getAsset(m_texture)->isLoaded())
+    if(m_texture != 0 && !TexturesHandler::instance()->getAsset(m_texture)->isLoaded())
         return (false);
 
     if(!renderer->bindTexture(commandBuffer, m_texture, currentFrame))

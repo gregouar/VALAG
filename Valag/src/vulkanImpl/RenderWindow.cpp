@@ -44,6 +44,12 @@ bool RenderWindow::init()
         return (false);
     }
 
+    if(!this->createDepthStencil())
+    {
+        Logger::error("Cannot create depth stencil");
+        return (false);
+    }
+
     if(!this->createImageViews())
     {
         Logger::error("Cannot create image views");
@@ -78,6 +84,13 @@ const std::vector<VkImageView> &RenderWindow::getSwapchainImageViews()
 {
     return m_swapchainImageViews;
 }
+
+const std::vector<VkImageView> &RenderWindow::getDepthStencilImageViews()
+{
+    return m_depthStencilImagesViews;
+}
+
+
 
 
 /// PROTECTED ///
@@ -305,16 +318,41 @@ bool RenderWindow::createSwapchain()
     return (true);
 }
 
+bool RenderWindow::createDepthStencil()
+{
+    m_depthStencilImages.resize(m_swapchainImages.size());
+    m_depthStencilImagesMemory.resize(m_swapchainImages.size());
+
+    //VulkanHelpers::createImage();
+    for (size_t i = 0; i < m_swapchainImages.size(); i++)
+        if(!VulkanHelpers::createImage(m_swapchainExtent.width, m_swapchainExtent.height, 1, VK_FORMAT_D24_UNORM_S8_UINT,
+                                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                    m_depthStencilImages[i], m_depthStencilImagesMemory[i]))
+            return (false);
+       // depthImagesView[i] = createImageView(depthImages[i], depthFormat);
+
+    return (true);
+}
+
 bool RenderWindow::createImageViews()
 {
     m_swapchainImageViews.resize(m_swapchainImages.size());
+    m_depthStencilImagesViews.resize(m_swapchainImages.size());
 
     for (size_t i = 0; i < m_swapchainImages.size(); ++i)
     {
-        VkImageViewCreateInfo createInfo = {};
+        m_swapchainImageViews[i] =
+            VulkanHelpers::createImageView(m_swapchainImages[i],m_swapchainImageFormat,VK_IMAGE_ASPECT_COLOR_BIT,1);
+        m_depthStencilImagesViews[i] =
+            VulkanHelpers::createImageView(m_depthStencilImages[i], VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+        VulkanHelpers::transitionImageLayout(m_depthStencilImages[i],0, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+        /*VkImageViewCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         createInfo.image = m_swapchainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;,
         createInfo.format = m_swapchainImageFormat;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -327,7 +365,7 @@ bool RenderWindow::createImageViews()
         createInfo.subresourceRange.layerCount = 1;
 
         if (vkCreateImageView(VInstance::device(), &createInfo, nullptr, &m_swapchainImageViews[i]) != VK_SUCCESS)
-            return (false);
+            return (false);*/
     }
 
     return (true);
@@ -371,6 +409,18 @@ void RenderWindow::destroy()
     for (auto semaphore : m_imageAvailableSemaphore)
         vkDestroySemaphore(device, semaphore, nullptr);
     m_imageAvailableSemaphore.clear();
+
+    for (auto imageView : m_depthStencilImagesViews)
+        vkDestroyImageView(device, imageView, nullptr);
+    m_depthStencilImagesViews.clear();
+
+    for(auto image : m_depthStencilImages)
+        vkDestroyImage(device, image, nullptr);
+    m_depthStencilImages.clear();
+
+    for(auto memory : m_depthStencilImagesMemory)
+        vkFreeMemory(device, memory, nullptr);
+    m_depthStencilImagesMemory.clear();
 
     for (auto imageView : m_swapchainImageViews)
         vkDestroyImageView(device, imageView, nullptr);

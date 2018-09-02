@@ -91,8 +91,6 @@ bool VTexturesManager::allocTextureImpl(uint32_t width, uint32_t height, VBuffer
         if(!this->createTextureArray(width, height))
             return (false);
 
-    ///I'll need to be extra careful for synchronizing rendering with writing into texture...///
-
     VTexture2DArray &texture2DArray = m_allocatedTextureArrays[chosenArray];
     size_t chosenLayer = *texture2DArray.availableLayers.begin();
     texture2DArray.availableLayers.pop_front();
@@ -128,7 +126,7 @@ bool VTexturesManager::createTextureArray(uint32_t width, uint32_t height)
                                texture2DArray.image, texture2DArray.memory))
                                return (false);
 
-    texture2DArray.view = VulkanHelpers::createImageView(texture2DArray.image, VK_FORMAT_R8G8B8A8_UNORM,texture2DArray.layerCount);
+    texture2DArray.view = VulkanHelpers::createImageView(texture2DArray.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,texture2DArray.layerCount);
 
     for(size_t i = 0 ; i < MAX_LAYER_PER_TEXTURE ; ++i)
         texture2DArray.availableLayers.push_back(i);

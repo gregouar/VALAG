@@ -14,6 +14,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -25,6 +26,7 @@
 				<Compiler>
 					<Add option="-O2" />
 					<Add option="-DNDEBUG" />
+					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -40,6 +42,7 @@
 					<Add option="-std=c++14" />
 					<Add option="-pg" />
 					<Add option="-g" />
+					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
 				<Linker>
 					<Add option="-pg -lgmon" />
@@ -74,6 +77,7 @@
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Drawable.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/MaterialAsset.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Scene.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneNode.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneObject.h" />
@@ -96,6 +100,10 @@
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanHelpers.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanImpl.h" />
+		<Unit filename="../../Valag/libs/tinyxml/tinystr.cpp" />
+		<Unit filename="../../Valag/libs/tinyxml/tinyxml.cpp" />
+		<Unit filename="../../Valag/libs/tinyxml/tinyxmlerror.cpp" />
+		<Unit filename="../../Valag/libs/tinyxml/tinyxmlparser.cpp" />
 		<Unit filename="../../Valag/shaders/defaultShader.frag" />
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/src/core/Asset.cpp" />
@@ -109,6 +117,7 @@
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
 		<Unit filename="../../Valag/src/gfx/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/Drawable.cpp" />
+		<Unit filename="../../Valag/src/gfx/MaterialAsset.cpp" />
 		<Unit filename="../../Valag/src/gfx/Scene.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneNode.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneObject.cpp" />

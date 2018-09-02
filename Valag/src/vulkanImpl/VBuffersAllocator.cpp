@@ -85,7 +85,7 @@ bool VBuffersAllocator::allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags us
     vbuffer.buffer = allocatedBuffer->buffer;
     //vbuffer.bufferID = m_currentID++;
     vbuffer.bufferMemory = allocatedBuffer->bufferMemory;
-    vbuffer.memoryTypeIndex = allocatedBuffer->memoryTypeIndex;
+   // vbuffer.memoryTypeIndex = allocatedBuffer->memoryTypeIndex;
     vbuffer.offset = offset;
 
     //std::cout<<vbuffer.offset<<" "<<vbuffer.alignedSize<<std::endl;
@@ -115,10 +115,19 @@ void VBuffersAllocator::writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceS
 
 void VBuffersAllocator::copyBuffer(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
 {
-    VBuffersAllocator::instance()->copyBufferImpl(srcBuffer, dstBuffer, size, commandPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
+
+    VkBufferCopy copyRegion = {};
+    copyRegion.srcOffset = srcBuffer.offset;
+    copyRegion.size = size;
+    copyRegion.dstOffset = dstBuffer.offset;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, dstBuffer.buffer, 1, &copyRegion);
+
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
+    //VBuffersAllocator::instance()->copyBufferImpl(srcBuffer, dstBuffer, size, commandPoolName);
 }
 
-void VBuffersAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
+/*void VBuffersAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)
 {
     VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
@@ -128,17 +137,37 @@ void VBuffersAllocator::copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkD
     copyRegion.dstOffset = dstBuffer.offset;
     vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, dstBuffer.buffer, 1, &copyRegion);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,commandPoolName*/);
-}
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
+}*/
 
 
 void VBuffersAllocator::copyBufferToImage(VBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
                                    CommandPoolName cmdPoolName)
 {
-    VBuffersAllocator::instance()->copyBufferToImageImpl(buffer, image, width, height, layer, cmdPoolName);
+   // VBuffersAllocator::instance()->copyBufferToImageImpl(buffer, image, width, height, layer, cmdPoolName);
+    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(cmdPoolName);
+
+    VkBufferImageCopy region = {};
+    region.bufferOffset = buffer.offset;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = layer;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {
+        width,
+        height,
+        1
+    };
+
+    vkCmdCopyBufferToImage(commandBuffer, buffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
 }
 
-void VBuffersAllocator::copyBufferToImageImpl(VBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
+/*void VBuffersAllocator::copyBufferToImageImpl(VBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
                                    CommandPoolName cmdPoolName)
 {
     VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(cmdPoolName);
@@ -160,8 +189,8 @@ void VBuffersAllocator::copyBufferToImageImpl(VBuffer buffer, VkImage image, uin
 
     vkCmdCopyBufferToImage(commandBuffer, buffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,cmdPoolName*/);
-}
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
+}*/
 
 bool VBuffersAllocator::freeBuffer(VBuffer &vbuffer)
 {
@@ -273,7 +302,9 @@ bool VBuffersAllocator::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyF
     VkBuffer        buffer;
     VkDeviceMemory  bufferMemory;
 
-    VkBufferCreateInfo bufferInfo = {};
+    VulkanHelpers::createBuffer(BUFFER_SIZE,usage,properties,buffer,bufferMemory);
+
+   /* VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = BUFFER_SIZE;
     bufferInfo.usage = usage;
@@ -299,14 +330,14 @@ bool VBuffersAllocator::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyF
         return (false);
     }
 
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    vkBindBufferMemory(device, buffer, bufferMemory, 0);*/
 
     AllocatedBuffer *allocatedBuffer = new AllocatedBuffer();
     allocatedBuffer->buffer = buffer;
     allocatedBuffer->bufferMemory = bufferMemory;
-    allocatedBuffer->bufferSize = memRequirements.size;
-    allocatedBuffer->memoryTypeIndex = allocInfo.memoryTypeIndex;
-    allocatedBuffer->emptyRanges.push_back({0, memRequirements.size});
+    allocatedBuffer->bufferSize = BUFFER_SIZE;/*memRequirements.size;*/
+    //allocatedBuffer->memoryTypeIndex = allocInfo.memoryTypeIndex;
+    allocatedBuffer->emptyRanges.push_back({0, BUFFER_SIZE/*memRequirements.size*/});
 
     m_buffers[{usage, properties}].push_back(allocatedBuffer);
 

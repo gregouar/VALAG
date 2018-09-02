@@ -229,7 +229,7 @@ void VApp::cleanup()
         m_defaultRenderer = nullptr;
     }
 
-    TextureHandler::instance()->cleanAll();
+    TexturesHandler::instance()->cleanAll();
     VBuffersAllocator::instance()->cleanAll();
 
     m_renderWindow.destroy();

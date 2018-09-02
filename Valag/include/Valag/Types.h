@@ -100,7 +100,7 @@ typedef ListIterator<ShadowCaster*> ShadowCasterIterator;
 typedef ListIterator<Light*> LightIterator;
 typedef MapIterator<NodeTypeID, SceneNode*> SceneNodeIterator;**/
 
-typedef AssetHandler<TextureAsset> TextureHandler;
+typedef AssetHandler<TextureAsset> TexturesHandler;
 
 const std::string emptyString;
 ///const sf::Texture emptyTexture;

@@ -99,6 +99,7 @@ class DefaultRenderer
         static const char *DEFAULT_FRAGSHADERFILE;
 
         static const size_t MODEL_DYNAMICBUFFER_CHUNKSIZE;
+        static const float DEPTH_SCALING_FACTOR;
 };
 
 }

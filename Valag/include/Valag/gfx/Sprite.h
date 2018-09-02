@@ -20,6 +20,7 @@ class Sprite : public NotificationSender, public Drawable
 
         void setSize(glm::vec2 size);
         void setPosition(glm::vec2 position);
+        void setPosition(glm::vec3 position);
         void setColor(glm::vec4 color);
         void setTexture(AssetTypeID textureID);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
@@ -50,19 +51,11 @@ class Sprite : public NotificationSender, public Drawable
     private:
         //std::vector<VkCommandBuffer>    m_drawCommandBuffers;
 
-        ///Could use multiple buffering if needed to change the vertex buffer... probably not useful for sprite
-        ///Could use the same vertexBuffer for all Sprites though, should try to use static here
-        ///But then this would mean passing TexCoord in UBO
-
-        ///Otherwise, for animated Sprites, I should probably create one vertex buffer per frame (or offset whatever)
-        ///And then rerecord a secondary CMB for all animated sprites (I think I cannot hope to sync frames and animation for batching sec CMB)
-        ///Or I need to pass texture animation as dynamic UBO => cant use it for 3D meshes though
-        ///Or for terrain and so on...
-
         glm::vec2 m_size;
-        glm::vec2 m_position;
+        glm::vec3 m_position;
         glm::vec4 m_color;
 
+        /// I could (should ?) switch to pointer to textureAsset for more efficiency...
         AssetTypeID m_texture;
         std::vector<bool>   m_needToCheckLoading;
 

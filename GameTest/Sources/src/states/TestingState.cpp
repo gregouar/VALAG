@@ -6,6 +6,7 @@
 #include "Valag/gfx/SceneNode.h"
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
+#include "Valag/gfx/MaterialAsset.h"
 
 #include <glm/gtc/random.hpp>
 
@@ -27,14 +28,14 @@ void TestingState::init()
 
     m_scene = new vlg::Scene();
 
-    vlg::TextureHandler* textureHandler =  vlg::TextureHandler::instance();
+    vlg::TexturesHandler* textureHandler =  vlg::TexturesHandler::instance();
 
     vlg::AssetTypeID tex[10];
     tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread)->getID();
     tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getID();
     tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getID();
 
-    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_color.png",vlg::LoadType_InThread)->getID();
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png",vlg::LoadType_InThread)->getID();
     tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread)->getID();
     tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread)->getID();
 
@@ -78,7 +79,7 @@ void TestingState::init()
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
     {
         it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
-        it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
+        it->setPosition(glm::vec3(glm::linearRand(0, 1024),glm::linearRand(0, 768),i));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
         /*if(i < 5000)
@@ -89,6 +90,8 @@ void TestingState::init()
 
         m_testingSpritesBatch.addSprite(&(*it));
     }
+
+  //  vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
 
 
 }
@@ -132,7 +135,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
         (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
         (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100,100));
-        (--m_testingSpritesInBatch.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
+        (--m_testingSpritesInBatch.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         m_testingSpritesBatch.addSprite(&(*(--m_testingSpritesInBatch.end())));
 
        /* m_testingSprites.resize(m_testingSprites.size() + 1);
