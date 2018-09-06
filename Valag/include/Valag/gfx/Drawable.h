@@ -15,11 +15,11 @@ class Drawable
         virtual ~Drawable();
 
         ///Specifying framebuffer may induce better performances
-        virtual VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        virtual VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                      uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
     protected:
-        virtual bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        virtual bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer) = 0;
 
         virtual void createDrawCommandBuffers();

@@ -5,14 +5,28 @@
 #include "Valag/gfx/Drawable.h"
 #include "Valag/core/NotificationSender.h"
 
+#include "Valag/vulkanImpl/DynamicUBO.h"
+
 namespace vlg
 {
 /** For animated sprite, I should work with array of vertexBuffer, having all their texCoord already saved **/
+
+/** I need to find a way to clear model UBO of sprites... maybe I should keep in memory the list of renderer used ?  **/
+/** I should have dynamic UBO as static member probably **/
+
+
+struct SpriteModelUBO {
+    glm::mat4 model;
+    glm::vec4 color;
+    glm::vec2 texPos;
+    glm::vec2 texExt;
+};
 
 class Sprite : public NotificationSender, public Drawable
 {
     friend class DefaultRenderer;
     friend class SpritesBatch;
+    friend class VApp;
 
     public:
         Sprite();
@@ -27,30 +41,27 @@ class Sprite : public NotificationSender, public Drawable
 
         AssetTypeID getTexture();
 
-
         ///Specifying framebuffer may induce better performances
-        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
+        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
-    protected:
-       // void createVertexBuffer();
+        static VkDescriptorSetLayout getModelDescriptorSetLayout();
 
-        void updateModelUBO(DefaultRenderer *renderer, size_t currentFrame);
+    protected:
+        void updateModelUBO(DefaultRenderer *renderer, size_t frameIndex);
 
         void cleanup();
 
-        bool checkUpdates(DefaultRenderer *renderer, size_t currentFrame);
+        bool checkUpdates(DefaultRenderer *renderer, size_t frameIndex);
 
-        bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
 
-        bool recordDrawCMBContent(VkCommandBuffer &commandBuffer, DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        bool recordDrawCMBContent(VkCommandBuffer &commandBuffer, DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer);
 
     private:
-        //std::vector<VkCommandBuffer>    m_drawCommandBuffers;
-
         glm::vec2 m_size;
         glm::vec3 m_position;
         glm::vec4 m_color;
@@ -63,18 +74,32 @@ class Sprite : public NotificationSender, public Drawable
         glm::vec2 m_textureExtent;
 
 
-        /*bool        m_needToCreateVertexBuffer;
-        VBuffer     m_vertexBuffer;
-        std::vector<bool>   m_needToUpdateVertexBuffer;*/
+        std::vector<bool>       m_needToAllocModel;
+        std::vector<bool>       m_needToUpdateModel;
+        std::vector<size_t>     m_modelUBOIndex;
+        std::vector<size_t>     m_modelBufferVersion;
+        std::vector<size_t>     m_texDescSetVersion;
+        bool                    m_preventDrawing;
 
-        size_t      m_modelUBOIndex;
 
-        std::vector<bool>   m_needToAllocModel;
-        std::vector<bool>   m_needToUpdateModel;
-        uint32_t            m_modelIndex; ///should I put a vector to be sure ?
-        std::vector<size_t> m_modelBufferVersion;
-        std::vector<size_t> m_texDescSetVersion;
-        bool                m_preventDrawing;
+    /** Static **/
+        static bool initSpriteRendering();
+        static void updateSpriteRendering(size_t frameIndex); //Expands UBOs
+        static void cleanupSpriteRendering();
+
+        static bool    createDescriptorSetLayouts();
+        static bool    createDescriptorPool();
+        static bool    createDescriptorSets();
+
+        static void    updateModelDescriptorSets(size_t frameIndex);
+
+        static std::vector<bool>               s_needToExpandModelBuffers;
+        static std::vector<DynamicUBO*>        s_modelBuffers;
+        static VkDescriptorSetLayout           s_modelDescriptorSetLayout;
+        static VkDescriptorPool                s_descriptorPool;
+        static std::vector<VkDescriptorSet>    s_modelDescriptorSets;
+
+        static const size_t MODEL_UBO_CHUNKSIZE;
 };
 
 }

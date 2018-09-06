@@ -8,6 +8,7 @@
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/vulkanImpl/VBuffersAllocator.h"
+#include "Valag/gfx/Sprite.h"
 
 #include "Valag/utils/Profiler.h"
 
@@ -106,6 +107,7 @@ bool VApp::init()
 
     m_eventsManager.init(m_renderWindow.getWindowPtr());
 
+    Sprite::initSpriteRendering();
 
     Profiler::pushClock("Create renderers");
     if(!this->createDefaultRenderer())
@@ -171,7 +173,8 @@ void VApp::loop()
         Profiler::popClock();
 
         Profiler::pushClock("Check buffer expansion");
-        m_defaultRenderer->checkBuffersExpansion();
+        //m_defaultRenderer->checkBuffersExpansion();
+        Sprite::updateSpriteRendering(m_renderWindow.getCurrentFrameIndex());
         VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getCurrentFrameIndex());
         Profiler::popClock();
 
@@ -228,6 +231,8 @@ void VApp::cleanup()
         delete m_defaultRenderer;
         m_defaultRenderer = nullptr;
     }
+
+    Sprite::cleanupSpriteRendering();
 
     TexturesHandler::instance()->cleanAll();
     VBuffersAllocator::instance()->cleanAll();

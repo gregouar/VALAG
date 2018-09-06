@@ -313,7 +313,7 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device,VkSurfaceKHR &sur
     /** This could be a serious problem... 200 on intel chipset is really low**/
     //std::cout<<deviceProperties.limits.maxPerStageDescriptorSampledImages<<std::endl;
     //std::cout<<deviceProperties.limits.maxImageArrayLayers<<std::endl;
-    if(deviceProperties.limits.maxPerStageDescriptorSampledImages < VTexturesManager::TEXTURES_ARRAY_SIZE)
+    if(deviceProperties.limits.maxPerStageDescriptorSampledImages < VTexturesManager::MAX_TEXTURES_ARRAY_SIZE)
         return 0;
 
     if(!deviceFeatures.shaderSampledImageArrayDynamicIndexing)

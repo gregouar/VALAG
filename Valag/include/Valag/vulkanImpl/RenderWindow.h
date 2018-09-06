@@ -65,7 +65,7 @@ class RenderWindow
         std::vector<VkImageView>    m_depthStencilImagesViews;
 
         uint32_t    m_curImageIndex;
-        size_t      m_currentFrame;
+        size_t      m_curFrameIndex;
         std::vector<VkSemaphore>                 m_imageAvailableSemaphore;
         std::vector<std::vector<VkSemaphore>>    m_finishedRenderingSemaphores;
         std::vector<VkFence>                     m_inFlightFences;

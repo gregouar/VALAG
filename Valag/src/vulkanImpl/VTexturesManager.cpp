@@ -5,10 +5,12 @@
 //#include "Valag/gfx/TextureAsset.h"
 #include "Valag/vulkanImpl/VTexture.h"
 
+#include "Valag/core/Config.h"
+
 namespace vlg
 {
 
-const size_t VTexturesManager::TEXTURES_ARRAY_SIZE = 128; //Number of texture2DArray
+const size_t VTexturesManager::MAX_TEXTURES_ARRAY_SIZE = 128; //Number of texture2DArray
 const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 128; //Number of layers in each texture2DArray
 
 VTexturesManager::VTexturesManager()
@@ -75,75 +77,88 @@ bool VTexturesManager::allocTexture(uint32_t width, uint32_t height, VBuffer sou
 
 bool VTexturesManager::allocTextureImpl(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture)
 {
+    m_createImageMutex.lock();
     auto foundedArrays = m_extentToArray.equal_range({width, height});
-    size_t chosenArray = m_allocatedTextureArrays.size();
+    size_t chosenArray = MAX_TEXTURES_ARRAY_SIZE; /*m_curTextArrayId;*/ //m_allocatedTextureArrays.size();
 
     for(auto ar = foundedArrays.first ; ar != foundedArrays.second ; ++ar)
     {
-        if(!m_allocatedTextureArrays[ar->second].availableLayers.empty())
+        if(!m_allocatedTextureArrays[ar->second]->availableLayers.empty())
         {
             chosenArray = ar->second;
             break;
         }
     }
 
-    if(chosenArray == m_allocatedTextureArrays.size())
-        if(!this->createTextureArray(width, height))
+    if(chosenArray == MAX_TEXTURES_ARRAY_SIZE /*m_curTextArrayId*/)
+    {
+        chosenArray = this->createTextureArray(width, height);
+        if(chosenArray == MAX_TEXTURES_ARRAY_SIZE)
             return (false);
+    }
+    m_createImageMutex.unlock();
 
-    VTexture2DArray &texture2DArray = m_allocatedTextureArrays[chosenArray];
-    size_t chosenLayer = *texture2DArray.availableLayers.begin();
-    texture2DArray.availableLayers.pop_front();
+    VTexture2DArray *texture2DArray = m_allocatedTextureArrays[chosenArray];
+    size_t chosenLayer = *texture2DArray->availableLayers.begin();
+    texture2DArray->availableLayers.pop_front();
 
     texture->m_textureId = chosenArray;
     texture->m_textureLayer = chosenLayer;
 
-    VulkanHelpers::transitionImageLayout(texture2DArray.image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+    texture2DArray->mutex.lock();
+
+    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,cmdPoolName);
-        VBuffersAllocator::copyBufferToImage(source, texture2DArray.image,
+        VBuffersAllocator::copyBufferToImage(source, texture2DArray->image,
                                          width, height,chosenLayer,cmdPoolName);
-    VulkanHelpers::transitionImageLayout(texture2DArray.image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,cmdPoolName);
+
+    texture2DArray->mutex.unlock();
 
     return (true);
 }
 
-bool VTexturesManager::createTextureArray(uint32_t width, uint32_t height)
+size_t VTexturesManager::createTextureArray(uint32_t width, uint32_t height)
 {
-    if(m_allocatedTextureArrays.size() >= TEXTURES_ARRAY_SIZE)
-        return (false);
+   // std::lock_guard<std::mutex> lock(m_createImageMutex);
 
-    m_extentToArray.insert({{width, height}, m_allocatedTextureArrays.size()});
+    //if(m_curTextArrayId >= TEXTURES_ARRAY_SIZE)
+    if(m_allocatedTextureArrays.size() >= MAX_TEXTURES_ARRAY_SIZE)
+        return (MAX_TEXTURES_ARRAY_SIZE);
 
-    VTexture2DArray texture2DArray;
+    VTexture2DArray *texture2DArray = new VTexture2DArray(); //= m_allocatedTextureArrays[m_curTextArrayId];
 
-    texture2DArray.layerCount = MAX_LAYER_PER_TEXTURE;
-    texture2DArray.extent.width = width;
-    texture2DArray.extent.height = height;
+    texture2DArray->layerCount = MAX_LAYER_PER_TEXTURE;
+    texture2DArray->extent.width = width;
+    texture2DArray->extent.height = height;
 
-    if(!VulkanHelpers::createImage(width, height,texture2DArray.layerCount, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+    if(!VulkanHelpers::createImage(width, height,texture2DArray->layerCount, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                               texture2DArray.image, texture2DArray.memory))
+                               texture2DArray->image, texture2DArray->memory))
                                return (false);
 
-    texture2DArray.view = VulkanHelpers::createImageView(texture2DArray.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,texture2DArray.layerCount);
+    texture2DArray->view = VulkanHelpers::createImageView(texture2DArray->image, VK_FORMAT_R8G8B8A8_UNORM,
+                                                          VK_IMAGE_ASPECT_COLOR_BIT,texture2DArray->layerCount);
 
     for(size_t i = 0 ; i < MAX_LAYER_PER_TEXTURE ; ++i)
-        texture2DArray.availableLayers.push_back(i);
+        texture2DArray->availableLayers.push_back(i);
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.sampler = nullptr;
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = texture2DArray.view;
+    imageInfo.imageView = texture2DArray->view;
 
-    m_imageInfos[m_allocatedTextureArrays.size()] = imageInfo;
+    m_imageInfos[/*m_curTextArrayId*/m_allocatedTextureArrays.size()] = imageInfo;
 
+    m_extentToArray.insert({{width, height}, /*m_curTextArrayId*/ m_allocatedTextureArrays.size()});
     m_allocatedTextureArrays.push_back(texture2DArray);
+    //m_curTextArrayId++;
 
     for(auto b : m_needToUpdateDescSet)
         b = true;
 
-    return true;
+    return m_allocatedTextureArrays.size()-1;
 }
 
 
@@ -156,7 +171,7 @@ void VTexturesManager::freeTextureImpl(VTexture &texture)
 {
     if(!(texture.m_textureId == 0 && texture.m_textureLayer == 0))
     {
-        m_allocatedTextureArrays[texture.m_textureId].availableLayers.push_back(texture.m_textureLayer);
+        m_allocatedTextureArrays[texture.m_textureId]->availableLayers.push_back(texture.m_textureLayer);
         texture.m_textureId = 0;
         texture.m_textureLayer = 0;
     }
@@ -202,7 +217,7 @@ bool VTexturesManager::createDescriptorSetLayouts()
     layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     layoutBindings[1].binding = 1;
-    layoutBindings[1].descriptorCount = TEXTURES_ARRAY_SIZE;
+    layoutBindings[1].descriptorCount = MAX_TEXTURES_ARRAY_SIZE;
     layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     layoutBindings[1].pImmutableSamplers = nullptr;
     layoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -225,7 +240,7 @@ bool VTexturesManager::createSampler()
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.maxAnisotropy = Config::getInt("Graphics","AnisotropicFiltering",VApp::DEFAULT_ANISOTROPIC);
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
@@ -303,7 +318,7 @@ void VTexturesManager::updateDescriptorSet(size_t frameIndex)
 	setWrites[1].dstBinding = 1;
 	setWrites[1].dstArrayElement = 0;
 	setWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-	setWrites[1].descriptorCount = TEXTURES_ARRAY_SIZE; /// static_cast<uint32_t>(/*m_texturesArray.size()*/m_imageInfos[frameIndex].size());//TEXTURES_ARRAY_SIZE;
+	setWrites[1].descriptorCount = MAX_TEXTURES_ARRAY_SIZE; /// static_cast<uint32_t>(/*m_texturesArray.size()*/m_imageInfos[frameIndex].size());//TEXTURES_ARRAY_SIZE;
 	setWrites[1].pBufferInfo = 0;
 	setWrites[1].dstSet = m_descriptorSets/*[m_descriptorSetsNbr[frameIndex]]*/[frameIndex];
 	setWrites[1].pImageInfo =  m_imageInfos.data();
@@ -328,7 +343,10 @@ bool VTexturesManager::createDummyTexture()
 
 bool VTexturesManager::init()
 {
-    m_imageInfos.resize(1);
+   // m_curTextArrayId = 0;
+   // m_allocatedTextureArrays.resize(TEXTURES_ARRAY_SIZE);
+    m_imageInfos.resize(MAX_TEXTURES_ARRAY_SIZE);
+
     if(!this->createDummyTexture())
         return (false);
 
@@ -339,14 +357,13 @@ bool VTexturesManager::init()
     //m_imageInfos.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
    // m_imageViews.resize(TEXTURES_ARRAY_SIZE)
-    m_imageInfos.resize(TEXTURES_ARRAY_SIZE);
 
     size_t i = 0;
     for(auto &imageInfo : m_imageInfos)
     {
         imageInfo.sampler = nullptr;
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_allocatedTextureArrays[0].view;//m_dummyTexture.view//TextureHandler::instance()->getDummyAsset()->getImageView();
+        imageInfo.imageView = m_allocatedTextureArrays[0]->view;//m_dummyTexture.view//TextureHandler::instance()->getDummyAsset()->getImageView();
 
         //if(i != 0)
           //  m_availableImageInfos.push_back(i);
@@ -376,10 +393,20 @@ void VTexturesManager::cleanup()
 
     for(auto vtexture : m_allocatedTextureArrays)
     {
-        vkDestroyImageView(device, vtexture.view, nullptr);
-        vkDestroyImage(device, vtexture.image, nullptr);
-        vkFreeMemory(device, vtexture.memory, nullptr);
+        vkDestroyImageView(device, vtexture->view, nullptr);
+        vkDestroyImage(device, vtexture->image, nullptr);
+        vkFreeMemory(device, vtexture->memory, nullptr);
+        delete vtexture;
     }
+    m_allocatedTextureArrays.clear();
+    m_extentToArray.clear();
+
+    /*for(size_t i = 0 ; i < m_curTextArrayId ; ++i)
+    {
+        vkDestroyImageView(device, m_allocatedTextureArrays[i].view, nullptr);
+        vkDestroyImage(device, m_allocatedTextureArrays[i].image, nullptr);
+        vkFreeMemory(device, m_allocatedTextureArrays[i].memory, nullptr);
+    }*/
 }
 
 }

@@ -24,6 +24,8 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
     outColor = texture(sampler2DArray(textures[pc.texId], samp), vec3(fragTexCoord,pc.texLayer)) * modelUbo.color;
+    if(outColor.a == 0)
+        discard;
 }
 
 

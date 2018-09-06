@@ -210,13 +210,8 @@ bool VBuffersAllocator::freeBufferImpl(VBuffer &vbuffer)
 
     auto leftmostRight = allocatedBuffer->emptyRanges.begin();
 
-    //std::cout<<"First offset = "<<allocatedBuffer->emptyRanges.front().first<<std::endl;
-
-
-    //for(auto& it : allocatedBuffer->emptyRanges)
     for(auto it = allocatedBuffer->emptyRanges.begin() ; it != allocatedBuffer->emptyRanges.end() ; ++it)
     {
-        //std::cout<<it.first<<std::endl;
         if(it->first < vbuffer.offset)
             ++leftmostRight;
 
@@ -231,17 +226,8 @@ bool VBuffersAllocator::freeBufferImpl(VBuffer &vbuffer)
         {
             if(alreadyMerged)
             {
-                /*
-                for(auto &it2 : allocatedBuffer->emptyRanges)
-                        std::cout<<it2.first<<" "<<it2.second<<std::endl;
-                 std::cout<<std::endl;*/
-
                 lastMerge->second += it->second;
                 allocatedBuffer->emptyRanges.erase(it);
-
-                /*for(auto &it2 : allocatedBuffer->emptyRanges)
-                        std::cout<<it2.first<<" "<<it2.second<<std::endl;
-                 std::cout<<std::endl<<std::endl;*/
             } else {
                 it->first -= vbuffer.alignedSize;
                 it->second += vbuffer.alignedSize;
@@ -252,22 +238,7 @@ bool VBuffersAllocator::freeBufferImpl(VBuffer &vbuffer)
     }
 
     if(!alreadyMerged)
-    {
-
-    /*std::cout<<"Will remove :"<<vbuffer.offset<<" "<<vbuffer.alignedSize<<" from :"<<std::endl;
-
-    for(auto &it : allocatedBuffer->emptyRanges)
-            std::cout<<it.first<<" "<<it.second<<std::endl;
-     std::cout<<std::endl; */
         allocatedBuffer->emptyRanges.insert(leftmostRight,{vbuffer.offset, vbuffer.alignedSize});
-
-
-/*    std::cout<<"We end up with :"<<std::endl;
-
-    for(auto &it : allocatedBuffer->emptyRanges)
-            std::cout<<it.first<<" "<<it.second<<std::endl;
-     std::cout<<std::endl<<std::endl;*/
-    }
 
     vbuffer.buffer = VK_NULL_HANDLE;
 
@@ -297,7 +268,7 @@ bool VBuffersAllocator::searchForSpace(AllocatedBuffer *allocatedBuffer, VkDevic
 
 bool VBuffersAllocator::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
     VkBuffer        buffer;
     VkDeviceMemory  bufferMemory;

@@ -33,20 +33,20 @@ bool SpritesBatch::removeSprite(Sprite *sprite)
     return m_sortedSprites[sprite->getTexture()].erase(sprite);
 }
 
-VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
+VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
     for(auto spriteSet : m_sortedSprites)
     for(auto sprite : spriteSet.second)
     {
-        if(sprite->checkUpdates(renderer, currentFrame))
-            m_needToUpdateDrawCMB[currentFrame] = true;
+        if(sprite->checkUpdates(renderer, frameIndex))
+            m_needToUpdateDrawCMB[frameIndex] = true;
     }
 
-    return Drawable::getDrawCommandBuffer(renderer, currentFrame, renderPass, subpass, framebuffer);
+    return Drawable::getDrawCommandBuffer(renderer, frameIndex, renderPass, subpass, framebuffer);
 }
 
 
-bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                       uint32_t subpass, VkFramebuffer framebuffer)
 {
     VkCommandBufferInheritanceInfo inheritanceInfo = {};
@@ -63,14 +63,14 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t cu
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = &inheritanceInfo; // Optional
 
-    if (vkBeginCommandBuffer(m_drawCommandBuffers[currentFrame], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_drawCommandBuffers[frameIndex], &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording command buffer");
 
-    renderer->bindDefaultPipeline(m_drawCommandBuffers[currentFrame], currentFrame);
+    renderer->bindDefaultPipeline(m_drawCommandBuffers[frameIndex], frameIndex);
 
     for(auto spriteSet : m_sortedSprites)
     for(auto sprite : spriteSet.second)
-        sprite->recordDrawCMBContent(m_drawCommandBuffers[currentFrame], renderer, currentFrame, renderPass, subpass, framebuffer);
+        sprite->recordDrawCMBContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer);
 
     /*VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
     VkDeviceSize offsets[] = {m_vertexBuffer.offset};
@@ -88,10 +88,10 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t cu
 
     vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);*/
 
-    if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer");
 
-    m_needToUpdateDrawCMB[currentFrame] = false;
+    m_needToUpdateDrawCMB[frameIndex] = false;
 
     return (true);
 }

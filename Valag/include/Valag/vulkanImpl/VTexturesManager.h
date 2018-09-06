@@ -21,6 +21,8 @@ struct VTexture2DArray
     size_t      layerCount;
     VkExtent2D  extent;
 
+    std::mutex  mutex;
+
     std::list<size_t>   availableLayers;
 };
 
@@ -48,7 +50,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         //bool bindTextureImpl(AssetTypeID id, size_t frameIndex, int *texArrayID);
         bool allocTextureImpl(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
-        bool createTextureArray(uint32_t width, uint32_t height);
+        size_t createTextureArray(uint32_t width, uint32_t height);
 
         void freeTextureImpl(VTexture &texture);
 
@@ -65,12 +67,15 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
     private:
        // std::map<VkExtent2D, VTexture2DArray> m_allocatedTextureArrays;
+        //size_t m_curTextArrayId;
         std::multimap<std::pair<uint32_t,uint32_t>, size_t> m_extentToArray;
-        std::vector<VTexture2DArray> m_allocatedTextureArrays;
+        std::vector<VTexture2DArray*>       m_allocatedTextureArrays;
         std::vector<VkDescriptorImageInfo>  m_imageInfos;
 
 
         VTexture m_dummyTexture;
+
+        std::mutex m_createImageMutex;
 
         //std::map<AssetTypeID, size_t> m_texturesArray;
 
@@ -87,7 +92,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
         VkDescriptorPool                m_descriptorPool;
 
     public:
-        static const size_t TEXTURES_ARRAY_SIZE;
+        static const size_t MAX_TEXTURES_ARRAY_SIZE;
         static const size_t MAX_LAYER_PER_TEXTURE;
 };
 

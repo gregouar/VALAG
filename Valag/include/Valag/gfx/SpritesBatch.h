@@ -10,6 +10,8 @@
 namespace vlg
 {
 
+/// I should add option to preserves ordering (disabling auto sorting by material)
+
 class SpritesBatch : public NotificationListener, public Drawable
 {
     public:
@@ -19,11 +21,11 @@ class SpritesBatch : public NotificationListener, public Drawable
         void addSprite(Sprite *sprite);
         bool removeSprite(Sprite *sprite);
 
-        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                              uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
     protected:
-        bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass,
+        bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                       uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
         virtual void notify(NotificationSender*, NotificationType);

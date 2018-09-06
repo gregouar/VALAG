@@ -82,11 +82,6 @@ VBuffer DynamicUBO::getBuffer()
     return m_buffer;
 }
 
-/*VkDeviceMemory DynamicUBO::getBufferMemory()
-{
-    return m_bufferMemory;
-}*/
-
 size_t DynamicUBO::getBufferVersion()
 {
     return m_bufferVersion;
@@ -126,18 +121,6 @@ void DynamicUBO::expandBuffers(bool destroyOldBuffers)
     if(m_bufferVersion != 0)
     {
         VBuffersAllocator::copyBuffer(oldBuffer,m_buffer, oldBufferSize);
-
-        /*VkDevice device = VInstance::device();
-
-        void* data;
-        vkMapMemory(device, m_buffer.bufferMemory,m_buffer.offset, m_bufferSize, 0, &data);
-        VkMappedMemoryRange memoryRange = {};
-        memoryRange.sType   = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        memoryRange.memory  = m_buffer.bufferMemory;
-        memoryRange.size    = m_bufferSize;
-        memoryRange.offset  = m_buffer.offset;
-        vkFlushMappedMemoryRanges(device, 1, &memoryRange);
-        vkUnmapMemory(device, m_buffer.bufferMemory);*/
 
         if(destroyOldBuffers)
             VBuffersAllocator::freeBuffer(oldBuffer);

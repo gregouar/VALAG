@@ -35,14 +35,14 @@ void TestingState::init()
     tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getID();
     tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getID();
 
-    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png",vlg::LoadType_InThread)->getID();
-    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread)->getID();
-    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread)->getID();
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png"/*,vlg::LoadType_InThread*/)->getID();
+    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png"/*,vlg::LoadType_InThread*/)->getID();
+    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png"/*,vlg::LoadType_InThread*/)->getID();
 
     tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
     tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
     tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
-    tex[9] = textureHandler->loadAssetFromFile("../data/tree_material.png",vlg::LoadType_InThread)->getID();
+    tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",vlg::LoadType_InThread)->getID();
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
@@ -73,7 +73,7 @@ void TestingState::init()
     }
 
 
-    m_testingSpritesInBatch.resize(10000);
+    m_testingSpritesInBatch.resize(10);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
@@ -91,7 +91,7 @@ void TestingState::init()
         m_testingSpritesBatch.addSprite(&(*it));
     }
 
-  //  vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
+    vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
 
 
 }
@@ -133,7 +133,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         for(size_t j = 0 ; j < 1000 ; ++j)
     {
         m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
-        (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
+        (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,j%100));
         (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100,100));
         (--m_testingSpritesInBatch.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         m_testingSpritesBatch.addSprite(&(*(--m_testingSpritesInBatch.end())));

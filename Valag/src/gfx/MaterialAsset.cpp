@@ -160,6 +160,8 @@ bool MaterialAsset::loadFromXML(TiXmlHandle *hdl)
         textElem = textElem->NextSiblingElement("texture");
     }
 
+    Logger::write("Material loaded from file: "+m_filePath);
+
     return (true);
 }
 

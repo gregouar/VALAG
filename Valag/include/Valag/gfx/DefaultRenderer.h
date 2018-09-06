@@ -28,7 +28,6 @@ class DefaultRenderer
     protected:
         bool init();
 
-        bool    createTextureSampler();
         bool    createRenderPass();
         bool    createDescriptorSetLayouts();
         bool    createGraphicsPipeline();
@@ -39,30 +38,29 @@ class DefaultRenderer
         bool    createSemaphores();
 
         bool    createUBO();
-        bool    createVTexturesManager();
 
         void    updateBuffers(uint32_t imageIndex);
         void    updateViewUBO();
         bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
-        bool    allocModelUBO(size_t &index, size_t frameIndex); ///Could use vector of indices
-        void    updateModelUBO(size_t index, void *data, size_t frameIndex);
-        void    updateModelDescriptorSets(size_t frameIndex);
-        void    checkBuffersExpansion();
+        //bool    allocModelUBO(size_t &index, size_t frameIndex); ///Could use vector of indices
+        //void    updateModelUBO(size_t index, void *data, size_t frameIndex);
+        //void    updateModelDescriptorSets(size_t frameIndex);
+        //void    checkBuffersExpansion();
 
-        size_t  getModelUBOBufferVersion(size_t frameIndex);
-        size_t  getTextureArrayDescSetVersion(size_t frameIndex);
+        //size_t  getModelUBOBufferVersion(size_t frameIndex);
+        size_t  getTextureArrayDescSetVersion(size_t frameIndex); /// I should remove it to directly use VTextureManager
 
         void    bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex);
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
-        void    bindAllUBOs(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
+        //void    bindModelUBO(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
+        void    bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset = 0);
 
         void cleanup();
 
     private:
         RenderWindow  *m_targetWindow;
 
-        VkSampler               m_defaultTextureSampler;
         VkRenderPass            m_defaultRenderPass;
         VkPipelineLayout        m_defaultPipelineLayout;
         VkPipeline              m_defaultPipeline;
@@ -72,34 +70,29 @@ class DefaultRenderer
 
         VkDescriptorPool                m_descriptorPool;
 
-        size_t                          m_currentFrame;
-        size_t                          m_lastFrame;
+        size_t                          m_curFrameIndex;
+        size_t                          m_lastFrameIndex;
         std::vector<VkCommandBuffer>    m_commandBuffers;
 
         std::vector<VkSemaphore>        m_renderFinishedSemaphore;
         std::vector<VkCommandBuffer>    m_activeSecondaryCommandBuffers;
 
+        ///I will probably switch all this to camera... and maybe have something similar to sprites (with dynamic ubo and so on ?)
         std::vector<bool>               m_needToUpdateViewUBO;
-        /*std::vector<VkBuffer>           m_viewBuffers; //Should be in a camera object for SceneRenderer
-        std::vector<VkDeviceMemory>     m_viewBuffersMemory;*/
-        std::vector<VBuffer>            m_viewBuffers;
-
+        std::vector<VBuffer>            m_viewBuffers; //Should be in a camera object for SceneRenderer
         std::vector<VkDescriptorSet>    m_viewDescriptorSets;
         VkDescriptorSetLayout           m_viewDescriptorSetLayout;
 
+        /*std::vector<bool>               m_needToExpandModelBuffers;
         std::vector<DynamicUBO*>        m_modelBuffers;
         std::vector<VkDescriptorSet>    m_modelDescriptorSets;
-        VkDescriptorSetLayout           m_modelDescriptorSetLayout;
-
-        std::vector<bool>               m_needToExpandModelBuffers;
-
-        //VTexturesManager           *m_texturesArrayManager;
+        VkDescriptorSetLayout           m_modelDescriptorSetLayout;*/
 
         static const char *DEFAULT_VERTSHADERFILE;
         static const char *DEFAULT_FRAGSHADERFILE;
 
-        static const size_t MODEL_DYNAMICBUFFER_CHUNKSIZE;
-        static const float DEPTH_SCALING_FACTOR;
+        //static const size_t MODEL_DYNAMICBUFFER_CHUNKSIZE;
+        static const float  DEPTH_SCALING_FACTOR;
 };
 
 }

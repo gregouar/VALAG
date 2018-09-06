@@ -16,18 +16,18 @@ Drawable::~Drawable()
     //dtor
 }
 
-VkCommandBuffer Drawable::getDrawCommandBuffer(DefaultRenderer *renderer, size_t currentFrame, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
+VkCommandBuffer Drawable::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
     if(m_needToCreateDrawCMB)
         this->createDrawCommandBuffers();
 
-    if(m_needToUpdateDrawCMB[currentFrame])
+    if(m_needToUpdateDrawCMB[frameIndex])
     {
-        if(!this->recordDrawCommandBuffers(renderer, currentFrame, renderPass, subpass, framebuffer))
+        if(!this->recordDrawCommandBuffers(renderer, frameIndex, renderPass, subpass, framebuffer))
             return VK_NULL_HANDLE;
     }
 
-    return m_drawCommandBuffers[currentFrame];
+    return m_drawCommandBuffers[frameIndex];
 }
 
 void Drawable::createDrawCommandBuffers()

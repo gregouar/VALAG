@@ -36,7 +36,7 @@ bool RenderWindow::create(size_t w, size_t h, const std::string &name, bool full
 
 bool RenderWindow::init()
 {
-    m_currentFrame = 0;
+    m_curFrameIndex = 0;
 
     if(!this->createSwapchain())
     {
@@ -67,7 +67,7 @@ bool RenderWindow::init()
 
 size_t RenderWindow::getCurrentFrameIndex()
 {
-    return m_currentFrame;
+    return m_curFrameIndex;
 }
 
 VkExtent2D RenderWindow::getSwapchainExtent()
@@ -99,14 +99,14 @@ uint32_t RenderWindow::acquireNextImage()
 {
     VkDevice device = VInstance::device();
 
-    vkWaitForFences(device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-    vkResetFences(device, 1, &m_inFlightFences[m_currentFrame]);
+    vkWaitForFences(device, 1, &m_inFlightFences[m_curFrameIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkResetFences(device, 1, &m_inFlightFences[m_curFrameIndex]);
 
     uint32_t imageIndex;
     vkAcquireNextImageKHR(device, m_swapchain, std::numeric_limits<uint64_t>::max(),
-                          m_imageAvailableSemaphore[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+                          m_imageAvailableSemaphore[m_curFrameIndex], VK_NULL_HANDLE, &imageIndex);
 
-    m_finishedRenderingSemaphores[m_currentFrame].clear();
+    m_finishedRenderingSemaphores[m_curFrameIndex].clear();
 
     m_curImageIndex = imageIndex;
 
@@ -118,7 +118,7 @@ void RenderWindow::submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaph
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_currentFrame]};
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_curFrameIndex]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -130,9 +130,9 @@ void RenderWindow::submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaph
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    VInstance::submitToGraphicsQueue(submitInfo, m_inFlightFences[m_currentFrame]);
+    VInstance::submitToGraphicsQueue(submitInfo, m_inFlightFences[m_curFrameIndex]);
 
-    m_finishedRenderingSemaphores[m_currentFrame].push_back(finishedRenderingSemaphore);
+    m_finishedRenderingSemaphores[m_curFrameIndex].push_back(finishedRenderingSemaphore);
 }
 
 void RenderWindow::display()
@@ -140,8 +140,8 @@ void RenderWindow::display()
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    presentInfo.waitSemaphoreCount = static_cast<uint32_t>(m_finishedRenderingSemaphores[m_currentFrame].size());
-    presentInfo.pWaitSemaphores = m_finishedRenderingSemaphores[m_currentFrame].data();
+    presentInfo.waitSemaphoreCount = static_cast<uint32_t>(m_finishedRenderingSemaphores[m_curFrameIndex].size());
+    presentInfo.pWaitSemaphores = m_finishedRenderingSemaphores[m_curFrameIndex].data();
 
     VkSwapchainKHR swapchains[] = {m_swapchain};
     presentInfo.swapchainCount = 1;
@@ -152,7 +152,7 @@ void RenderWindow::display()
 
     VInstance::presentQueue(presentInfo);
 
-    m_currentFrame = (m_currentFrame + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
+    m_curFrameIndex = (m_curFrameIndex + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
 }
 
 bool RenderWindow::checkVideoMode(size_t w, size_t h, GLFWmonitor *monitor)
