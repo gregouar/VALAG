@@ -22,6 +22,12 @@ class ShadowCaster;**/
 template<class AssetType> class AssetHandler;
 class TextureAsset;
 
+enum RendererName
+{
+    Renderer_Default,
+    Renderer_Scene,
+};
+
 enum AssetLoadType
 {
     LoadType_Now = 0,

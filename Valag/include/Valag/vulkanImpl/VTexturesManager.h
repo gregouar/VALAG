@@ -32,8 +32,6 @@ class VTexturesManager : public Singleton<VTexturesManager>
         friend class Singleton<VTexturesManager>;
         friend class VApp;
 
-        //static bool bindTexture(AssetTypeID id, size_t frameIndex, int *texArrayID);
-
         VkDescriptorSetLayout   getDescriptorSetLayout();
         VkDescriptorSet         getDescriptorSet(size_t frameIndex);
         size_t                  getDescriptorSetVersion(size_t frameIndex);
@@ -41,14 +39,14 @@ class VTexturesManager : public Singleton<VTexturesManager>
         void checkUpdateDescriptorSets(size_t frameIndex);
 
         static bool allocTexture(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
-
         static void freeTexture(VTexture &texture);
+
+        static size_t descriptorSetVersion(size_t frameIndex);
 
     protected:
         VTexturesManager();
         virtual ~VTexturesManager();
 
-        //bool bindTextureImpl(AssetTypeID id, size_t frameIndex, int *texArrayID);
         bool allocTextureImpl(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         size_t createTextureArray(uint32_t width, uint32_t height);
 
@@ -66,8 +64,6 @@ class VTexturesManager : public Singleton<VTexturesManager>
         void    cleanup();
 
     private:
-       // std::map<VkExtent2D, VTexture2DArray> m_allocatedTextureArrays;
-        //size_t m_curTextArrayId;
         std::multimap<std::pair<uint32_t,uint32_t>, size_t> m_extentToArray;
         std::vector<VTexture2DArray*>       m_allocatedTextureArrays;
         std::vector<VkDescriptorImageInfo>  m_imageInfos;
@@ -77,12 +73,6 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         std::mutex m_createImageMutex;
 
-        //std::map<AssetTypeID, size_t> m_texturesArray;
-
-        //std::list<size_t>                   m_availableImageInfos;
-        //std::vector<VkDescriptorImageInfo>  m_imageInfos;
-
-        //std::map<AssetTypeID, size_t> m_texturesToAdd;
 
         VkSampler                       m_sampler;
         std::vector<bool>               m_needToUpdateDescSet;

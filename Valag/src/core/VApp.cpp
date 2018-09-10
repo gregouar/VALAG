@@ -92,22 +92,16 @@ bool VApp::init()
         throw std::runtime_error("Cannot create window");
     Profiler::popClock();
 
-
     Profiler::pushClock("Init vulkan instance");
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
     Profiler::popClock();
 
     VTexturesManager::instance()->init();
 
-   // if(!this->createDummyAssets())
-     //   throw std::runtime_error("Cannot create dummy assets");
-
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
 
     m_eventsManager.init(m_renderWindow.getWindowPtr());
-
-    Sprite::initSpriteRendering();
 
     Profiler::pushClock("Create renderers");
     if(!this->createDefaultRenderer())
@@ -129,21 +123,13 @@ bool VApp::createWindow()
     return m_renderWindow.create(w,h,m_createInfos.name,fullscreen);
 }
 
-/*bool VApp::createDummyAssets()
-{
-    unsigned char dummyTexturePtr[4] = {255,255,255,255};
-    TextureHandler::instance()->enableDummyAsset();
-    TextureAsset* dummyTexture = TextureHandler::instance()->getDummyAsset();
-
-    return dummyTexture->generateTexture(dummyTexturePtr,1,1);
-}*/
-
 bool VApp::createDefaultRenderer()
 {
     if(m_defaultRenderer != nullptr)
         delete m_defaultRenderer;
 
-    m_defaultRenderer = new DefaultRenderer(&m_renderWindow);
+    m_defaultRenderer = new DefaultRenderer(&m_renderWindow, Renderer_Default);
+    m_renderWindow.attachRenderer(m_defaultRenderer);
 
     return (true);
 }
@@ -153,7 +139,8 @@ bool VApp::createSceneRenderer()
     if(m_sceneRenderer != nullptr)
         delete m_sceneRenderer;
 
-    m_sceneRenderer = new SceneRenderer(&m_renderWindow);
+    m_sceneRenderer = new SceneRenderer(&m_renderWindow, Renderer_Scene);
+    m_renderWindow.attachRenderer(m_sceneRenderer);
 
     return (true);
 }
@@ -169,14 +156,10 @@ void VApp::loop()
         Profiler::resetLoop(ENABLE_PROFILER);
 
         Profiler::pushClock("Acquire next image");
-        m_imageIndex = m_renderWindow.acquireNextImage();
+        m_renderWindow.acquireNextImage();
         Profiler::popClock();
 
-        Profiler::pushClock("Check buffer expansion");
-        //m_defaultRenderer->checkBuffersExpansion();
-        Sprite::updateSpriteRendering(m_renderWindow.getCurrentFrameIndex());
         VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getCurrentFrameIndex());
-        Profiler::popClock();
 
         m_eventsManager.update();
 
@@ -190,32 +173,16 @@ void VApp::loop()
             Profiler::popClock();
 
             Profiler::pushClock("States draw");
-            m_statesManager.draw(m_defaultRenderer);
+            m_statesManager.draw(&m_renderWindow);
             Profiler::popClock();
         }
 
-        Profiler::pushClock("Draw frame");
-        this->drawFrame();
+        Profiler::pushClock("Display");
+        m_renderWindow.display();
         Profiler::popClock();
     }
 
     VInstance::waitDeviceIdle();
-}
-
-void VApp::drawFrame()
-{
-    Profiler::pushClock("Update buffers");
-    m_defaultRenderer->updateBuffers(m_imageIndex);
-    Profiler::popClock();
-
-    Profiler::pushClock("Submit to queue");
-    m_renderWindow.submitToGraphicsQueue(m_defaultRenderer->getCommandBuffer(),
-                                         m_defaultRenderer->getRenderFinishedSemaphore(m_renderWindow.getCurrentFrameIndex()));
-    Profiler::popClock();
-
-    Profiler::pushClock("Present");
-    m_renderWindow.display();
-    Profiler::popClock();
 }
 
 void VApp::cleanup()
@@ -231,8 +198,6 @@ void VApp::cleanup()
         delete m_defaultRenderer;
         m_defaultRenderer = nullptr;
     }
-
-    Sprite::cleanupSpriteRendering();
 
     TexturesHandler::instance()->cleanAll();
     VBuffersAllocator::instance()->cleanAll();

@@ -44,26 +44,6 @@ MaterialAsset::~MaterialAsset()
 
 bool MaterialAsset::loadFromFile(const std::string &filePath)
 {
-    /*int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-
-    if (!pixels)
-    {
-        Logger::error("Cannot load texture from file: "+m_filePath);
-        return (false);
-    }
-
-    CommandPoolName commandPoolName;
-    if(m_loadType == LoadType_Now)
-        commandPoolName = COMMANDPOOL_SHORTLIVED;
-    else
-        commandPoolName = COMMANDPOOL_TEXTURESLOADING;
-
-    m_vtexture.generateTexture(pixels, texWidth, texHeight,commandPoolName);
-
-    stbi_image_free(pixels);
-
-    Logger::write("Texture loaded from file: "+filePath);*/
     TiXmlDocument file(m_filePath.c_str());
 
     if(!file.LoadFile())
@@ -100,34 +80,6 @@ bool MaterialAsset::loadFromXML(TiXmlHandle *hdl)
 
     if(hdl->FirstChildElement("translucency").Element() != nullptr)
         m_rmtFactor.b = Parser::parseFloat(hdl->FirstChildElement("translucency").Element()->GetText());
-
-    /*TiXmlElement* textElem = hdl->FirstChildElement("material").Element();
-    while(textElem != nullptr)
-    {
-        if(std::string(textElem->Attribute("type")).compare("roughness") == 0)
-        {
-            float r = Parser::ParseFloat(textElem->GetText());
-            if(r >= 0 && r <= 1)
-                m_roughness = r;
-            else
-                Logger::Error("Cannot read roughness in material"+m_filePath);
-        } else if(std::string(textElem->Attribute("type")).compare("metalness") == 0)
-        {
-            float r = Parser::ParseFloat(textElem->GetText());
-            if(r >= 0 && r <= 1)
-                m_metalness = r;
-            else
-                Logger::Error("Cannot read metalness in material"+m_filePath);
-        } else if(std::string(textElem->Attribute("type")).compare("translucency") == 0)
-        {
-            float r = Parser::ParseFloat(textElem->GetText());
-            if(r >= 0 && r <= 1)
-                m_translucency = r;
-            else
-                Logger::Error("Cannot read translucency in material"+m_filePath);
-        }
-        textElem = textElem->NextSiblingElement("material");
-    }*/
 
     TiXmlElement* textElem = hdl->FirstChildElement("texture").Element();
     while(textElem != nullptr)

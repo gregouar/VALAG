@@ -2,13 +2,11 @@
 #define GAMESTATE_H
 
 #include "Valag/Types.h"
+#include "Valag/core/StatesManager.h"
 #include "Valag/core/EventsManager.h"
-#include "Valag/gfx/DefaultRenderer.h"
 
 namespace vlg
 {
-
-class StatesManager;
 
 class GameState
 {
@@ -23,7 +21,7 @@ class GameState
 
         virtual void handleEvents(const EventsManager *eventsManager) = 0;
         virtual void update(const Time &elapsedTime) = 0;
-        virtual void draw(DefaultRenderer *renderer  /**sf::RenderTarget* **/) = 0;
+        virtual void draw(RenderWindow *renderWindow) = 0;
 
         void setManager(StatesManager *);
 

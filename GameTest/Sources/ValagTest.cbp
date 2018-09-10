@@ -75,6 +75,7 @@
 		<Unit filename="../../Valag/include/Valag/core/NotificationSender.h" />
 		<Unit filename="../../Valag/include/Valag/core/StatesManager.h" />
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/AbstractRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Drawable.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/IsoSpriteEntity.h" />
@@ -119,6 +120,7 @@
 		<Unit filename="../../Valag/src/core/NotificationSender.cpp" />
 		<Unit filename="../../Valag/src/core/StatesManager.cpp" />
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
+		<Unit filename="../../Valag/src/gfx/AbstractRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/Drawable.cpp" />
 		<Unit filename="../../Valag/src/gfx/IsoSpriteEntity.cpp" />

@@ -26,7 +26,6 @@ class DynamicUBO
         uint32_t getDynamicOffset(size_t index);
 
         VBuffer        getBuffer();
-        //VkDeviceMemory  getBufferMemory();
         size_t          getBufferVersion();
 
     protected:
@@ -39,9 +38,6 @@ class DynamicUBO
         size_t m_chunkSize;
         size_t m_dynamicAlignment;
 
-        /*VkBuffer        m_buffer;
-        VkDeviceSize    m_bufferSize;
-        VkDeviceMemory  m_bufferMemory;*/
         VBuffer         m_buffer;
         VkDeviceSize    m_bufferSize;
         size_t          m_totalSize;

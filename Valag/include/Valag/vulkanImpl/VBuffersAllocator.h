@@ -20,8 +20,6 @@ struct VBuffer
     VkDeviceMemory          bufferMemory;
     VkDeviceSize            offset;
     VkDeviceSize            alignedSize;
-   // uint32_t                memoryTypeIndex;
-    //VBufferID               bufferID;
 
     VkBufferUsageFlags      usage;
     VkMemoryPropertyFlags   properties;
@@ -30,7 +28,6 @@ struct VBuffer
 
 struct AllocatedBuffer
 {
-    //uint32_t                memoryTypeIndex;
     VkBuffer                buffer;
     VkDeviceMemory          bufferMemory;
     VkDeviceSize            bufferSize;
@@ -60,9 +57,6 @@ class VBuffersAllocator : public Singleton<VBuffersAllocator>
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
         bool freeBufferImpl(VBuffer &vbuffer);
-        //void copyBufferImpl(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName);
-        //void copyBufferToImageImpl(VBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
-        //                           CommandPoolName commandPoolName);
         bool allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VBuffer &vbuffer);
         void writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceSize size);
 
@@ -75,9 +69,6 @@ class VBuffersAllocator : public Singleton<VBuffersAllocator>
 
     private:
         std::map<std::pair<VkBufferUsageFlags, VkMemoryPropertyFlags>, std::vector<AllocatedBuffer*>> m_buffers;
-
-        //std::map<VBufferID, VBuffer>    m_allocatedSubBuffers;
-        //VBufferID                       m_currentID;
 
     public:
         static uint32_t BUFFER_SIZE;

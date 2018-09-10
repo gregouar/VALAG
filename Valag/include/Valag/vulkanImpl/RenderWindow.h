@@ -7,9 +7,14 @@
 
 #include <string>
 #include <vector>
+#include <map>
+
+#include "Valag/Types.h"
 
 namespace vlg
 {
+
+class AbstractRenderer;
 
 class RenderWindow
 {
@@ -23,11 +28,16 @@ class RenderWindow
         bool init(); //Can only be done after initializing Vulkan
         void destroy();
 
+        bool attachRenderer(AbstractRenderer *renderer);
+        bool detachRenderer(RendererName renderer);
+
         size_t      getCurrentFrameIndex();
         VkExtent2D  getSwapchainExtent();
         VkFormat    getSwapchainImageFormat();
         const std::vector<VkImageView> &getSwapchainImageViews();
         const std::vector<VkImageView> &getDepthStencilImageViews();
+
+        AbstractRenderer* getRenderer(RendererName renderer);
 
     protected:
         uint32_t    acquireNextImage();
@@ -69,6 +79,8 @@ class RenderWindow
         std::vector<VkSemaphore>                 m_imageAvailableSemaphore;
         std::vector<std::vector<VkSemaphore>>    m_finishedRenderingSemaphores;
         std::vector<VkFence>                     m_inFlightFences;
+
+        std::map<RendererName, AbstractRenderer*>  m_attachedRenderers;
 };
 
 }

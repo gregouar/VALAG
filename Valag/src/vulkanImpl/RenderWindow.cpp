@@ -4,6 +4,7 @@
 #include "Valag/core/VApp.h"
 #include "Valag/utils/Logger.h"
 #include "Valag/utils/Parser.h"
+#include "Valag/gfx/AbstractRenderer.h"
 
 
 namespace vlg
@@ -65,6 +66,29 @@ bool RenderWindow::init()
     return (true);
 }
 
+
+bool RenderWindow::attachRenderer(AbstractRenderer *renderer)
+{
+    RendererName name = renderer->getName();
+    auto foundedRenderer = m_attachedRenderers.find(name);
+    if(foundedRenderer != m_attachedRenderers.end())
+        return (false);
+
+    m_attachedRenderers.insert(foundedRenderer,{name,renderer});
+    return (true);
+}
+
+bool RenderWindow::detachRenderer(RendererName renderer)
+{
+    auto foundedRenderer = m_attachedRenderers.find(renderer);
+    if(foundedRenderer != m_attachedRenderers.end())
+    {
+        m_attachedRenderers.erase(foundedRenderer);
+        return (true);
+    }
+    return (false);
+}
+
 size_t RenderWindow::getCurrentFrameIndex()
 {
     return m_curFrameIndex;
@@ -90,7 +114,14 @@ const std::vector<VkImageView> &RenderWindow::getDepthStencilImageViews()
     return m_depthStencilImagesViews;
 }
 
+AbstractRenderer *RenderWindow::getRenderer(RendererName renderer)
+{
+    auto foundedRenderer = m_attachedRenderers.find(renderer);
+    if(foundedRenderer != m_attachedRenderers.end())
+        return foundedRenderer->second;
 
+    return (nullptr);
+}
 
 
 /// PROTECTED ///
@@ -109,6 +140,9 @@ uint32_t RenderWindow::acquireNextImage()
     m_finishedRenderingSemaphores[m_curFrameIndex].clear();
 
     m_curImageIndex = imageIndex;
+
+    for(auto renderer : m_attachedRenderers)
+        renderer.second->update(m_curImageIndex);
 
     return imageIndex;
 }
@@ -137,6 +171,17 @@ void RenderWindow::submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaph
 
 void RenderWindow::display()
 {
+   // Profiler::pushClock("Update buffers");
+    for(auto renderer : m_attachedRenderers)
+        renderer.second->updateBuffers(m_curImageIndex);
+   // Profiler::popClock();
+
+    //Profiler::pushClock("Submit to queue");
+    for(auto renderer : m_attachedRenderers)
+        this->submitToGraphicsQueue(renderer.second->getCommandBuffer(m_curFrameIndex),
+                                    renderer.second->getRenderFinishedSemaphore(m_curFrameIndex));
+   // Profiler::popClock();
+
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 

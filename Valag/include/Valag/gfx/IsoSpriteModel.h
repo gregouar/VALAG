@@ -3,6 +3,7 @@
 
 #include "Valag/Types.h"
 #include "Valag/gfx/SceneRenderer.h"
+#include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 
 namespace vlg
 {
@@ -14,6 +15,8 @@ struct IsoSpriteModelUBO {
 
 class IsoSpriteModel
 {
+    friend class IsoSpriteEntity;
+
     public:
         IsoSpriteModel();
         virtual ~IsoSpriteModel();
@@ -38,6 +41,12 @@ class IsoSpriteModel
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
         glm::vec2 m_textureCenter;
+
+
+    /** Static **/
+        static VkDescriptorSetLayout getUBODescriptorSetLayout();
+
+        static DynamicUBODescriptor s_modelUBO;
 };
 
 }

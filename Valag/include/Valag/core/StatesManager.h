@@ -3,13 +3,14 @@
 
 #include <vector>
 
-#include "Valag/core/GameState.h"
-#include "Valag/gfx/DefaultRenderer.h"
+#include "Valag/core/EventsManager.h"
+#include "Valag/vulkanImpl/RenderWindow.h"
 
 namespace vlg
 {
 
 class VApp;
+class GameState;
 
 class StatesManager
 {
@@ -27,7 +28,7 @@ class StatesManager
 
         void handleEvents(const EventsManager *eventsManager);
         void update(const Time &elapsedTime);
-        void draw(DefaultRenderer *renderer /**sf::RenderTarget* **/);
+        void draw(RenderWindow *renderWindow);
 
         VApp* getApp();
 

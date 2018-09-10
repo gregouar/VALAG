@@ -19,18 +19,11 @@ VTexture::~VTexture()
 
 bool VTexture::generateTexture(unsigned char* pixels, int texWidth, int texHeight, CommandPoolName commandPoolName)
 {
-    //VkDevice device = VInstance::device();
-
     VBuffer stagingBuffer;
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     VBuffersAllocator::allocBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                 stagingBuffer);
-
-    /*void* data;
-    vkMapMemory(device, stagingBuffer.bufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBuffer.bufferMemory);*/
 
     VBuffersAllocator::writeBuffer(stagingBuffer, pixels, static_cast<size_t>(imageSize));
 

@@ -203,11 +203,6 @@ bool VInstance::setupDebugCallback()
     return (CreateDebugReportCallbackEXT(m_vulkanInstance, &createInfo, nullptr, &m_debugCallback) == VK_SUCCESS);
 }
 
-/*bool VInstance::createSurface()
-{
-    return (glfwCreateWindowSurface(m_vulkanInstance, m_parentWindow, nullptr, &m_surface) == VK_SUCCESS);
-}*/
-
 bool VInstance::checkDeviceExtensionSupport(const VkPhysicalDevice &device)
 {
     uint32_t extensionCount;
@@ -582,18 +577,6 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer/*, CommandPo
     //vkQueueWaitIdle(m_graphicsQueue);
 
 }
-
-
-
-/*VInstance *VInstance::getCurrentInstance()
-{
-    return VInstance::static_currentInstance;
-}
-
-void VInstance::setCurrentInstance(VInstance *instance)
-{
-    VInstance::static_currentInstance = instance;
-}*/
 
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VInstance::debugCallback(    VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,

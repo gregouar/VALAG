@@ -7,6 +7,9 @@
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/gfx/MaterialAsset.h"
+#include "Valag/gfx/DefaultRenderer.h"
+
+#include "Valag/Types.h"
 
 #include <glm/gtc/random.hpp>
 
@@ -160,12 +163,14 @@ void TestingState::update(const vlg::Time &elapsedTime)
     m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }
 
-void TestingState::draw(vlg::DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
+void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
-    for(auto &sprite : m_testingSprites)
-        renderer->draw(&sprite);
+    vlg::DefaultRenderer *defaultRenderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
 
-    renderer->draw(&m_testingSpritesBatch);
+    for(auto &sprite : m_testingSprites)
+        defaultRenderer->draw(&sprite);
+
+    defaultRenderer->draw(&m_testingSpritesBatch);
 }
 
 

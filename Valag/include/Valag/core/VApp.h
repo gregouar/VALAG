@@ -26,7 +26,6 @@ struct VAppCreateInfos
 class VApp
 {
     public:
-        //VApp();
         VApp(const VAppCreateInfos &infos);
         virtual ~VApp();
 
@@ -36,36 +35,26 @@ class VApp
 
         void printscreen();
 
-        //sf::Vector2u getWindowSize();
-        //const std::string &getName();
-
     protected:
         bool    init();
 
-        //bool    checkVideoMode(int w, int h, GLFWmonitor *monitor);
-        //bool    createDummyAssets();
         bool    createWindow();
-        //bool    createVulkanInstance();
         bool    createDefaultRenderer();
         bool    createSceneRenderer();
 
         void    loop();
-        void    drawFrame();
 
         void    cleanup();
 
     private:
         bool        m_running;
-        //std::string m_name;
+
         VAppCreateInfos     m_createInfos;
 
         StatesManager       m_statesManager;
         EventsManager       m_eventsManager;
-        //GLFWwindow         *m_window;
         RenderWindow        m_renderWindow;
-        uint32_t            m_imageIndex;
 
-        //VInstance          *m_vulkanInstance;
         DefaultRenderer    *m_defaultRenderer;
         SceneRenderer      *m_sceneRenderer;
 

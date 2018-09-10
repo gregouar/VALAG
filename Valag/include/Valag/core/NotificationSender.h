@@ -27,9 +27,6 @@ class NotificationSender
         void sendNotification(NotificationType);
 
     private:
-       /* std::list<NotificationListener*> m_listenerToNotifyEverything;
-        std::map<NotificationType, std::list<NotificationListener*> > m_listenerToNotify;**/
-
         std::set<NotificationListener*> m_listenerToNotifyEverything;
         std::map<NotificationType, std::set<NotificationListener*> > m_listenerToNotify;
 };

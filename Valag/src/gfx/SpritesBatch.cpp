@@ -66,27 +66,11 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
     if (vkBeginCommandBuffer(m_drawCommandBuffers[frameIndex], &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording command buffer");
 
-    renderer->bindDefaultPipeline(m_drawCommandBuffers[frameIndex], frameIndex);
+    renderer->bindPipeline(m_drawCommandBuffers[frameIndex], frameIndex);
 
     for(auto spriteSet : m_sortedSprites)
     for(auto sprite : spriteSet.second)
         sprite->recordDrawCMBContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer);
-
-    /*VkBuffer vertexBuffers[] = {m_vertexBuffer.buffer};
-    VkDeviceSize offsets[] = {m_vertexBuffer.offset};
-
-    if(!renderer->bindTexture(m_drawCommandBuffers[currentFrame], m_texture, currentFrame))
-    {
-        if (vkEndCommandBuffer(m_drawCommandBuffers[currentFrame]) != VK_SUCCESS)
-            throw std::runtime_error("Failed to record command buffer");
-        return (false);
-    }
-
-    renderer->bindAllUBOs(m_drawCommandBuffers[currentFrame],currentFrame,m_modelUBOIndex);
-
-    vkCmdBindVertexBuffers(m_drawCommandBuffers[currentFrame], 0, 1, vertexBuffers, offsets);
-
-    vkCmdDraw(m_drawCommandBuffers[currentFrame], 4, 1, 0, 0);*/
 
     if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer");

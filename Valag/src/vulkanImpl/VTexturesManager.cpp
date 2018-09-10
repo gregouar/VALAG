@@ -15,59 +15,12 @@ const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 128; //Number of layers i
 
 VTexturesManager::VTexturesManager()
 {
-    //this->init();
 }
 
 VTexturesManager::~VTexturesManager()
 {
     this->cleanup();
 }
-
-/*bool VTexturesManager::bindTexture(AssetTypeID id, size_t frameIndex, int *texArrayID)
-{
-    return VTexturesManager::instance()->bindTextureImpl(id, frameIndex, texArrayID);
-}*/
-
-/*bool VTexturesManager::bindTextureImpl(AssetTypeID id, size_t frameIndex, int *texArrayID)
-{
-    auto imageIt = m_texturesArray.find(id);
-    if(imageIt == m_texturesArray.end())
-    {
-        auto asset = TextureHandler::instance()->getAsset(id);
-
-        if(!asset->isLoaded())
-        {
-            (*texArrayID) = 0;
-            return (true);
-        }
-
-        imageIt = m_texturesToAdd.find(id);
-
-        if(imageIt != m_texturesToAdd.end())
-            return (false);
-
-        VkDescriptorImageInfo imageInfo = {};
-        imageInfo.sampler = nullptr;
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = asset->getImageView();
-
-        m_texturesToAdd[id] = m_availableImageInfos.front();
-
-        m_imageInfos[m_availableImageInfos.front()] = imageInfo;
-        m_availableImageInfos.pop_front();
-
-        for(auto b : m_needToUpdateDescSet)
-            b = true;
-      //  m_needToUpdateDescSet[frameIndex] = true;
-       // this->updateDescriptorSet(frameIndex);
-       return (false);
-    }
-
-    (*texArrayID) = imageIt->second;
-
-    return (true);
-}*/
-
 
 bool VTexturesManager::allocTexture(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture)
 {
@@ -186,6 +139,11 @@ VkDescriptorSetLayout VTexturesManager::getDescriptorSetLayout()
 VkDescriptorSet VTexturesManager::getDescriptorSet(size_t frameIndex)
 {
     return m_descriptorSets/*[m_descriptorSetsNbr[frameIndex]]*/[frameIndex];
+}
+
+size_t VTexturesManager::descriptorSetVersion(size_t frameIndex)
+{
+    return VTexturesManager::instance()->getDescriptorSetVersion(frameIndex);
 }
 
 size_t VTexturesManager::getDescriptorSetVersion(size_t frameIndex)

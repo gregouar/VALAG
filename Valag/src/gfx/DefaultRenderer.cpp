@@ -21,21 +21,11 @@ namespace vlg
 const char *DefaultRenderer::DEFAULT_VERTSHADERFILE = "defaultShader.vert.spv";
 const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 
-//const size_t DefaultRenderer::MODEL_DYNAMICBUFFER_CHUNKSIZE = 512;
 const float DefaultRenderer::DEPTH_SCALING_FACTOR = 1024*1024;
 
-DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow) :
-    m_targetWindow(targetWindow),
-    //m_defaultTextureSampler(VK_NULL_HANDLE),
-    m_defaultRenderPass(VK_NULL_HANDLE),
-    m_defaultPipelineLayout(VK_NULL_HANDLE),
-    m_defaultPipeline(VK_NULL_HANDLE),
-    m_curFrameIndex(0)
+DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow, RendererName name) : AbstractRenderer(targetWindow, name),
+    m_viewDescriptorSetLayout(VK_NULL_HANDLE)
 {
-//    m_needToExpandModelBuffers = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
-   // m_oldModelBuffers = std::vector<VkBuffer> (VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-   // m_oldModelBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-    //m_currentFrameViewUBO = VApp::MAX_FRAMES_IN_FLIGHT - 1;
     this->init();
 }
 
@@ -44,48 +34,21 @@ DefaultRenderer::~DefaultRenderer()
     this->cleanup();
 }
 
+void DefaultRenderer::update(size_t frameIndex)
+{
+    Sprite::updateRendering(frameIndex);
+
+    if(m_needToUpdateViewUBO[m_curFrameIndex])
+        this->updateViewUBO();
+}
+
 
 void DefaultRenderer::draw(Drawable *drawable)
 {
-    VkCommandBuffer commandBuffer = drawable->getDrawCommandBuffer(this,m_curFrameIndex, m_defaultRenderPass, 0);
+    VkCommandBuffer commandBuffer = drawable->getDrawCommandBuffer(this,m_curFrameIndex, m_renderPass, 0);
     if(commandBuffer != VK_NULL_HANDLE)
         m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
-
-
-VkCommandBuffer DefaultRenderer::getCommandBuffer()
-{
-    return m_commandBuffers[m_lastFrameIndex];
-}
-
-VkSemaphore DefaultRenderer::getRenderFinishedSemaphore(size_t frameIndex)
-{
-    return m_renderFinishedSemaphore[frameIndex /*m_currentFrame - 1) % VApp::MAX_FRAMES_IN_FLIGHT*/];
-}
-
-
-void DefaultRenderer::updateBuffers(uint32_t imageIndex)
-{
-    if(m_needToUpdateViewUBO[m_curFrameIndex])
-        this->updateViewUBO();
-
-    Profiler::pushClock("Record primary buffer");
-    this->recordPrimaryCommandBuffer(imageIndex);
-    Profiler::popClock();
-
-    m_lastFrameIndex    = m_curFrameIndex;
-    m_curFrameIndex = (m_curFrameIndex + 1) % VApp::MAX_FRAMES_IN_FLIGHT;
-}
-
-/*void DefaultRenderer::checkBuffersExpansion()
-{
-    if(m_needToExpandModelBuffers[m_curFrameIndex])
-    {
-        m_modelBuffers[m_curFrameIndex]->expandBuffers();
-        this->updateModelDescriptorSets(m_curFrameIndex);
-        m_needToExpandModelBuffers[m_curFrameIndex] = false;
-    }
-}*/
 
 void DefaultRenderer::updateViewUBO()
 {
@@ -107,7 +70,7 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    if (vkBeginCommandBuffer(m_commandBuffers[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_primaryCMB[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
     {
         Logger::error("Failed to begin recording command buffer");
         return (false);
@@ -115,14 +78,10 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_defaultRenderPass;
+    renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
-
-    //VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-    //renderPassInfo.clearValueCount = 1;
-    //renderPassInfo.pClearValues = &clearColor;
 
     std::array<VkClearValue, 2> clearValues = {};
     clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -130,77 +89,22 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    vkCmdBeginRenderPass(m_commandBuffers[m_curFrameIndex], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
         if(!m_activeSecondaryCommandBuffers.empty())
-            vkCmdExecuteCommands(m_commandBuffers[m_curFrameIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
+            vkCmdExecuteCommands(m_primaryCMB[m_curFrameIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
 
-    vkCmdEndRenderPass(m_commandBuffers[m_curFrameIndex]);
+    vkCmdEndRenderPass(m_primaryCMB[m_curFrameIndex]);
 
     m_activeSecondaryCommandBuffers.clear();
 
-    if (vkEndCommandBuffer(m_commandBuffers[m_curFrameIndex]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_primaryCMB[m_curFrameIndex]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);
     }
 
     return (true);
-}
-
-
-/*bool DefaultRenderer::allocModelUBO(size_t &index, size_t frameIndex)
-{
-    if(m_modelBuffers[frameIndex]->isFull())
-    {
-        m_needToExpandModelBuffers[frameIndex] = true;
-        return (false);
-    }
-
-    m_modelBuffers[frameIndex]->allocObject(index);
-
-    return (true);
-}
-
-void DefaultRenderer::updateModelUBO(size_t index, void *data, size_t frameIndex)
-{
-    m_modelBuffers[frameIndex]->updateObject(index, data);
-}
-
-void DefaultRenderer::updateModelDescriptorSets(size_t frameIndex)
-{
-    VkDevice device = VInstance::device();
-
-    //for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-    {
-        VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_modelBuffers[frameIndex]->getBuffer().buffer;
-        bufferInfo.offset = m_modelBuffers[frameIndex]->getBuffer().offset;
-        bufferInfo.range = sizeof(ModelUBO);//m_modelBuffers[i]->getBufferRange();
-
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_modelDescriptorSets[frameIndex];
-        descriptorWrite.dstBinding = 0; //Bind number
-        descriptorWrite.dstArrayElement = 0; //Set number
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr; // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-    }
-}
-
-size_t DefaultRenderer::getModelUBOBufferVersion(size_t frameIndex)
-{
-    return m_modelBuffers[frameIndex]->getBufferVersion();
-}*/
-
-size_t DefaultRenderer::getTextureArrayDescSetVersion(size_t frameIndex)
-{
-    return VTexturesManager::instance()->getDescriptorSetVersion(frameIndex);
 }
 
 bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex)
@@ -216,103 +120,36 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID te
         pc[1] = vtexture.m_textureLayer;
     }
 
-    vkCmdPushConstants(commandBuffer, m_defaultPipelineLayout,
+    vkCmdPushConstants(commandBuffer, m_pipelineLayout,
             VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int)*2, (void*)pc);
 
     return (true);
 }
 
-void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex)
+void DefaultRenderer::bindPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex)
 {
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
     VkDescriptorSet descriptorSets[] = {m_viewDescriptorSets[frameIndex],
                                         VTexturesManager::instance()->getDescriptorSet(frameIndex) };
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,0,2, descriptorSets, 0, nullptr);
+                            m_pipelineLayout,0,2, descriptorSets, 0, nullptr);
 }
-
-/*void DefaultRenderer::bindModelUBO(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex)
-{
-    uint32_t dynamicOffset = m_modelBuffers[frameIndex]->getDynamicOffset(modelUBOIndex);
-
-    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,2,1, &m_modelDescriptorSets[frameIndex], 1, &dynamicOffset);
-}*/
-
-/*void DefaultRenderer::bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset)
-{
-    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,2,1, &descSet, 1, &dynamicOffset);
-}*/
 
 void DefaultRenderer::bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer &commandBuffer, DynamicUBODescriptor &uboDesc, size_t index)
 {
     uint32_t dynamicOffset  = uboDesc.getDynamicOffset(frameIndex, index);
     auto descSet            = uboDesc.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_defaultPipelineLayout,2,1, &descSet, 1, &dynamicOffset);
+                            m_pipelineLayout,2,1, &descSet, 1, &dynamicOffset);
 }
 
 bool DefaultRenderer::init()
 {
-    if(!this->createRenderPass())
-    {
-        Logger::error("Cannot create default render pass");
-        return (false);
-    }
+    Sprite::initRendering();
 
-    if(!this->createDescriptorSetLayouts())
-    {
-        Logger::error("Cannot create default descriptor set layout");
-        return (false);
-    }
-
-
-    if(!this->createGraphicsPipeline())
-    {
-        Logger::error("Cannot create default graphics pipeline");
-        return (false);
-    }
-
-    if(!this->createFramebuffers())
-    {
-        Logger::error("Cannot create default framebuffers");
-        return (false);
-    }
-
-    if(!this->createUBO())
-    {
-        Logger::error("Cannot create default UBOs");
-        return (false);
-    }
-
-    if(!this->createDescriptorPool())
-    {
-        Logger::error("Cannot create default descriptor pool");
-        return (false);
-    }
-
-    if(!this->createDescriptorSets())
-    {
-        Logger::error("Cannot create default descriptor sets");
-        return (false);
-    }
-
-    if(!this->createPrimaryCommandBuffers())
-    {
-        Logger::error("Cannot create primary command buffers");
-        return (false);
-    }
-
-    if(!this->createSemaphores())
-    {
-        Logger::error("Cannot create default renderer semaphores");
-        return (false);
-    }
-
-    return (true);
+    return AbstractRenderer::init();
 }
 
 bool DefaultRenderer::createRenderPass()
@@ -371,7 +208,7 @@ bool DefaultRenderer::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_defaultRenderPass) == VK_SUCCESS);
+    return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass) == VK_SUCCESS);
 }
 
 bool DefaultRenderer::createDescriptorSetLayouts()
@@ -392,12 +229,6 @@ bool DefaultRenderer::createDescriptorSetLayouts()
 
     if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_viewDescriptorSetLayout) != VK_SUCCESS)
         return (false);
-
-    /*uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_modelDescriptorSetLayout) != VK_SUCCESS)
-        return (false);*/
 
     return (true);
 }
@@ -536,7 +367,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     //pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     //pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_defaultPipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
         Logger::error("Failed to create pipeline layout");
         return (false);
@@ -567,72 +398,17 @@ bool DefaultRenderer::createGraphicsPipeline()
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr; // Optional
-    pipelineInfo.layout = m_defaultPipelineLayout;
-    pipelineInfo.renderPass = m_defaultRenderPass;
+    pipelineInfo.layout = m_pipelineLayout;
+    pipelineInfo.renderPass = m_renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_defaultPipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS)
         return (false);
 
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
-
-    return (true);
-}
-
-
-/*bool DefaultRenderer::createTextureSampler()
-{
-    VkSamplerCreateInfo samplerInfo = {};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = Config::getInt("Graphics","AnisotropicFiltering",VApp::DEFAULT_ANISOTROPIC);
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-    return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_defaultTextureSampler) == VK_SUCCESS);
-}*/
-
-bool DefaultRenderer::createFramebuffers()
-{
-    auto swapChainImageViews = m_targetWindow->getSwapchainImageViews();
-    auto depthImagesView = m_targetWindow->getDepthStencilImageViews();
-
-    m_swapchainFramebuffers.resize(swapChainImageViews.size());
-    m_swapchainExtents.resize(swapChainImageViews.size());
-
-    for (size_t i = 0; i < swapChainImageViews.size(); ++i)
-    {
-        std::array<VkImageView, 2> attachments = {
-            swapChainImageViews[i],
-            depthImagesView[i]
-        };
-
-        m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_defaultRenderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_swapchainExtents[i].width;
-        framebufferInfo.height = m_swapchainExtents[i].height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
-            return (false);
-
-    }
 
     return (true);
 }
@@ -692,113 +468,16 @@ bool DefaultRenderer::createDescriptorSets()
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 
-    /*{
-        std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_modelDescriptorSetLayout);
-        VkDescriptorSetAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
-        m_modelDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device, &allocInfo,m_modelDescriptorSets.data()) != VK_SUCCESS)
-            return (false);
-    }
-
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        this->updateModelDescriptorSets(i);*/
-
     return (true);
 }
 
-bool DefaultRenderer::createPrimaryCommandBuffers()
-{
-    //m_commandBuffers.resize(m_swapchainFramebuffers.size());
-    m_commandBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool(/*COMMANDPOOL_DEFAULT*/COMMANDPOOL_SHORTLIVED);
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
-
-    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
-    {
-        Logger::error("Failed to allocate command buffers");
-        return (false);
-    }
-
-    /*for (size_t i = 0; i < m_commandBuffers.size(); ++i)
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-        if (vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo) != VK_SUCCESS)
-        {
-            Logger::error("Failed to begin recording command buffer");
-            return (false);
-        }
-
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_defaultRenderPass;
-        renderPassInfo.framebuffer = m_swapchainFramebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_vulkanInstance->getSwapchainExtent();
-
-        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
-
-        vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipeline);
-
-            //vkCmdDraw(m_commandBuffers[i], 3, 1, 0, 0);
-
-        vkCmdEndRenderPass(m_commandBuffers[i]);
-
-        if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS)
-        {
-            Logger::error("Failed to record command buffer");
-            return (false);
-        }
-    }*/
-
-    return (true);
-}
-
-bool DefaultRenderer::createSemaphores()
-{
-    /*if(m_vulkanInstance == nullptr)
-        return (false);
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    return (vkCreateSemaphore(m_vulkanInstance->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) == VK_SUCCESS);*/
-
-    m_renderFinishedSemaphore.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS)
-            return (false);
-
-    return (true);
-}
 
 bool DefaultRenderer::createUBO()
 {
     VkDeviceSize bufferSize = sizeof(ViewUBO);
 
     m_viewBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    //m_viewBuffersMemory.resize(VApp::MAX_FRAMES_IN_FLIGHT);
     m_needToUpdateViewUBO.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    //m_modelBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -806,10 +485,7 @@ bool DefaultRenderer::createUBO()
                                     m_viewBuffers[i]))
             return (false);
 
-        //this->updateViewUBO();
         m_needToUpdateViewUBO[i] = true;
-
-        //m_modelBuffers[i] = new DynamicUBO(sizeof(ModelUBO),MODEL_DYNAMICBUFFER_CHUNKSIZE);
     }
     return (true);
 }
@@ -818,41 +494,16 @@ void DefaultRenderer::cleanup()
 {
     VkDevice device = VInstance::device();
 
-    //delete m_texturesArrayManager;
-
-    vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
-
-    //for(auto modelBuffer : m_modelBuffers)
-      //  delete modelBuffer;
+    AbstractRenderer::cleanup();
 
     for(auto ubo : m_viewBuffers)
         VBuffersAllocator::freeBuffer(ubo);
 
-    /*for(auto uboMemory : m_viewBuffersMemory)
-        vkFreeMemory(device, uboMemory, nullptr);*/
+    if(m_viewDescriptorSetLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(device, m_viewDescriptorSetLayout, nullptr);
+    m_viewDescriptorSetLayout = VK_NULL_HANDLE;
 
-    for (auto semaphore : m_renderFinishedSemaphore)
-        vkDestroySemaphore(device, semaphore, nullptr);
-
-    for (auto framebuffer : m_swapchainFramebuffers)
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-
-    if(m_defaultPipeline != VK_NULL_HANDLE)
-        vkDestroyPipeline(device, m_defaultPipeline, nullptr);
-
-    if(m_defaultPipelineLayout != VK_NULL_HANDLE)
-        vkDestroyPipelineLayout(device, m_defaultPipelineLayout, nullptr);
-
-    vkDestroyDescriptorSetLayout(device, m_viewDescriptorSetLayout, nullptr);
-    //vkDestroyDescriptorSetLayout(device, m_modelDescriptorSetLayout, nullptr);
-
-    if(m_defaultRenderPass != VK_NULL_HANDLE)
-        vkDestroyRenderPass(device, m_defaultRenderPass, nullptr);
-
-   // if(m_defaultTextureSampler != VK_NULL_HANDLE)
-     //   vkDestroySampler(device, m_defaultTextureSampler, nullptr);
-
-
+    Sprite::cleanupRendering();
 }
 
 

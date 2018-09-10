@@ -38,8 +38,6 @@ void Logger::fatalError(const std::ostringstream& s)
 
 void Logger::write(const std::string& s)
 {
-    //sf::Lock lock(Logger::instance()->m_loggerMutex);
-    //std::lock(Logger::instance()->m_loggerMutex);
     std::lock_guard<std::mutex> lock(Logger::instance()->m_loggerMutex);
 
     if(Logger::instance()->m_enableConsoleWriting)
@@ -52,40 +50,16 @@ void Logger::warning(const std::string& s)
 {
     if(Logger::instance()->m_enableWarnings)
         Logger::write("Warning : "+s);
-
-    /*sf::Lock lock(Logger::Instance()->m_loggerMutex);
-
-    if(Logger::Instance()->m_enableWarnings)
-    {
-        if(Logger::Instance()->m_consoleActive)
-            std::cout<<"Warning: "<<s<<std::endl;
-
-        *Logger::Instance()->m_fileStream<<"Warning: "<<s<<std::endl;
-    }*/
 }
 
 void Logger::error(const std::string& s)
 {
     Logger::write("ERROR: "+s);
-
-    /*sf::Lock lock(Logger::Instance()->m_loggerMutex);
-
-    if(Logger::Instance()->m_consoleActive)
-        std::cerr<<"ERROR: "<<s<<std::endl;
-
-   *Logger::Instance()->m_fileStream<<"ERROR: "<<s<<std::endl;*/
 }
 
 void Logger::fatalError(const std::string& s)
 {
     Logger::write("FATAL ERROR: "+s);
-
-    /*sf::Lock lock(Logger::Instance()->m_loggerMutex);
-
-    if(Logger::Instance()->m_consoleActive)
-        std::cerr<<"FATAL ERROR: "<<s<<", stopping application"<<std::endl;
-
-   *Logger::Instance()->m_fileStream<<"FATAL ERROR: "<<s<<", stopping application"<<std::endl;*/
 }
 
 void Logger::enableConsoleWriting()

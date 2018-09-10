@@ -14,6 +14,8 @@ struct IsoSpriteEntityUBO {
 
 class IsoSpriteEntity : public SceneEntity
 {
+    friend class SceneRenderer;
+
     public:
         IsoSpriteEntity();
         virtual ~IsoSpriteEntity();
@@ -35,6 +37,17 @@ class IsoSpriteEntity : public SceneEntity
         std::vector<bool>       m_needToUpdateUBO;
         std::vector<size_t>     m_UBOIndex;
         std::vector<size_t>     m_UBOVersion;
+
+
+
+    /** Static **/
+        static bool initRendering();
+        static void updateRendering(size_t frameIndex); //Expands UBOs
+        static void cleanupRendering();
+
+        static VkDescriptorSetLayout getUBODescriptorSetLayout();
+
+        static DynamicUBODescriptor s_entityUBO;
 };
 
 }

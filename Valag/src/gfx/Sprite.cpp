@@ -83,7 +83,6 @@ void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
     if(m_texturePosition != position || extent != m_textureExtent)
         for(auto b : m_needToUpdateModel) b = true;
-            //for(auto b : m_needToUpdateVertexBuffer) b = true;
 
     m_texturePosition = position;
     m_textureExtent = extent;
@@ -132,8 +131,6 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t frameIndex)
     modelUBO.texPos = m_texturePosition;
     modelUBO.texExt = m_textureExtent;
 
-    //renderer->updateModelUBO(m_modelUBOIndex, &modelUBO,frameIndex);
-    //s_modelBuffers[frameIndex]->updateObject(m_modelUBOIndex[frameIndex], &modelUBO);
     s_modelUBO.updateObject(frameIndex, m_modelUBOIndex[frameIndex], &modelUBO);
 
     m_needToUpdateModel[frameIndex] = false;
@@ -146,17 +143,6 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
 
     if(m_needToAllocModel[frameIndex])
     {
-        /*if(s_modelBuffers[frameIndex]->isFull())
-        {
-            s_needToExpandModelBuffers[frameIndex] = true;
-            m_preventDrawing = true;
-            return (false);
-        }
-
-        s_modelBuffers[frameIndex]->allocObject(m_modelUBOIndex[frameIndex]);
-        m_needToAllocModel[frameIndex] = false;
-        needToUpdateDrawCMB = true;*/
-
         if(!s_modelUBO.allocObject(frameIndex, m_modelUBOIndex[frameIndex]))
         {
             m_preventDrawing = true;
@@ -175,10 +161,10 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
     if(m_needToUpdateModel[frameIndex])
         this->updateModelUBO(renderer, frameIndex);
 
-    if(m_texDescSetVersion[frameIndex] != renderer->getTextureArrayDescSetVersion(frameIndex))
+    if(m_texDescSetVersion[frameIndex] != VTexturesManager::descriptorSetVersion(frameIndex))
     {
         needToUpdateDrawCMB = true;
-        m_texDescSetVersion[frameIndex] = renderer->getTextureArrayDescSetVersion(frameIndex);
+        m_texDescSetVersion[frameIndex] = VTexturesManager::descriptorSetVersion(frameIndex);
     }
 
     if(m_needToCheckLoading[frameIndex] && TexturesHandler::instance()->getAsset(m_texture)->isLoaded())
@@ -214,8 +200,6 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
     if(!renderer->bindTexture(commandBuffer, m_texture, frameIndex))
         return (false);
 
-    //uint32_t dynamicOffset = s_modelBuffers[frameIndex]->getDynamicOffset(m_modelUBOIndex[frameIndex]);
-    //renderer->bindModelDescriptorSet(commandBuffer, s_modelDescriptorSets[frameIndex], dynamicOffset);
     renderer->bindModelDescriptorSet(frameIndex, commandBuffer, s_modelUBO, m_modelUBOIndex[frameIndex]);
 
     vkCmdDraw(commandBuffer, 4, 1, 0, 0);
@@ -243,7 +227,7 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameInd
     if (vkBeginCommandBuffer(m_drawCommandBuffers[frameIndex], &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording command buffer");
 
-    renderer->bindDefaultPipeline(m_drawCommandBuffers[frameIndex],frameIndex);
+    renderer->bindPipeline(m_drawCommandBuffers[frameIndex],frameIndex);
 
     if(!this->recordDrawCMBContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer))
     {
@@ -261,10 +245,6 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameInd
 
 void Sprite::cleanup()
 {
-   // VBuffersAllocator::freeBuffer(m_vertexBuffer);
-  // for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-
-    //for(auto modelBuffer : s_modelBuffers)
     for(size_t i = 0 ; i < m_modelUBOIndex.size() ; ++i)
         s_modelUBO.freeObject(i,m_modelUBOIndex[i]);
 }
@@ -273,17 +253,17 @@ void Sprite::cleanup()
 
 DynamicUBODescriptor Sprite::s_modelUBO = DynamicUBODescriptor(sizeof(SpriteModelUBO),1024); //Chunk size
 
-bool Sprite::initSpriteRendering()
+bool Sprite::initRendering()
 {
     return s_modelUBO.init();
 }
 
-void Sprite::updateSpriteRendering(size_t frameIndex)
+void Sprite::updateRendering(size_t frameIndex)
 {
     s_modelUBO.update(frameIndex);
 }
 
-void Sprite::cleanupSpriteRendering()
+void Sprite::cleanupRendering()
 {
     s_modelUBO.cleanup();
 }
@@ -292,141 +272,6 @@ VkDescriptorSetLayout Sprite::getModelDescriptorSetLayout()
 {
     return s_modelUBO.getDescriptorSetLayout();
 }
-
-/*const size_t Sprite::MODEL_UBO_CHUNKSIZE = 1024;
-
-std::vector<bool>               Sprite::s_needToExpandModelBuffers;
-std::vector<DynamicUBO*>        Sprite::s_modelBuffers;
-VkDescriptorSetLayout           Sprite::s_modelDescriptorSetLayout;
-VkDescriptorPool                Sprite::s_descriptorPool;
-std::vector<VkDescriptorSet>    Sprite::s_modelDescriptorSets;
-
-bool Sprite::initSpriteRendering()
-{
-    if(!Sprite::createDescriptorSetLayouts())
-        return (false);
-
-    s_needToExpandModelBuffers = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
-    s_modelBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        s_modelBuffers[i] = new DynamicUBO(sizeof(SpriteModelUBO),Sprite::MODEL_UBO_CHUNKSIZE);
-
-    if(!Sprite::createDescriptorPool())
-        return (false);
-
-    if(!Sprite::createDescriptorSets())
-        return (false);
-
-    return (true);
-}
-
-void Sprite::updateSpriteRendering(size_t frameIndex)
-{
-    if(s_needToExpandModelBuffers[frameIndex])
-    {
-        s_modelBuffers[frameIndex]->expandBuffers();
-        Sprite::updateModelDescriptorSets(frameIndex);
-        s_needToExpandModelBuffers[frameIndex] = false;
-    }
-}
-
-void Sprite::cleanupSpriteRendering()
-{
-    auto device = VInstance::device();
-
-    vkDestroyDescriptorPool(device,s_descriptorPool,nullptr);
-
-    for(auto modelBuffer : s_modelBuffers)
-        delete modelBuffer;
-    s_modelBuffers.clear();
-
-    vkDestroyDescriptorSetLayout(device, s_modelDescriptorSetLayout, nullptr);
-}
-
-bool Sprite::createDescriptorSetLayouts()
-{
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
-
-    if(vkCreateDescriptorSetLayout(VInstance::device(), &layoutInfo, nullptr, &s_modelDescriptorSetLayout) != VK_SUCCESS)
-        return (false);
-
-    return (true);
-}
-
-bool Sprite::createDescriptorPool()
-{
-    VkDescriptorPoolSize poolSize = {};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    VkDescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-
-    poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &s_descriptorPool) == VK_SUCCESS);
-}
-
-bool Sprite::createDescriptorSets()
-{
-    std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, s_modelDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = s_descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    s_modelDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(VInstance::device(), &allocInfo,s_modelDescriptorSets.data()) != VK_SUCCESS)
-        return (false);
-
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-        Sprite::updateModelDescriptorSets(i);
-
-    return (true);
-}
-
-
-void Sprite::updateModelDescriptorSets(size_t frameIndex)
-{
-    VkDevice device = VInstance::device();
-
-    VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = s_modelBuffers[frameIndex]->getBuffer().buffer;
-    bufferInfo.offset = s_modelBuffers[frameIndex]->getBuffer().offset;
-    bufferInfo.range = sizeof(SpriteModelUBO);
-
-    VkWriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = s_modelDescriptorSets[frameIndex];
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-    descriptorWrite.pImageInfo = nullptr;
-    descriptorWrite.pTexelBufferView = nullptr;
-
-    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-}
-
-
-VkDescriptorSetLayout Sprite::getModelDescriptorSetLayout()
-{
-    return s_modelDescriptorSetLayout;
-}*/
 
 
 }

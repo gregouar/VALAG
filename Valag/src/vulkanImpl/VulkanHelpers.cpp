@@ -112,7 +112,7 @@ bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,commandPoolName*/);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
 
     return (true);
 }
@@ -226,7 +226,7 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerC
         1, &barrier
     );
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,commandPoolName*/);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
 }
 
 void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
@@ -251,7 +251,7 @@ void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t w
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    VInstance::instance()->endSingleTimeCommands(commandBuffer/*,commandPoolName*/);
+    VInstance::instance()->endSingleTimeCommands(commandBuffer);
 }
 
 VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount)

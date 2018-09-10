@@ -64,10 +64,6 @@ template<class AssetType> class AssetHandler : public Singleton<AssetHandler<Ass
         std::map<AssetTypeID, int> m_obsolescenceList;
         std::map<std::string, AssetTypeID> m_filesList;
 
-        /**sf::Thread* m_loadThread;
-        sf::Mutex m_loadMutex;
-        sf::Mutex m_loadingCurAssetMutex;**/
-
         std::thread m_loadThread;
         std::mutex m_loadMutex;
         std::mutex m_loadingCurAssetMutex;

@@ -5,26 +5,37 @@
 #ifndef SCENERENDERER_H
 #define SCENERENDERER_H
 
-#include "Valag/vulkanImpl/RenderWindow.h"
+#include "Valag/gfx/AbstractRenderer.h"
 #include "Valag/gfx/Scene.h"
 
 namespace vlg
 {
 
-class SceneRenderer
+class SceneRenderer : public AbstractRenderer
 {
     public:
-        SceneRenderer(RenderWindow *targetWindow);
+        SceneRenderer(RenderWindow *targetWindow, RendererName name);
         virtual ~SceneRenderer();
+
+        void update(size_t frameIndex);
 
         void draw(Scene* scene);
 
     protected:
-        void init();
-        void cleanup();
+        virtual bool init();
+        virtual void cleanup();
+
+        virtual bool    createRenderPass();
+        virtual bool    createDescriptorSetLayouts();
+        virtual bool    createGraphicsPipeline();
+        virtual bool    createUBO();
+        virtual bool    createDescriptorPool();
+        virtual bool    createDescriptorSets();
+
+        virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
     private:
-        RenderWindow *m_targetWindow; //Will probably be not needed for SceneRenderer ?
+
 };
 
 }

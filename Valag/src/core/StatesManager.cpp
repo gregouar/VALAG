@@ -1,5 +1,6 @@
 #include "Valag/core/StatesManager.h"
 
+#include "Valag/core/GameState.h"
 #include "Valag/utils/Logger.h"
 
 namespace vlg
@@ -78,16 +79,14 @@ void StatesManager::handleEvents(const EventsManager *eventsManager)
 
 void StatesManager::update(const Time &elapsedTime)
 {
-    /*for(std::size_t i = 0; i < m_states.size() ; ++i)
-        m_states[i]->update(elapsedTime);*/
     for(auto state : m_states)
         state->update(elapsedTime);
 }
 
-void StatesManager::draw(DefaultRenderer *renderer  /**sf::RenderTarget* renderer**/)
+void StatesManager::draw(RenderWindow *renderWindow)
 {
     for(auto state : m_states)
-        state->draw(renderer);
+        state->draw(renderWindow);
 }
 
 void StatesManager::attachApp(VApp* app)

@@ -52,4 +52,13 @@ void IsoSpriteModel::cleanup()
 }
 
 
+/** Static **/
+DynamicUBODescriptor IsoSpriteModel::s_modelUBO(sizeof(IsoSpriteModelUBO), 1024);
+
+VkDescriptorSetLayout IsoSpriteModel::getUBODescriptorSetLayout()
+{
+    return IsoSpriteModel::s_modelUBO.getDescriptorSetLayout();
+}
+
+
 }

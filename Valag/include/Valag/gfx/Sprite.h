@@ -83,25 +83,11 @@ class Sprite : public NotificationSender, public Drawable
 
 
     /** Static **/
-        static bool initSpriteRendering();
-        static void updateSpriteRendering(size_t frameIndex); //Expands UBOs
-        static void cleanupSpriteRendering();
+        static bool initRendering();
+        static void updateRendering(size_t frameIndex); //Expands UBOs
+        static void cleanupRendering();
 
         static DynamicUBODescriptor s_modelUBO;
-
-        /*static bool    createDescriptorSetLayouts();
-        static bool    createDescriptorPool();
-        static bool    createDescriptorSets();
-
-        static void    updateModelDescriptorSets(size_t frameIndex);
-
-        static std::vector<bool>               s_needToExpandModelBuffers;
-        static std::vector<DynamicUBO*>        s_modelBuffers;
-        static VkDescriptorSetLayout           s_modelDescriptorSetLayout;
-        static VkDescriptorPool                s_descriptorPool;
-        static std::vector<VkDescriptorSet>    s_modelDescriptorSets;
-
-        static const size_t MODEL_UBO_CHUNKSIZE;*/
 };
 
 }

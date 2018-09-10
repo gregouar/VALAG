@@ -27,7 +27,6 @@ class NotificationListener
         void addSender(NotificationSender*);
         void notifySenderDestruction(NotificationSender*);
 
-      // std::list<NotificationSender*> m_senders; ///Replace by std::set
         std::set<NotificationSender*> m_senders;
 };
 
