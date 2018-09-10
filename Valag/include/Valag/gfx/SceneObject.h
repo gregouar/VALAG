@@ -1,22 +1,17 @@
 #ifndef SCENEOBJECT_H
 #define SCENEOBJECT_H
 
-#include "Valag/core/NotificationListener.h"
 #include "Valag/Types.h"
+#include "Valag/core/NotificationListener.h"
 
 namespace vlg
 {
 
 class SceneNode;
-/**class SceneEntity;
-class Light;**/
 
 class SceneObject : public NotificationListener
 {
     friend class SceneNode;
-   /** friend class SceneEntity; //SceneEntity::SceneEntity();
-    friend class GeometricShadowCaster; //SceneEntity::SceneEntity();
-    friend class Light;//::Light();**/
 
     public:
         SceneObject();
@@ -24,16 +19,15 @@ class SceneObject : public NotificationListener
 
         SceneNode *getParentNode();
 
-        virtual bool isALight();
-        virtual bool isAnEntity();
-        virtual bool isAShadowCaster();
-
-        virtual void update(const Time &elapsedTime);
-
-        virtual void notify(NotificationSender*, NotificationType);
+        bool isALight();
+        bool isAnEntity();
+        bool isAShadowCaster();
 
         bool isVisible();
         void setVisible(bool = true);
+
+        virtual void update(const Time &elapsedTime);
+        virtual void notify(NotificationSender*, NotificationType);
 
     protected:
         SceneNode *setParentNode(SceneNode*);

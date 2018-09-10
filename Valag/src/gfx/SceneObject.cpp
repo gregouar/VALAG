@@ -1,11 +1,14 @@
 #include "Valag/gfx/SceneObject.h"
 
+#include "Valag/gfx/SceneNode.h"
+
 namespace vlg
 {
 
+
 SceneObject::SceneObject()
 {
-    m_parentNode = nullptr;
+    m_parentNode        = nullptr;
     m_isALight          = false;
     m_isAnEntity        = false;
     m_isAShadowCaster   = false;
@@ -20,7 +23,7 @@ SceneObject::~SceneObject()
 
 SceneNode* SceneObject::setParentNode(SceneNode *newParent)
 {
-    SceneNode* oldParent = this->getParentNode();
+    SceneNode* oldParent = getParentNode();
     m_parentNode = newParent;
     return oldParent;
 }
@@ -56,11 +59,11 @@ void SceneObject::setVisible(bool visible)
     m_isVisible = visible;
 }
 
+
 void SceneObject::update(const Time &elapsedTime)
 {
 
 }
-
 
 void SceneObject::notify(NotificationSender* sender, NotificationType type)
 {
@@ -70,7 +73,6 @@ void SceneObject::notify(NotificationSender* sender, NotificationType type)
             m_parentNode = nullptr;
     }
 }
-
 
 
 }

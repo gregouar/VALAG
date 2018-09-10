@@ -133,7 +133,8 @@ void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t frameIndex)
     modelUBO.texExt = m_textureExtent;
 
     //renderer->updateModelUBO(m_modelUBOIndex, &modelUBO,frameIndex);
-    s_modelBuffers[frameIndex]->updateObject(m_modelUBOIndex[frameIndex], &modelUBO);
+    //s_modelBuffers[frameIndex]->updateObject(m_modelUBOIndex[frameIndex], &modelUBO);
+    s_modelUBO.updateObject(frameIndex, m_modelUBOIndex[frameIndex], &modelUBO);
 
     m_needToUpdateModel[frameIndex] = false;
 }
@@ -145,7 +146,7 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
 
     if(m_needToAllocModel[frameIndex])
     {
-        if(s_modelBuffers[frameIndex]->isFull())
+        /*if(s_modelBuffers[frameIndex]->isFull())
         {
             s_needToExpandModelBuffers[frameIndex] = true;
             m_preventDrawing = true;
@@ -154,13 +155,21 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
 
         s_modelBuffers[frameIndex]->allocObject(m_modelUBOIndex[frameIndex]);
         m_needToAllocModel[frameIndex] = false;
+        needToUpdateDrawCMB = true;*/
+
+        if(!s_modelUBO.allocObject(frameIndex, m_modelUBOIndex[frameIndex]))
+        {
+            m_preventDrawing = true;
+            return (false);
+        }
+        m_needToAllocModel[frameIndex] = false;
         needToUpdateDrawCMB = true;
     }
 
-    if(m_modelBufferVersion[frameIndex] != s_modelBuffers[frameIndex]->getBufferVersion())
+    if(m_modelBufferVersion[frameIndex] != s_modelUBO.getBufferVersion(frameIndex))
     {
         needToUpdateDrawCMB = true;
-        m_modelBufferVersion[frameIndex] = s_modelBuffers[frameIndex]->getBufferVersion();
+        m_modelBufferVersion[frameIndex] = s_modelUBO.getBufferVersion(frameIndex);
     }
 
     if(m_needToUpdateModel[frameIndex])
@@ -205,8 +214,9 @@ bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer
     if(!renderer->bindTexture(commandBuffer, m_texture, frameIndex))
         return (false);
 
-    uint32_t dynamicOffset = s_modelBuffers[frameIndex]->getDynamicOffset(m_modelUBOIndex[frameIndex]);
-    renderer->bindModelDescriptorSet(commandBuffer, s_modelDescriptorSets[frameIndex], dynamicOffset);
+    //uint32_t dynamicOffset = s_modelBuffers[frameIndex]->getDynamicOffset(m_modelUBOIndex[frameIndex]);
+    //renderer->bindModelDescriptorSet(commandBuffer, s_modelDescriptorSets[frameIndex], dynamicOffset);
+    renderer->bindModelDescriptorSet(frameIndex, commandBuffer, s_modelUBO, m_modelUBOIndex[frameIndex]);
 
     vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 
@@ -255,12 +265,35 @@ void Sprite::cleanup()
   // for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
 
     //for(auto modelBuffer : s_modelBuffers)
-    for(size_t i = 0 ; i < s_modelBuffers.size() ; ++i)
-        s_modelBuffers[i]->freeObject(m_modelUBOIndex[i]);
+    for(size_t i = 0 ; i < m_modelUBOIndex.size() ; ++i)
+        s_modelUBO.freeObject(i,m_modelUBOIndex[i]);
 }
 
 /// Static ///
-const size_t Sprite::MODEL_UBO_CHUNKSIZE = 1024;
+
+DynamicUBODescriptor Sprite::s_modelUBO = DynamicUBODescriptor(sizeof(SpriteModelUBO),1024); //Chunk size
+
+bool Sprite::initSpriteRendering()
+{
+    return s_modelUBO.init();
+}
+
+void Sprite::updateSpriteRendering(size_t frameIndex)
+{
+    s_modelUBO.update(frameIndex);
+}
+
+void Sprite::cleanupSpriteRendering()
+{
+    s_modelUBO.cleanup();
+}
+
+VkDescriptorSetLayout Sprite::getModelDescriptorSetLayout()
+{
+    return s_modelUBO.getDescriptorSetLayout();
+}
+
+/*const size_t Sprite::MODEL_UBO_CHUNKSIZE = 1024;
 
 std::vector<bool>               Sprite::s_needToExpandModelBuffers;
 std::vector<DynamicUBO*>        Sprite::s_modelBuffers;
@@ -291,7 +324,7 @@ void Sprite::updateSpriteRendering(size_t frameIndex)
 {
     if(s_needToExpandModelBuffers[frameIndex])
     {
-        s_modelBuffers[frameIndex]->expandBuffers(/*false*/);
+        s_modelBuffers[frameIndex]->expandBuffers();
         Sprite::updateModelDescriptorSets(frameIndex);
         s_needToExpandModelBuffers[frameIndex] = false;
     }
@@ -393,7 +426,7 @@ void Sprite::updateModelDescriptorSets(size_t frameIndex)
 VkDescriptorSetLayout Sprite::getModelDescriptorSetLayout()
 {
     return s_modelDescriptorSetLayout;
-}
+}*/
 
 
 }

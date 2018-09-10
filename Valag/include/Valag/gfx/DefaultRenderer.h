@@ -2,7 +2,7 @@
 #define DEFAULTRENDERER_H
 
 #include "Valag/vulkanImpl/RenderWindow.h"
-#include "Valag/vulkanImpl/DynamicUBO.h"
+#include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 #include "Valag/vulkanImpl/VTexturesManager.h"
 #include "Valag/gfx/Drawable.h"
 
@@ -54,7 +54,8 @@ class DefaultRenderer
         void    bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex);
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
         //void    bindModelUBO(VkCommandBuffer &commandBuffer, size_t frameIndex, size_t modelUBOIndex);
-        void    bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset = 0);
+        //void    bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset = 0);
+        void    bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer &commandBuffer, DynamicUBODescriptor &descSet, size_t index = 0);
 
         void cleanup();
 

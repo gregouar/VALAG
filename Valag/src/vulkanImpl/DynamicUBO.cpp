@@ -27,11 +27,11 @@ DynamicUBO::~DynamicUBO()
 
 bool DynamicUBO::allocObject(size_t &index)
 {
-    bool r = false;
+    bool r = true;
     if(m_availableIndices.empty())
     {
         this->expandBuffers();
-        r = true;
+        r = false;
     }
 
     index = *m_availableIndices.begin();

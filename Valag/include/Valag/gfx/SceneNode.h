@@ -61,6 +61,8 @@ class SceneNode : public NotificationSender, public NotificationListener
         void setPosition(glm::vec2 );
         void setPosition(glm::vec3 );
 
+        /**setRotation and co**/
+
         glm::vec3 getGlobalPosition();
         glm::vec3 getPosition();
 

@@ -49,9 +49,7 @@ void SceneNode::addChildNode(SceneNode* node)
 
 void SceneNode::addChildNode(const NodeTypeID &id, SceneNode* node)
 {
-    std::map<NodeTypeID, SceneNode*>::iterator childsIt;
-    childsIt = m_childs.find(id);
-
+    auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
     {
         std::ostringstream warn_report;
@@ -75,8 +73,7 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeID &id)
 {
     SceneNode* node = nullptr;
 
-    std::map<NodeTypeID, SceneNode*>::iterator childsIt;
-    childsIt = m_childs.find(id);
+    auto childsIt = m_childs.find(id);
 
     if(childsIt == m_childs.end())
     {
@@ -145,8 +142,7 @@ SceneNode* SceneNode::createChildNode(glm::vec3 p)
 
 SceneNode* SceneNode::createChildNode(const NodeTypeID &id)
 {
-    std::map<NodeTypeID, SceneNode*>::iterator childsIt;
-    childsIt = m_childs.find(id);
+    auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
     {
         std::ostringstream error_report;
@@ -184,8 +180,7 @@ bool SceneNode::destroyChildNode(const NodeTypeID& id)
     else
         m_createdChildsList.erase(createdChildsIt);
 
-    std::map<NodeTypeID, SceneNode*>::iterator childsIt;
-    childsIt = m_childs.find(id);
+    auto childsIt = m_childs.find(id);
     if(childsIt == m_childs.end())
     {
         std::ostringstream error_report;
@@ -204,7 +199,7 @@ bool SceneNode::destroyChildNode(const NodeTypeID& id)
 
 void SceneNode::removeAndDestroyAllChilds(bool destroyNonCreatedChilds)
 {
-    std::map<NodeTypeID, SceneNode*>::iterator childsIt;
+    //std::map<NodeTypeID, SceneNode*>::iterator childsIt;
 
     if(!destroyNonCreatedChilds)
         while(!m_createdChildsList.empty())
@@ -212,13 +207,14 @@ void SceneNode::removeAndDestroyAllChilds(bool destroyNonCreatedChilds)
 
     if(destroyNonCreatedChilds)
     {
-        childsIt = m_childs.begin();
-        for(;childsIt != m_childs.end() ; ++childsIt)
+        //childsIt = m_childs.begin();
+        //for(;childsIt != m_childs.end() ; ++childsIt)
+        for(auto childsIt : m_childs)
         {
-            if(childsIt->second != nullptr)
+            if(childsIt.second != nullptr)
             {
-                childsIt->second->removeAndDestroyAllChilds(destroyNonCreatedChilds);
-                delete childsIt->second;
+                childsIt.second->removeAndDestroyAllChilds(destroyNonCreatedChilds);
+                delete childsIt.second;
             }
         }
     }

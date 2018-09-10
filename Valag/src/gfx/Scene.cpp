@@ -254,8 +254,7 @@ Camera* Scene::CreateCamera(sf::Vector2f viewSize)
 
 void Scene::addCreatedObject(const ObjectTypeID &id, SceneObject* obj)
 {
-    std::map<ObjectTypeID, SceneObject*>::iterator entityIt;
-    entityIt = m_createdObjects.find(id);
+    auto entityIt = m_createdObjects.find(id);
 
     if(entityIt != m_createdObjects.end())
     {
@@ -270,8 +269,7 @@ void Scene::addCreatedObject(const ObjectTypeID &id, SceneObject* obj)
 
 void Scene::destroyCreatedObject(const ObjectTypeID &id)
 {
-    std::map<ObjectTypeID, SceneObject*>::iterator objIt;
-    objIt = m_createdObjects.find(id);
+    auto objIt = m_createdObjects.find(id);
 
     if(objIt == m_createdObjects.end())
     {
@@ -287,12 +285,17 @@ void Scene::destroyCreatedObject(const ObjectTypeID &id)
 
 void Scene::destroyAllCreatedObjects()
 {
-    while(!m_createdObjects.empty())
+    for(auto it : m_createdObjects)
+        if(it.second != nullptr)
+            delete it.second;
+    m_createdObjects.clear();
+
+    /*while(!m_createdObjects.empty())
     {
         if(m_createdObjects.begin()->second != nullptr)
             delete m_createdObjects.begin()->second;
         m_createdObjects.erase(m_createdObjects.begin());
-    }
+    }*/
 }
 
 /**sf::View Scene::generateView(Camera* cam)

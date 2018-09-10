@@ -77,8 +77,11 @@
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Drawable.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/IsoSpriteEntity.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/IsoSpriteModel.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/MaterialAsset.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Scene.h" />
+		<Unit filename="../../Valag/include/Valag/gfx/SceneEntity.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneNode.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneObject.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SceneRenderer.h" />
@@ -92,6 +95,7 @@
 		<Unit filename="../../Valag/include/Valag/utils/Singleton.h" />
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBO.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBODescriptor.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/RenderWindow.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VBuffersAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
@@ -117,8 +121,11 @@
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
 		<Unit filename="../../Valag/src/gfx/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/gfx/Drawable.cpp" />
+		<Unit filename="../../Valag/src/gfx/IsoSpriteEntity.cpp" />
+		<Unit filename="../../Valag/src/gfx/IsoSpriteModel.cpp" />
 		<Unit filename="../../Valag/src/gfx/MaterialAsset.cpp" />
 		<Unit filename="../../Valag/src/gfx/Scene.cpp" />
+		<Unit filename="../../Valag/src/gfx/SceneEntity.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneNode.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneObject.cpp" />
 		<Unit filename="../../Valag/src/gfx/SceneRenderer.cpp" />
@@ -131,6 +138,7 @@
 		<Unit filename="../../Valag/src/utils/Profiler.cpp" />
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBO.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBODescriptor.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/RenderWindow.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VBuffersAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />

@@ -5,7 +5,7 @@
 #include "Valag/gfx/Drawable.h"
 #include "Valag/core/NotificationSender.h"
 
-#include "Valag/vulkanImpl/DynamicUBO.h"
+#include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 
 namespace vlg
 {
@@ -35,7 +35,7 @@ class Sprite : public NotificationSender, public Drawable
         void setSize(glm::vec2 size);
         void setPosition(glm::vec2 position);
         void setPosition(glm::vec3 position);
-        void setColor(glm::vec4 color);
+        void setColor(Color color);
         void setTexture(AssetTypeID textureID);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
 
@@ -87,7 +87,9 @@ class Sprite : public NotificationSender, public Drawable
         static void updateSpriteRendering(size_t frameIndex); //Expands UBOs
         static void cleanupSpriteRendering();
 
-        static bool    createDescriptorSetLayouts();
+        static DynamicUBODescriptor s_modelUBO;
+
+        /*static bool    createDescriptorSetLayouts();
         static bool    createDescriptorPool();
         static bool    createDescriptorSets();
 
@@ -99,7 +101,7 @@ class Sprite : public NotificationSender, public Drawable
         static VkDescriptorPool                s_descriptorPool;
         static std::vector<VkDescriptorSet>    s_modelDescriptorSets;
 
-        static const size_t MODEL_UBO_CHUNKSIZE;
+        static const size_t MODEL_UBO_CHUNKSIZE;*/
 };
 
 }

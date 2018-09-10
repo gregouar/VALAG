@@ -5,6 +5,8 @@
 #include <iostream>
 #include <chrono>
 
+#include <glm/glm.hpp>
+
 ///#include "AlAGE/utils/MapIterator.h"
 ///#include "AlAGE/utils/ListIterator.h"
 
@@ -93,6 +95,8 @@ typedef unsigned int ObjectTypeID;
 typedef size_t VBufferID;
 //typedef unsigned int RenderTargetTypeID;
 typedef std::string AnimationTypeID;
+
+typedef glm::vec4 Color;
 
 /**typedef ListIterator<SceneObject*> SceneObjectIterator;
 typedef ListIterator<SceneEntity*> SceneEntityIterator;

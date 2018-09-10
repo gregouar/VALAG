@@ -241,8 +241,16 @@ void DefaultRenderer::bindDefaultPipeline(VkCommandBuffer &commandBuffer, size_t
                             m_defaultPipelineLayout,2,1, &m_modelDescriptorSets[frameIndex], 1, &dynamicOffset);
 }*/
 
-void DefaultRenderer::bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset)
+/*void DefaultRenderer::bindModelDescriptorSet(VkCommandBuffer &commandBuffer, VkDescriptorSet descSet, uint32_t dynamicOffset)
 {
+    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_defaultPipelineLayout,2,1, &descSet, 1, &dynamicOffset);
+}*/
+
+void DefaultRenderer::bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer &commandBuffer, DynamicUBODescriptor &uboDesc, size_t index)
+{
+    uint32_t dynamicOffset  = uboDesc.getDynamicOffset(frameIndex, index);
+    auto descSet            = uboDesc.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_defaultPipelineLayout,2,1, &descSet, 1, &dynamicOffset);
 }
