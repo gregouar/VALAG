@@ -3,6 +3,8 @@
 #include "Valag/core/VApp.h"
 #include "Valag/utils/Profiler.h"
 
+#include "Valag/renderers/DefaultRenderer.h"
+
 namespace vlg
 {
 
@@ -21,7 +23,7 @@ void SpritesBatch::addSprite(Sprite *sprite)
     if(m_sortedSprites[sprite->getTexture()].insert(sprite).second)
     {
         sprite->askForAllNotifications(this);
-        for(auto b : m_needToUpdateDrawCMB) b = 0;
+        ///for(auto b : m_needToUpdateDrawCMB) b = 0;
     }
 }
 
@@ -39,7 +41,8 @@ VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, si
     for(auto sprite : spriteSet.second)
     {
         if(sprite->checkUpdates(renderer, frameIndex))
-            m_needToUpdateDrawCMB[frameIndex] = true;
+            this->askToUpdateDrawCMB(frameIndex);
+            //m_needToUpdateDrawCMB[frameIndex] = true;
     }
 
     return Drawable::getDrawCommandBuffer(renderer, frameIndex, renderPass, subpass, framebuffer);
@@ -75,8 +78,6 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
     if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer");
 
-    m_needToUpdateDrawCMB[frameIndex] = false;
-
     return (true);
 }
 
@@ -84,9 +85,9 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
 void SpritesBatch::notify(NotificationSender* sender, NotificationType notificationType)
 {
     /// Could check if sender is in m_sprites... or just trust it ?///
-    if(notificationType == Notification_UpdateCMB)
+    /*if(notificationType == Notification_UpdateCMB)
         for(auto b : m_needToUpdateDrawCMB) b = true;
-    else if(notificationType == Notification_TextureIsAboutToChange)
+    else */if(notificationType == Notification_TextureIsAboutToChange)
     {
         Sprite *sprite = dynamic_cast<Sprite*>(sender);
         m_sortedSprites[sprite->getTexture()].erase(sprite);

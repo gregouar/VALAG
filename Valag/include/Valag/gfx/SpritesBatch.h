@@ -12,7 +12,7 @@ namespace vlg
 
 /// I should add option to preserves ordering (disabling auto sorting by material)
 
-class SpritesBatch : public NotificationListener, public Drawable
+class SpritesBatch : public Drawable
 {
     public:
         SpritesBatch();

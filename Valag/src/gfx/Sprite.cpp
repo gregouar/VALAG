@@ -2,9 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Valag/core/VApp.h"
-#include "Valag/vulkanImpl/VInstance.h"
-#include "Valag/gfx/DefaultRenderer.h"
+#include "Valag/renderers/DefaultRenderer.h"
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 
@@ -21,12 +19,13 @@ Sprite::Sprite() :
     m_textureExtent({1.0f,1.0f}),
     m_preventDrawing(false)
 {
-    m_needToAllocModel      = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
-    m_needToUpdateModel     = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
-    m_modelBufferVersion    = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
-    m_texDescSetVersion     = std::vector<size_t> (VApp::MAX_FRAMES_IN_FLIGHT, 0);
-    m_needToCheckLoading    = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
-    m_modelUBOIndex.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    ///I should probably move this to checkUpdates somehow
+    m_needToAllocModel      = std::vector<bool> (s_framesCount, true);
+    m_needToUpdateModel     = std::vector<bool> (s_framesCount, true);
+    m_modelBufferVersion    = std::vector<size_t> (s_framesCount, 0);
+    m_texDescSetVersion     = std::vector<size_t> (s_framesCount, 0);
+    m_needToCheckLoading    = std::vector<bool> (s_framesCount, false);
+    m_modelUBOIndex.resize(s_framesCount);
 }
 
 Sprite::~Sprite()
@@ -179,7 +178,8 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
 VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
     if(this->checkUpdates(renderer, frameIndex))
-        m_needToUpdateDrawCMB[frameIndex] = true;
+        this->askToUpdateDrawCMB(frameIndex);
+       // m_needToUpdateDrawCMB[frameIndex] = true;
 
     if(m_preventDrawing)
         return (VK_NULL_HANDLE);
@@ -239,7 +239,6 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameInd
     if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer");
 
-    m_needToUpdateDrawCMB[frameIndex] = false;
     return (true);
 }
 
@@ -252,10 +251,12 @@ void Sprite::cleanup()
 /// Static ///
 
 DynamicUBODescriptor Sprite::s_modelUBO = DynamicUBODescriptor(sizeof(SpriteModelUBO),1024); //Chunk size
+size_t Sprite::s_framesCount = 1;
 
-bool Sprite::initRendering()
+bool Sprite::initRendering(size_t framesCount)
 {
-    return s_modelUBO.init();
+    s_framesCount = framesCount;
+    return s_modelUBO.init(framesCount);
 }
 
 void Sprite::updateRendering(size_t frameIndex)

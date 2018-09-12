@@ -17,9 +17,9 @@ IsoSpriteEntity::~IsoSpriteEntity()
 /** Static **/
 DynamicUBODescriptor IsoSpriteEntity::s_entityUBO(sizeof(IsoSpriteEntityUBO), 4096);
 
-bool IsoSpriteEntity::initRendering()
+bool IsoSpriteEntity::initRendering(size_t framesCount)
 {
-    return IsoSpriteEntity::s_entityUBO.init() & IsoSpriteModel::s_modelUBO.init();
+    return IsoSpriteEntity::s_entityUBO.init(framesCount) & IsoSpriteModel::s_modelUBO.init(framesCount);
 }
 
 void IsoSpriteEntity::updateRendering(size_t frameIndex)

@@ -2,7 +2,7 @@
 #define ISOSPRITEMODEL_H
 
 #include "Valag/Types.h"
-#include "Valag/gfx/SceneRenderer.h"
+#include "Valag/renderers/SceneRenderer.h"
 #include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 
 namespace vlg

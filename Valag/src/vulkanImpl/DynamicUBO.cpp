@@ -56,6 +56,7 @@ bool DynamicUBO::updateObject(size_t index, void *newData)
 {
     VkDevice device = VInstance::device();
 
+    /// I should use VBuffersAllocator::writeBuffer and add flushing option + offset
     void* data;
     vkMapMemory(device, m_buffer.bufferMemory, this->getDynamicOffset(index)+m_buffer.offset, m_dynamicAlignment, 0, &data);
         memcpy(data, newData, m_objectSize);

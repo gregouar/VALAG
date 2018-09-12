@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Valag/core/EventsManager.h"
-#include "Valag/vulkanImpl/RenderWindow.h"
+#include "Valag/renderers/RenderWindow.h"
 
 namespace vlg
 {

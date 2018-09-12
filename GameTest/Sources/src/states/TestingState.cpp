@@ -7,7 +7,7 @@
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/gfx/MaterialAsset.h"
-#include "Valag/gfx/DefaultRenderer.h"
+#include "Valag/renderers/DefaultRenderer.h"
 
 #include "Valag/Types.h"
 
@@ -166,11 +166,13 @@ void TestingState::update(const vlg::Time &elapsedTime)
 void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
     vlg::DefaultRenderer *defaultRenderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
+    //vlg::DefaultRenderer *defaultRenderer = (vlg::DefaultRenderer*)renderWindow->getRenderer(vlg::Renderer_Default);
 
     for(auto &sprite : m_testingSprites)
         defaultRenderer->draw(&sprite);
 
     defaultRenderer->draw(&m_testingSpritesBatch);
+
 }
 
 

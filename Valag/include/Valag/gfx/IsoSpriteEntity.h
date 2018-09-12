@@ -41,7 +41,7 @@ class IsoSpriteEntity : public SceneEntity
 
 
     /** Static **/
-        static bool initRendering();
+        static bool initRendering(size_t framesCount);
         static void updateRendering(size_t frameIndex); //Expands UBOs
         static void cleanupRendering();
 

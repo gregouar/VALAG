@@ -26,6 +26,7 @@ enum RendererName
 {
     Renderer_Default,
     Renderer_Scene,
+    Renderer_Instancing,
 };
 
 enum AssetLoadType

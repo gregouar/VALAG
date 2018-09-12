@@ -44,7 +44,7 @@ class VBuffersAllocator : public Singleton<VBuffersAllocator>
         friend class VApp;
 
         static bool allocBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VBuffer &vbuffer);
-        static void writeBuffer(VBuffer dstBuffer, void* data, VkDeviceSize size);
+        static void writeBuffer(VBuffer dstBuffer, void* data, VkDeviceSize size, bool flush = false);
         static void copyBuffer(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
         static void copyBufferToImage(VBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
                                        CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
@@ -58,7 +58,7 @@ class VBuffersAllocator : public Singleton<VBuffersAllocator>
 
         bool freeBufferImpl(VBuffer &vbuffer);
         bool allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VBuffer &vbuffer);
-        void writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceSize size);
+        void writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceSize size, bool flush);
 
         bool searchForSpace(AllocatedBuffer *allocatedBuffer, VkDeviceSize size, VkDeviceSize &offset);
         bool createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);

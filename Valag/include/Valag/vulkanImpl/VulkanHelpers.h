@@ -22,9 +22,6 @@ struct Vertex2D
     static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
 };
 
-struct ViewUBO {
-    glm::mat4 view;
-};
 struct ModelUBO {
     glm::mat4 model;
     glm::vec4 color;

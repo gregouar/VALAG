@@ -1,7 +1,5 @@
 #include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 
-#include "Valag/core/VApp.h"
-
 namespace vlg
 {
 
@@ -17,20 +15,20 @@ DynamicUBODescriptor::~DynamicUBODescriptor()
     //dtor
 }
 
-bool DynamicUBODescriptor::init()
+bool DynamicUBODescriptor::init(size_t framesCount)
 {
     if(!this->createDescriptorSetLayouts())
         return (false);
 
-    m_needToExpandBuffers = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, false);
-    m_buffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    for(size_t i = 0 ; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+    m_needToExpandBuffers = std::vector<bool> (framesCount, false);
+    m_buffers.resize(framesCount);
+    for(size_t i = 0 ; i < framesCount ; ++i)
         m_buffers[i] = new DynamicUBO(m_objectSize,m_chunkSize);
 
-    if(!this->createDescriptorPool())
+    if(!this->createDescriptorPool(framesCount))
         return (false);
 
-    if(!this->createDescriptorSets())
+    if(!this->createDescriptorSets(framesCount))
         return (false);
 
     return (true);
@@ -79,36 +77,36 @@ bool DynamicUBODescriptor::createDescriptorSetLayouts()
     return (true);
 }
 
-bool DynamicUBODescriptor::createDescriptorPool()
+bool DynamicUBODescriptor::createDescriptorPool(size_t framesCount)
 {
     VkDescriptorPoolSize poolSize = {};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
+    poolSize.descriptorCount = static_cast<uint32_t>(framesCount);
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
 
-    poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
+    poolInfo.maxSets = static_cast<uint32_t>(framesCount);
 
     return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
 }
 
-bool DynamicUBODescriptor::createDescriptorSets()
+bool DynamicUBODescriptor::createDescriptorSets(size_t framesCount)
 {
-    std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(framesCount, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
     allocInfo.pSetLayouts = layouts.data();
 
-    m_descriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    m_descriptorSets.resize(framesCount);
     if (vkAllocateDescriptorSets(VInstance::device(), &allocInfo,m_descriptorSets.data()) != VK_SUCCESS)
         return (false);
 
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
+    for (size_t i = 0; i < m_descriptorSets.size() ; ++i)
         this->updateDescriptorSets(i);
 
     return (true);

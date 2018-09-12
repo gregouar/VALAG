@@ -8,7 +8,10 @@
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/vulkanImpl/VBuffersAllocator.h"
-#include "Valag/gfx/Sprite.h"
+
+#include "Valag/renderers/DefaultRenderer.h"
+#include "Valag/renderers/SceneRenderer.h"
+#include "Valag/renderers/InstancingRenderer.h"
 
 #include "Valag/utils/Profiler.h"
 
@@ -34,8 +37,6 @@ const size_t VApp::MAX_FRAMES_IN_FLIGHT = 3;
 
 VApp::VApp(const VAppCreateInfos &infos) :
     m_createInfos(infos),
-    m_defaultRenderer(nullptr),
-    m_sceneRenderer(nullptr),
     m_sceenshotNbr(1)
 {
 
@@ -96,7 +97,7 @@ bool VApp::init()
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
     Profiler::popClock();
 
-    VTexturesManager::instance()->init();
+    VTexturesManager::instance()->init(m_renderWindow.getFramesCount());
 
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
@@ -104,11 +105,13 @@ bool VApp::init()
     m_eventsManager.init(m_renderWindow.getWindowPtr());
 
     Profiler::pushClock("Create renderers");
-    if(!this->createDefaultRenderer())
+    if(!this->createRenderers())
+        throw std::runtime_error("Cannot create renderers");
+    /*if(!this->createDefaultRenderer())
         throw std::runtime_error("Cannot create default renderer");
 
     if(!this->createSceneRenderer())
-        throw std::runtime_error("Cannot create scene renderer");
+        throw std::runtime_error("Cannot create scene renderer");*/
     Profiler::popClock();
 
     return (true);
@@ -119,11 +122,30 @@ bool VApp::createWindow()
     int w = Config::getInt("window","width",DEFAULT_WINDOW_WIDTH);
     int h = Config::getInt("window","height",DEFAULT_WINDOW_HEIGHT);
     bool fullscreen = Config::getBool("window","fullscreen",DEFAULT_WINDOW_FULLSCREEN);
+    size_t framesCount = MAX_FRAMES_IN_FLIGHT;
 
-    return m_renderWindow.create(w,h,m_createInfos.name,fullscreen);
+    return m_renderWindow.create(w,h,m_createInfos.name,fullscreen, framesCount);
 }
 
-bool VApp::createDefaultRenderer()
+bool VApp::createRenderers()
+{
+    for(auto renderer : m_renderers)
+        delete renderer;
+    m_renderers.clear();
+
+    m_renderers.push_back(new DefaultRenderer(&m_renderWindow, Renderer_Default));
+    m_renderWindow.attachRenderer(m_renderers.back());
+
+    m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene));
+    m_renderWindow.attachRenderer(m_renderers.back());
+
+    m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing));
+    m_renderWindow.attachRenderer(m_renderers.back());
+
+    return (true);
+}
+
+/*bool VApp::createDefaultRenderer()
 {
     if(m_defaultRenderer != nullptr)
         delete m_defaultRenderer;
@@ -143,7 +165,7 @@ bool VApp::createSceneRenderer()
     m_renderWindow.attachRenderer(m_sceneRenderer);
 
     return (true);
-}
+}*/
 
 void VApp::loop()
 {
@@ -187,17 +209,9 @@ void VApp::loop()
 
 void VApp::cleanup()
 {
-    if(m_sceneRenderer != nullptr)
-    {
-        delete m_sceneRenderer;
-        m_sceneRenderer = nullptr;
-    }
-
-    if(m_defaultRenderer != nullptr)
-    {
-        delete m_defaultRenderer;
-        m_defaultRenderer = nullptr;
-    }
+    for(auto renderer : m_renderers)
+        delete renderer;
+    m_renderers.clear();
 
     TexturesHandler::instance()->cleanAll();
     VBuffersAllocator::instance()->cleanAll();

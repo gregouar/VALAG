@@ -8,9 +8,8 @@
 #include "Valag/core/EventsManager.h"
 #include "Valag/core/StatesManager.h"
 
-#include "Valag/vulkanImpl/RenderWindow.h"
-#include "Valag/gfx/DefaultRenderer.h"
-#include "Valag/gfx/SceneRenderer.h"
+#include "Valag/renderers/RenderWindow.h"
+#include "Valag/renderers/AbstractRenderer.h"
 
 namespace vlg
 {
@@ -39,8 +38,7 @@ class VApp
         bool    init();
 
         bool    createWindow();
-        bool    createDefaultRenderer();
-        bool    createSceneRenderer();
+        bool    createRenderers();
 
         void    loop();
 
@@ -55,8 +53,11 @@ class VApp
         EventsManager       m_eventsManager;
         RenderWindow        m_renderWindow;
 
-        DefaultRenderer    *m_defaultRenderer;
+        /*DefaultRenderer    *m_defaultRenderer;
         SceneRenderer      *m_sceneRenderer;
+        InstancingRenderer *m_instancingRenderer;*/
+
+        std::vector<AbstractRenderer*> m_renderers;
 
         unsigned int m_sceenshotNbr;
 

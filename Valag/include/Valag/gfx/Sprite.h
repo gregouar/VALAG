@@ -26,7 +26,7 @@ class Sprite : public NotificationSender, public Drawable
 {
     friend class DefaultRenderer;
     friend class SpritesBatch;
-    friend class VApp;
+    friend class Drawable;
 
     public:
         Sprite();
@@ -83,10 +83,11 @@ class Sprite : public NotificationSender, public Drawable
 
 
     /** Static **/
-        static bool initRendering();
+        static bool initRendering(size_t framesCount);
         static void updateRendering(size_t frameIndex); //Expands UBOs
         static void cleanupRendering();
 
+        static size_t s_framesCount;
         static DynamicUBODescriptor s_modelUBO;
 };
 

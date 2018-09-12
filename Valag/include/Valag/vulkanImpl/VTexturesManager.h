@@ -54,13 +54,13 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         bool    createDescriptorSetLayouts();
         bool    createSampler();
-        bool    createDescriptorPool();
-        bool    createDescriptorSets();
+        bool    createDescriptorPool(size_t framesCount);
+        bool    createDescriptorSets(size_t framesCount);
         bool    createDummyTexture();
 
         void    updateDescriptorSet(size_t frameIndex);
 
-        bool    init();
+        bool    init(size_t framesCount);
         void    cleanup();
 
     private:

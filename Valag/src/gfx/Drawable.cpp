@@ -1,6 +1,6 @@
 #include "Valag/gfx/Drawable.h"
 
-#include "Valag/core/VApp.h"
+#include "Valag/gfx/Sprite.h"
 
 namespace vlg
 {
@@ -8,7 +8,6 @@ namespace vlg
 Drawable::Drawable()
 {
     m_needToCreateDrawCMB = true;
-    m_needToUpdateDrawCMB = std::vector<bool> (VApp::MAX_FRAMES_IN_FLIGHT, true);
 }
 
 Drawable::~Drawable()
@@ -21,18 +20,22 @@ VkCommandBuffer Drawable::getDrawCommandBuffer(DefaultRenderer *renderer, size_t
     if(m_needToCreateDrawCMB)
         this->createDrawCommandBuffers();
 
-    if(m_needToUpdateDrawCMB[frameIndex])
+    /*if(m_needToUpdateDrawCMB[frameIndex])
     {
         if(!this->recordDrawCommandBuffers(renderer, frameIndex, renderPass, subpass, framebuffer))
             return VK_NULL_HANDLE;
-    }
+    }*/
+
+    if(!this->recordDrawCommandBuffers(renderer, frameIndex, renderPass, subpass, framebuffer))
+        return VK_NULL_HANDLE;
 
     return m_drawCommandBuffers[frameIndex];
 }
 
 void Drawable::createDrawCommandBuffers()
 {
-    m_drawCommandBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
+    m_drawCommandBuffers.resize(Sprite::s_framesCount);
+    m_needToUpdateDrawCMB = std::vector<bool> (Sprite::s_framesCount, true);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -48,6 +51,29 @@ void Drawable::createDrawCommandBuffers()
 }
 
 
+bool Drawable::updateDrawCMB(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
+                                        uint32_t subpass, VkFramebuffer framebuffer)
+{
+    if(! m_needToUpdateDrawCMB[frameIndex] )
+        return (true);
+
+    bool suc = this->recordDrawCommandBuffers(renderer, frameIndex, renderPass, subpass, framebuffer);
+    if(suc)
+        m_needToUpdateDrawCMB[frameIndex] = false;
+    return suc;
+}
+
+void Drawable::askToUpdateDrawCMB(size_t frameIndex)
+{
+    if(!m_needToUpdateDrawCMB.empty())
+        m_needToUpdateDrawCMB[frameIndex] = true;
+}
+
+void Drawable::notify(NotificationSender* sender, NotificationType notificationType)
+{
+    if(notificationType == Notification_UpdateCMB)
+        for(auto b : m_needToUpdateDrawCMB) b = true;
+}
 
 
 

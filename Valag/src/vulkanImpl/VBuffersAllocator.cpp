@@ -89,24 +89,33 @@ bool VBuffersAllocator::allocBufferImpl(VkDeviceSize size, VkBufferUsageFlags us
     return (true);
 }
 
-void VBuffersAllocator::writeBuffer(VBuffer dstBuffer, void* data, VkDeviceSize size)
+void VBuffersAllocator::writeBuffer(VBuffer dstBuffer, void* data, VkDeviceSize size, bool flush)
 {
-    VBuffersAllocator::instance()->writeBufferImpl(dstBuffer, data, size);
+    VBuffersAllocator::instance()->writeBufferImpl(dstBuffer, data, size,flush);
 }
 
-void VBuffersAllocator::writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceSize size)
+void VBuffersAllocator::writeBufferImpl(VBuffer dstBuffer, void* data, VkDeviceSize size, bool flush)
 {
     auto device = VInstance::device();
 
     void* dstData;
 
-    AllocatedBuffer *allBuffer = this->findAllocatingBuffer(dstBuffer);
+    AllocatedBuffer *allocatedBuffer = this->findAllocatingBuffer(dstBuffer);
 
-    allBuffer->mutex.lock();
+    allocatedBuffer->mutex.lock();
     vkMapMemory(device, dstBuffer.bufferMemory, dstBuffer.offset, size, 0, &dstData);
         memcpy(dstData, data, (size_t) size);
+        if(flush)
+        {
+            VkMappedMemoryRange memoryRange = {};
+            memoryRange.sType   = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+            memoryRange.memory  = dstBuffer.bufferMemory;
+            memoryRange.size    = size;
+            memoryRange.offset  = dstBuffer.offset;
+            vkFlushMappedMemoryRanges(device, 1, &memoryRange);
+        }
     vkUnmapMemory(device, dstBuffer.bufferMemory);
-    allBuffer->mutex.unlock();
+    allocatedBuffer->mutex.unlock();
 }
 
 void VBuffersAllocator::copyBuffer(VBuffer srcBuffer, VBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName)

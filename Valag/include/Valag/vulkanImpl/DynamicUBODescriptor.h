@@ -14,7 +14,7 @@ class DynamicUBODescriptor
         DynamicUBODescriptor(size_t objectSize, size_t chunkSize);
         virtual ~DynamicUBODescriptor();
 
-        bool init();
+        bool init(size_t framesCount);
         void update(size_t frameIndex); //Expands UBOs
         void cleanup();
 
@@ -30,8 +30,8 @@ class DynamicUBODescriptor
 
     protected:
         bool    createDescriptorSetLayouts();
-        bool    createDescriptorPool();
-        bool    createDescriptorSets();
+        bool    createDescriptorPool(size_t framesCount);
+        bool    createDescriptorSets(size_t framesCount);
 
         void    updateDescriptorSets(size_t frameIndex);
 
