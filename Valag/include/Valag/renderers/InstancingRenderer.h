@@ -6,6 +6,17 @@
 namespace vlg
 {
 
+struct InstanciedVertex2D
+{
+    glm::vec3 pos;
+    glm::vec4 color;
+    glm::vec2 texCoord;
+    glm::vec2 texId;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
+};
+
 class InstancingRenderer : public AbstractRenderer
 {
     public:
@@ -28,6 +39,10 @@ class InstancingRenderer : public AbstractRenderer
         virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
     private:
+        static const char *INSTANCING_VERTSHADERFILE;
+        static const char *INSTANCING_FRAGSHADERFILE;
+
+        static const float  DEPTH_SCALING_FACTOR;
 };
 
 }

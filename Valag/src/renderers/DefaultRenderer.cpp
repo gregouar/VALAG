@@ -23,7 +23,6 @@ const char *DefaultRenderer::DEFAULT_FRAGSHADERFILE = "defaultShader.frag.spv";
 const float DefaultRenderer::DEPTH_SCALING_FACTOR = 1024*1024;
 
 DefaultRenderer::DefaultRenderer(RenderWindow *targetWindow, RendererName name) : AbstractRenderer(targetWindow, name)
-   // m_viewDescriptorSetLayout(VK_NULL_HANDLE)
 {
     this->init();
 }
@@ -37,8 +36,6 @@ void DefaultRenderer::update(size_t frameIndex)
 {
     Sprite::updateRendering(frameIndex);
     AbstractRenderer::update(frameIndex);
-    //if(m_needToUpdateViewUBO[m_curFrameIndex])
-       // this->updateViewUBO();
 }
 
 
@@ -48,19 +45,6 @@ void DefaultRenderer::draw(Drawable *drawable)
     if(commandBuffer != VK_NULL_HANDLE)
         m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
-
-/*void DefaultRenderer::updateViewUBO()
-{
-    ViewUBO viewUbo = {};
-    viewUbo.view = glm::translate(glm::mat4(1.0f), glm::vec3(-1,-1,.5));
-    viewUbo.view = glm::scale(viewUbo.view, glm::vec3(2.0f/m_swapchainExtents[0].width,
-                                                      2.0f/m_swapchainExtents[0].height,
-                                                      1.0f/DEPTH_SCALING_FACTOR));
-
-    VBuffersAllocator::writeBuffer(m_viewBuffers[m_curFrameIndex],&viewUbo,sizeof(viewUbo));
-
-    m_needToUpdateViewUBO[m_curFrameIndex] = false;
-}*/
 
 bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 {
@@ -215,23 +199,6 @@ bool DefaultRenderer::createRenderPass()
 
 bool DefaultRenderer::createDescriptorSetLayouts()
 {
-    /*VkDevice device = VInstance::device();
-
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
-
-    if(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_viewDescriptorSetLayout) != VK_SUCCESS)
-        return (false);*/
-
     return (true);
 }
 
@@ -417,96 +384,22 @@ bool DefaultRenderer::createGraphicsPipeline()
 
 bool DefaultRenderer::createDescriptorPool()
 {
-    /*VkDescriptorPoolSize poolSize = {};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2);
-
-    VkDescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-
-    poolInfo.maxSets = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT*2);
-
-    return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);*/
-
     return (true);
 }
 
 bool DefaultRenderer::createDescriptorSets()
 {
-    /*VkDevice device = VInstance::device();
-
-    {
-        std::vector<VkDescriptorSetLayout> layouts(VApp::MAX_FRAMES_IN_FLIGHT, m_viewDescriptorSetLayout);
-        VkDescriptorSetAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(VApp::MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
-        m_viewDescriptorSets.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device, &allocInfo,m_viewDescriptorSets.data()) != VK_SUCCESS)
-            return (false);
-
-    }
-
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT ; ++i)
-    {
-        VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_viewBuffers[i].buffer;//m_viewBuffers[i];
-        bufferInfo.offset = m_viewBuffers[i].offset;
-        bufferInfo.range = sizeof(ViewUBO);
-
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_viewDescriptorSets[i];
-        descriptorWrite.dstBinding = 0; //Bind number
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr; // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-    }*/
-
     return (true);
 }
 
-
 bool DefaultRenderer::createUBO()
 {
-    /*VkDeviceSize bufferSize = sizeof(ViewUBO);
-
-    m_viewBuffers.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-    m_needToUpdateViewUBO.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    for (size_t i = 0; i < VApp::MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        if(!VBuffersAllocator::allocBuffer(bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    m_viewBuffers[i]))
-            return (false);
-
-        m_needToUpdateViewUBO[i] = true;
-    }*/
     return (true);
 }
 
 void DefaultRenderer::cleanup()
 {
-  //  VkDevice device = VInstance::device();
-
     AbstractRenderer::cleanup();
-
-    /*for(auto ubo : m_viewBuffers)
-        VBuffersAllocator::freeBuffer(ubo);
-
-    if(m_viewDescriptorSetLayout != VK_NULL_HANDLE)
-        vkDestroyDescriptorSetLayout(device, m_viewDescriptorSetLayout, nullptr);
-    m_viewDescriptorSetLayout = VK_NULL_HANDLE;*/
-
     Sprite::cleanupRendering();
 }
 

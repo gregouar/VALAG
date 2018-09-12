@@ -12,23 +12,6 @@
 namespace vlg
 {
 
-struct Vertex2D
-{
-    glm::vec2 pos;
-    //glm::vec4 color;
-    glm::vec2 tex;
-
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
-};
-
-struct ModelUBO {
-    glm::mat4 model;
-    glm::vec4 color;
-    glm::vec2 texPos;
-    glm::vec2 texExt;
-};
-
 class VulkanHelpers
 {
 

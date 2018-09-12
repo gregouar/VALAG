@@ -17,7 +17,7 @@ EventsManager::EventsManager()
     }
 
     m_mousePosition = glm::vec2(0,0);
-    m_mouseScroll = glm::vec2(0,0);
+    m_mouseScroll   = glm::vec2(0,0);
 
     m_askingToClose = false;
 }
@@ -82,7 +82,7 @@ bool EventsManager::keyPressed(int key) const
 bool EventsManager::keyIsPressed(int key) const
 {
     if(key >= 0 && key <= GLFW_KEY_LAST)
-        return m_keyIsPressed[key];
+        return m_keyIsPressed[key] | m_keyPressed[key];
     return (false);
 }
 
@@ -103,7 +103,7 @@ bool EventsManager::mouseButtonPressed(int button) const
 bool EventsManager::mouseButtonIsPressed(int button) const
 {
     if(button >= 0 && button <= GLFW_MOUSE_BUTTON_LAST)
-        return m_mouseButtonIsPressed[button];
+        return m_mouseButtonIsPressed[button] | m_mouseButtonPressed[button];
     return (false);
 }
 bool EventsManager::mouseButtonReleased(int button) const

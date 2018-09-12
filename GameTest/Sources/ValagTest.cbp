@@ -113,6 +113,8 @@
 		<Unit filename="../../Valag/libs/tinyxml/tinyxmlparser.cpp" />
 		<Unit filename="../../Valag/shaders/defaultShader.frag" />
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
+		<Unit filename="../../Valag/shaders/instancingShader.frag" />
+		<Unit filename="../../Valag/shaders/instancingShader.vert" />
 		<Unit filename="../../Valag/src/core/Asset.cpp" />
 		<Unit filename="../../Valag/src/core/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/core/Config.cpp" />
