@@ -29,6 +29,14 @@ enum RendererName
     Renderer_Instancing,
 };
 
+enum RenderereOrder
+{
+    Renderer_First,
+    Renderer_Middle,
+    Renderer_Last,
+    Renderer_Unique,
+};
+
 enum AssetLoadType
 {
     LoadType_Now = 0,

@@ -17,7 +17,7 @@ class DefaultRenderer : public AbstractRenderer
     friend class SpritesBatch;
 
     public:
-        DefaultRenderer(RenderWindow *targetWindow, RendererName name);
+        DefaultRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~DefaultRenderer();
 
         virtual void update(size_t frameIndex);
@@ -28,7 +28,7 @@ class DefaultRenderer : public AbstractRenderer
         virtual bool init();
         virtual void cleanup();
 
-        virtual bool    createRenderPass();
+        //virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts();
         virtual bool    createGraphicsPipeline();
         virtual bool    createUBO();

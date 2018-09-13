@@ -1,12 +1,12 @@
 #include "Valag/renderers/SceneRenderer.h"
 
-#include "Valag/gfx/IsoSpriteEntity.h"
+#include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/utils/Logger.h"
 
 namespace vlg
 {
 
-SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name) : AbstractRenderer(targetWindow, name)
+SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) : AbstractRenderer(targetWindow, name, order)
 {
     this->init();
 }
@@ -74,7 +74,7 @@ bool SceneRenderer::init()
 
 bool SceneRenderer::createRenderPass()
 {
-    return (true);
+    return AbstractRenderer::createRenderPass();
 }
 
 bool SceneRenderer::createDescriptorSetLayouts()

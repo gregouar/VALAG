@@ -4,53 +4,115 @@
 #include "Valag/utils/Logger.h"
 #include "Valag/core/VApp.h"
 
+
+#include "Valag/core/AssetHandler.h"
+#include "Valag/gfx/TextureAsset.h"
+#include "Valag/gfx/Sprite.h"
+#include "Valag/gfx/SpritesBatch.h"
+
 namespace vlg
 {
 
 const char *InstancingRenderer::INSTANCING_VERTSHADERFILE = "instancingShader.vert.spv";
 const char *InstancingRenderer::INSTANCING_FRAGSHADERFILE = "instancingShader.frag.spv";
 
+const size_t InstancingRenderer::VBO_CHUNK_SIZE = 1024;
+
 const float InstancingRenderer::DEPTH_SCALING_FACTOR = 1024*1024;
 
 
-VkVertexInputBindingDescription InstanciedVertex2D::getBindingDescription()
+VkVertexInputBindingDescription InstanciedSpriteDatum::getBindingDescription()
 {
     VkVertexInputBindingDescription bindingDescription = {};
     bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(InstanciedVertex2D);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    bindingDescription.stride = sizeof(InstanciedSpriteDatum);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 4> InstanciedVertex2D::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 8> InstanciedSpriteDatum::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 8> attributeDescriptions = {};
 
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(InstanciedVertex2D, pos);
+    size_t i = 0;
+    /*attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, pos_ul);
+    ++i;
 
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(InstanciedVertex2D, color);
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, pos_ur);
+    ++i;
 
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(InstanciedVertex2D, texCoord);
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, pos_dl);
+    ++i;
 
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(InstanciedVertex2D, texId);
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, layer);
+    ++i;*/
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, model_0);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, model_1);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, model_2);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, model_3);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, color);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, texPos);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, texExtent);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedSpriteDatum, texId);
+    ++i;
+
 
     return attributeDescriptions;
 }
 
-InstancingRenderer::InstancingRenderer(RenderWindow *targetWindow, RendererName name) : AbstractRenderer(targetWindow, name)
+InstancingRenderer::InstancingRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) : AbstractRenderer(targetWindow, name,order)
 {
     this->init();
 }
@@ -65,8 +127,53 @@ void InstancingRenderer::update(size_t frameIndex)
     AbstractRenderer::update(frameIndex);
 }
 
+void InstancingRenderer::updateVBO(size_t frameIndex)
+{
+    if(m_spritesRenderQueueSize != 0)
+        VBuffersAllocator::writeBuffer(m_vbos[frameIndex],m_spritesRenderQueue[frameIndex].data(),
+                                       m_spritesRenderQueueSize*sizeof(InstanciedSpriteDatum),false);
+}
+
+
+void InstancingRenderer::draw(Sprite* sprite)
+{
+    if(m_spritesRenderQueueSize == m_spritesRenderQueue[m_curFrameIndex].size())
+        this->expandVBO(m_curFrameIndex);
+
+    SpriteModelUBO modelUBO = sprite->getModelUBO();
+
+    TextureAsset *texAsset = TexturesHandler::instance()->getAsset(sprite->getTexture());
+
+    if(texAsset != nullptr && texAsset->isLoaded())
+    {
+        VTexture vtexture = texAsset->getVTexture();
+       // pc[0] = vtexture.m_textureId;
+       // pc[1] = vtexture.m_textureLayer;
+
+       InstanciedSpriteDatum datum = {};
+       datum.model_0 = modelUBO.model[0];
+       datum.model_1 = modelUBO.model[1];
+       datum.model_2 = modelUBO.model[2];
+       datum.model_3 = modelUBO.model[3];
+       datum.color   = modelUBO.color;
+       datum.texExtent = modelUBO.texExt;
+       datum.texPos = modelUBO.texPos;
+       datum.texId = {vtexture.m_textureId, vtexture.m_textureLayer};
+
+       m_spritesRenderQueue[m_curFrameIndex][m_spritesRenderQueueSize++] = datum;
+    }
+}
+
+
+void InstancingRenderer::draw(SpritesBatch* spritesBatch)
+{
+    spritesBatch->draw(this);
+}
+
 bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 {
+    this->updateVBO(m_curFrameIndex);
+
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
@@ -77,27 +184,41 @@ bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
         return (false);
     }
 
-    /*VkRenderPassBeginInfo renderPassInfo = {};
+    VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
 
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[1].depthStencil = {0.0f, 0};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+    if(m_order == Renderer_First || m_order == Renderer_Unique)
+    {
+        std::array<VkClearValue, 2> clearValues = {};
+        clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+        clearValues[1].depthStencil = {0.0f, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+    }
 
-    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE /*VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS*/);
 
-        if(!m_activeSecondaryCommandBuffers.empty())
-            vkCmdExecuteCommands(m_primaryCMB[m_curFrameIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
+    if(m_spritesRenderQueueSize != 0)
+    {
+        vkCmdBindPipeline(m_primaryCMB[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+        VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
+
+        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_pipelineLayout,0,2, descriptorSets, 0, nullptr);
+
+        vkCmdBindVertexBuffers(m_primaryCMB[m_curFrameIndex], 0, 1, &m_vbos[m_curFrameIndex].buffer, &m_vbos[m_curFrameIndex].offset);
+
+        vkCmdDraw(m_primaryCMB[m_curFrameIndex], 4, m_spritesRenderQueueSize, 0, 0);
+        m_spritesRenderQueueSize = 0;
+    }
 
     vkCmdEndRenderPass(m_primaryCMB[m_curFrameIndex]);
-
-    m_activeSecondaryCommandBuffers.clear();*/
 
     if (vkEndCommandBuffer(m_primaryCMB[m_curFrameIndex]) != VK_SUCCESS)
     {
@@ -114,66 +235,16 @@ bool InstancingRenderer::init()
                             m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(DEPTH_SCALING_FACTOR);
 
+    m_spritesRenderQueueSize = 0;
+    //m_maxSpriteRenderQueueSize = VBO_CHUNK_SIZE;
+    m_spritesRenderQueue.resize(m_targetWindow->getFramesCount());
+    m_vbos.resize(m_targetWindow->getFramesCount());
+
+    for(size_t i = 0 ; i < m_vbos.size() ; ++i)
+        if(!this->expandVBO(i))
+            return (false);
+
     return AbstractRenderer::init();
-}
-
-bool InstancingRenderer::createRenderPass()
-{
-    VkDevice device = VInstance::device();
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = m_targetWindow->getSwapchainImageFormat();
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass) == VK_SUCCESS);
 }
 
 bool InstancingRenderer::createDescriptorSetLayouts()
@@ -211,8 +282,8 @@ bool InstancingRenderer::createGraphicsPipeline()
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    auto bindingDescription = InstanciedVertex2D::getBindingDescription();
-    auto attributeDescriptions = InstanciedVertex2D::getAttributeDescriptions();
+    auto bindingDescription = InstanciedSpriteDatum::getBindingDescription();
+    auto attributeDescriptions = InstanciedSpriteDatum::getAttributeDescriptions();
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
@@ -221,7 +292,7 @@ bool InstancingRenderer::createGraphicsPipeline()
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;//VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_TRUE;
 
 
@@ -311,7 +382,7 @@ bool InstancingRenderer::createGraphicsPipeline()
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
     depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_GREATER; //VK_COMPARE_OP_GREATER;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_GREATER;//VK_COMPARE_OP_ALWAYS; ///VK_COMPARE_OP_GREATER;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f; // Optional
     depthStencil.maxDepthBounds = 1.0f; // Optional
@@ -362,8 +433,45 @@ bool InstancingRenderer::createUBO()
     return (true);
 }
 
+/*bool InstancingRenderer::createVBO(size_t frameIndex)
+{
+    VkDeviceSize vboSize = m_maxSpriteRenderQueueSize * sizeof(InstanciedSpriteDatum);
+    m_spritesRenderQueue.resize(m_maxSpriteRenderQueueSize);
+
+    return VBuffersAllocator::allocBuffer(vboSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                                          , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,m_vbos[frameIndex]);
+}*/
+
+bool InstancingRenderer::expandVBO(size_t frameIndex)
+{
+    VBuffer oldBuffer = m_vbos[frameIndex];
+    //m_maxSpriteRenderQueueSize += VBO_CHUNK_SIZE;
+    m_spritesRenderQueue[frameIndex].resize(m_spritesRenderQueue[frameIndex].size() + VBO_CHUNK_SIZE);
+
+
+    VkDeviceSize vboSize = m_spritesRenderQueue[frameIndex].size() * sizeof(InstanciedSpriteDatum);
+    if(!VBuffersAllocator::allocBuffer(vboSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                                          , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,m_vbos[frameIndex]))
+        return (false);
+
+    //if(!this->createVBO(frameIndex))
+      //  return (false);
+
+    if(m_spritesRenderQueueSize != 0)
+    {
+        VBuffersAllocator::copyBuffer(oldBuffer,m_vbos[frameIndex],m_spritesRenderQueueSize*sizeof(InstanciedSpriteDatum));
+        VBuffersAllocator::freeBuffer(oldBuffer);
+    }
+
+    return (true);
+}
+
 void InstancingRenderer::cleanup()
 {
+    for(auto vbo : m_vbos)
+        VBuffersAllocator::freeBuffer(vbo);
+    m_vbos.clear();
+
     AbstractRenderer::cleanup();
 }
 

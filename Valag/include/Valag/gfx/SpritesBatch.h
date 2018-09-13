@@ -7,15 +7,17 @@
 #include "Valag/gfx/Sprite.h"
 #include "Valag/core/NotificationListener.h"
 
+
+#include "Valag/renderers/InstancingRenderer.h"
+
 namespace vlg
 {
 
-/// I should add option to preserves ordering (disabling auto sorting by material)
 
 class SpritesBatch : public Drawable
 {
     public:
-        SpritesBatch();
+        SpritesBatch(bool enableSorting = true);
         virtual ~SpritesBatch();
 
         void addSprite(Sprite *sprite);
@@ -23,6 +25,8 @@ class SpritesBatch : public Drawable
 
         VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                              uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
+
+        void draw(InstancingRenderer *renderer);
 
     protected:
         bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
@@ -33,7 +37,8 @@ class SpritesBatch : public Drawable
     private:
        // std::set<Sprite*> m_sprites;
       //  std::list<Sprite*> m_sprites;
-       std::map<AssetTypeID, std::set<Sprite*> > m_sortedSprites;
+        bool m_enableSorting;
+        std::map<AssetTypeID, std::set<Sprite*> > m_sortedSprites;
 };
 
 }

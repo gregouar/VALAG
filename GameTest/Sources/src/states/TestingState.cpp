@@ -3,11 +3,12 @@
 #include "Valag/core/StatesManager.h"
 #include "Valag/utils/Clock.h"
 
-#include "Valag/gfx/SceneNode.h"
+#include "Valag/scene/SceneNode.h"
 #include "Valag/core/AssetHandler.h"
 #include "Valag/gfx/TextureAsset.h"
 #include "Valag/gfx/MaterialAsset.h"
 #include "Valag/renderers/DefaultRenderer.h"
+#include "Valag/renderers/InstancingRenderer.h"
 
 #include "Valag/Types.h"
 
@@ -15,7 +16,8 @@
 
 TestingState::TestingState() :
     m_firstEntering(true),
-    m_scene(nullptr)
+    m_scene(nullptr),
+    m_testingSpritesBatch(true)
 {
 }
 
@@ -49,34 +51,20 @@ void TestingState::init()
 
     vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
-    //m_testingSprite.setSize(glm::vec2(150,150));
-    //m_testingSprite.setPosition(glm::vec2(100,200));
-    m_testingSprites.resize(5);
+    m_testingSprites.resize(2);
 
     auto it = m_testingSprites.begin();
     for(size_t i = 0 ; i < m_testingSprites.size() ; ++i,++it)
     {
-        /*it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
-        it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
-        it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
-        if(i % 2 == 0)
-        it->setTexture(tex);*/
-
         it->setSize(glm::vec2(glm::linearRand(25,100), glm::linearRand(25,100)));
         it->setPosition(glm::vec2(glm::linearRand(0, 1024),glm::linearRand(0, 768)));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
-       /* if(i % 3 == 0)
-            it->setTexture(tex[0]);
-        if(i % 3 == 1)
-            it->setTexture(tex[2]);
-        if(i % 3 == 2)
-            it->setTexture(tex[6]);*/
         it->setTexture(tex[i%10]);
     }
 
 
-    m_testingSpritesInBatch.resize(10);
+    m_testingSpritesInBatch.resize(10000);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
@@ -85,10 +73,6 @@ void TestingState::init()
         it->setPosition(glm::vec3(glm::linearRand(0, 1024),glm::linearRand(0, 768),i));
         it->setColor(glm::vec4(glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(0.0f,1.0f),glm::linearRand(.5f,1.0f)));
 
-        /*if(i < 5000)
-            it->setTexture(tex[0]);
-        else
-            it->setTexture(tex[1]);*/
         it->setTexture(tex[i%10]);
 
         m_testingSpritesBatch.addSprite(&(*it));
@@ -130,16 +114,16 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_manager->stop();
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
-        (++m_testingSpritesInBatch.begin())->setPosition(eventsManager->mousePosition());
+        (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
         for(size_t j = 0 ; j < 1000 ; ++j)
     {
-        m_testingSpritesInBatch.resize(m_testingSpritesInBatch.size() + 1);
-        (--m_testingSpritesInBatch.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,j%100));
-        (--m_testingSpritesInBatch.end())->setSize(glm::vec2(100,100));
-        (--m_testingSpritesInBatch.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
-        m_testingSpritesBatch.addSprite(&(*(--m_testingSpritesInBatch.end())));
+        m_testingSprites.resize(m_testingSprites.size() + 1);
+        (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,j%100));
+        (--m_testingSprites.end())->setSize(glm::vec2(100,100));
+        (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
+        //m_testingSpritesBatch.addSprite(&(*(--m_testingSprites.end())));
 
        /* m_testingSprites.resize(m_testingSprites.size() + 1);
         (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
@@ -165,13 +149,15 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
 void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
-    vlg::DefaultRenderer *defaultRenderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
+    //vlg::DefaultRenderer *renderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
+    vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
     //vlg::DefaultRenderer *defaultRenderer = (vlg::DefaultRenderer*)renderWindow->getRenderer(vlg::Renderer_Default);
 
     for(auto &sprite : m_testingSprites)
-        defaultRenderer->draw(&sprite);
+        renderer->draw(&sprite);
+        //defaultRenderer->draw(&sprite);
 
-    defaultRenderer->draw(&m_testingSpritesBatch);
+    renderer->draw(&m_testingSpritesBatch);
 
 }
 

@@ -6,7 +6,7 @@
 #define SCENERENDERER_H
 
 #include "Valag/renderers/AbstractRenderer.h"
-#include "Valag/gfx/Scene.h"
+#include "Valag/scene/Scene.h"
 
 namespace vlg
 {
@@ -14,7 +14,7 @@ namespace vlg
 class SceneRenderer : public AbstractRenderer
 {
     public:
-        SceneRenderer(RenderWindow *targetWindow, RendererName name);
+        SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
         void update(size_t frameIndex);
@@ -35,6 +35,16 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
     private:
+        ///Should I do a pipeline for alpha and one for opacity ?
+
+        VkPipelineLayout    m_deferredPipelineLayout,
+                            m_compositionPipelineLayout;
+        VkPipeline          m_deferredPipeline,
+                            m_compositionPipeline;
+
+
+
+        ///The default pipeline is used for bloom and tone mapping
 
 };
 

@@ -40,6 +40,7 @@ class Sprite : public NotificationSender, public Drawable
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
 
         AssetTypeID getTexture();
+        SpriteModelUBO getModelUBO();
 
         ///Specifying framebuffer may induce better performances
         VkCommandBuffer getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, /*VkPipeline pipeline,*/ VkRenderPass renderPass,
@@ -48,7 +49,8 @@ class Sprite : public NotificationSender, public Drawable
         static VkDescriptorSetLayout getModelDescriptorSetLayout();
 
     protected:
-        void updateModelUBO(DefaultRenderer *renderer, size_t frameIndex);
+        void updateModelUBO();
+        void uploadModelUBO(DefaultRenderer *renderer, size_t frameIndex);
 
         void cleanup();
 
@@ -66,6 +68,8 @@ class Sprite : public NotificationSender, public Drawable
         glm::vec3 m_position;
         glm::vec4 m_color;
 
+        SpriteModelUBO m_modelUBO;
+
         /// I could (should ?) switch to pointer to textureAsset for more efficiency...
         AssetTypeID m_texture;
         std::vector<bool>   m_needToCheckLoading;
@@ -75,7 +79,7 @@ class Sprite : public NotificationSender, public Drawable
 
 
         std::vector<bool>       m_needToAllocModel;
-        std::vector<bool>       m_needToUpdateModel;
+        std::vector<bool>       m_needToUploadModelUBO;
         std::vector<size_t>     m_modelUBOIndex;
         std::vector<size_t>     m_modelBufferVersion;
         std::vector<size_t>     m_texDescSetVersion;

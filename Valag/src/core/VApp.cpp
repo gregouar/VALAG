@@ -133,13 +133,13 @@ bool VApp::createRenderers()
         delete renderer;
     m_renderers.clear();
 
-    m_renderers.push_back(new DefaultRenderer(&m_renderWindow, Renderer_Default));
-    m_renderWindow.attachRenderer(m_renderers.back());
+    //m_renderers.push_back(new DefaultRenderer(&m_renderWindow, Renderer_Default, Renderer_Unique));
+    //m_renderWindow.attachRenderer(m_renderers.back());
 
-    m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene));
-    m_renderWindow.attachRenderer(m_renderers.back());
+    m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene, Renderer_First));
+   // m_renderWindow.attachRenderer(m_renderers.back());
 
-    m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing));
+    m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing,Renderer_Unique));
     m_renderWindow.attachRenderer(m_renderers.back());
 
     return (true);

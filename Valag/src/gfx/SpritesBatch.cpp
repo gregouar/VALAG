@@ -8,7 +8,7 @@
 namespace vlg
 {
 
-SpritesBatch::SpritesBatch()
+SpritesBatch::SpritesBatch(bool enableSorting) : m_enableSorting(enableSorting)
 {
 }
 
@@ -20,7 +20,9 @@ void SpritesBatch::addSprite(Sprite *sprite)
 {
     //if(m_sprites.insert(sprite).second)
    // m_sprites.push_back(sprite);
-    if(m_sortedSprites[sprite->getTexture()].insert(sprite).second)
+
+    size_t texId = m_enableSorting*sprite->getTexture();
+    if(m_sortedSprites[texId].insert(sprite).second)
     {
         sprite->askForAllNotifications(this);
         ///for(auto b : m_needToUpdateDrawCMB) b = 0;
@@ -32,7 +34,16 @@ bool SpritesBatch::removeSprite(Sprite *sprite)
 
     //return m_sprites.erase(sprite);
     //m_sprites.remove(sprite);
-    return m_sortedSprites[sprite->getTexture()].erase(sprite);
+    size_t texId = m_enableSorting*sprite->getTexture();
+    return m_sortedSprites[texId].erase(sprite);
+}
+
+
+void SpritesBatch::draw(InstancingRenderer *renderer)
+{
+    for(auto spriteSet : m_sortedSprites)
+    for(auto sprite : spriteSet.second)
+        renderer->draw(sprite);
 }
 
 VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
@@ -89,13 +100,19 @@ void SpritesBatch::notify(NotificationSender* sender, NotificationType notificat
         for(auto b : m_needToUpdateDrawCMB) b = true;
     else */if(notificationType == Notification_TextureIsAboutToChange)
     {
-        Sprite *sprite = dynamic_cast<Sprite*>(sender);
-        m_sortedSprites[sprite->getTexture()].erase(sprite);
+        if(m_enableSorting)
+        {
+            Sprite *sprite = dynamic_cast<Sprite*>(sender);
+            m_sortedSprites[sprite->getTexture()].erase(sprite);
+        }
     }
     else if(notificationType == Notification_TextureChanged)
     {
-        Sprite *sprite = dynamic_cast<Sprite*>(sender);
-        m_sortedSprites[sprite->getTexture()].insert(sprite);
+        if(m_enableSorting)
+        {
+            Sprite *sprite = dynamic_cast<Sprite*>(sender);
+            m_sortedSprites[sprite->getTexture()].insert(sprite);
+        }
     }
 }
 

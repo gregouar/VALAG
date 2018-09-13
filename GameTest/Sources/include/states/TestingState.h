@@ -3,7 +3,7 @@
 
 #include "Valag/core/GameState.h"
 #include "Valag/utils/Singleton.h"
-#include "Valag/gfx/Scene.h"
+#include "Valag/scene/Scene.h"
 #include "Valag/gfx/Sprite.h"
 #include "Valag/gfx/SpritesBatch.h"
 

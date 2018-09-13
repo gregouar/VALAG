@@ -21,11 +21,14 @@ Sprite::Sprite() :
 {
     ///I should probably move this to checkUpdates somehow
     m_needToAllocModel      = std::vector<bool> (s_framesCount, true);
-    m_needToUpdateModel     = std::vector<bool> (s_framesCount, true);
+    m_needToUploadModelUBO  = std::vector<bool> (s_framesCount, true);
     m_modelBufferVersion    = std::vector<size_t> (s_framesCount, 0);
     m_texDescSetVersion     = std::vector<size_t> (s_framesCount, 0);
     m_needToCheckLoading    = std::vector<bool> (s_framesCount, false);
     m_modelUBOIndex.resize(s_framesCount);
+
+
+    this->updateModelUBO();
 }
 
 Sprite::~Sprite()
@@ -39,8 +42,10 @@ void Sprite::setSize(glm::vec2 size)
     if(size.x >= 0 && size.y >= 0)
     {
         if(m_size != size)
-            for(auto b : m_needToUpdateModel) b = true;
-        m_size = size;
+        {
+            m_size = size;
+            this->updateModelUBO();
+        }
     }
 }
 
@@ -52,15 +57,19 @@ void Sprite::setPosition(glm::vec2 position)
 void Sprite::setPosition(glm::vec3 position)
 {
     if(m_position != position)
-            for(auto b : m_needToUpdateModel) b = true;
-    m_position = position;
+    {
+        m_position = position;
+        this->updateModelUBO();
+    }
 }
 
 void Sprite::setColor(glm::vec4 color)
 {
     if(m_color != color)
-        for(auto b : m_needToUpdateModel) b = true;
-    m_color = color;
+    {
+        m_color = color;
+        this->updateModelUBO();
+    }
 }
 
 void Sprite::setTexture(AssetTypeID textureID)
@@ -80,11 +89,17 @@ void Sprite::setTexture(AssetTypeID textureID)
 
 void Sprite::setTextureRect(glm::vec2 position, glm::vec2 extent)
 {
-    if(m_texturePosition != position || extent != m_textureExtent)
-        for(auto b : m_needToUpdateModel) b = true;
+    if(m_texturePosition != position || m_textureExtent != extent)
+    {
+        m_texturePosition   = position;
+        m_textureExtent     = extent;
+        this->updateModelUBO();
+    }
+}
 
-    m_texturePosition = position;
-    m_textureExtent = extent;
+SpriteModelUBO Sprite::getModelUBO()
+{
+    return m_modelUBO;
 }
 
 AssetTypeID Sprite::getTexture()
@@ -120,19 +135,30 @@ AssetTypeID Sprite::getTexture()
     m_needToCreateVertexBuffer = false;
 }*/
 
-void Sprite::updateModelUBO(DefaultRenderer *renderer, size_t frameIndex)
+void Sprite::updateModelUBO()
 {
-    SpriteModelUBO modelUBO = {};
+    m_modelUBO.model = glm::mat4(1.0);
+    m_modelUBO.model = glm::translate(m_modelUBO.model, glm::vec3(m_position.x, m_position.y, m_position.z));
+    m_modelUBO.model = glm::scale(m_modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
+    m_modelUBO.color = m_color;
+    m_modelUBO.texPos = m_texturePosition;
+    m_modelUBO.texExt = m_textureExtent;
+    for(auto b : m_needToUploadModelUBO) b = true;
+}
+
+void Sprite::uploadModelUBO(DefaultRenderer *renderer, size_t frameIndex)
+{
+    /*SpriteModelUBO modelUBO = {};
     modelUBO.model = glm::mat4(1.0);
     modelUBO.model = glm::translate(modelUBO.model, glm::vec3(m_position.x, m_position.y, m_position.z));
     modelUBO.model = glm::scale(modelUBO.model, glm::vec3(m_size.x, m_size.y, 1.0));
     modelUBO.color = m_color;
     modelUBO.texPos = m_texturePosition;
-    modelUBO.texExt = m_textureExtent;
+    modelUBO.texExt = m_textureExtent;*/
 
-    s_modelUBO.updateObject(frameIndex, m_modelUBOIndex[frameIndex], &modelUBO);
+    s_modelUBO.updateObject(frameIndex, m_modelUBOIndex[frameIndex], &m_modelUBO);
 
-    m_needToUpdateModel[frameIndex] = false;
+    m_needToUploadModelUBO[frameIndex] = false;
 }
 
 bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
@@ -157,8 +183,8 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
         m_modelBufferVersion[frameIndex] = s_modelUBO.getBufferVersion(frameIndex);
     }
 
-    if(m_needToUpdateModel[frameIndex])
-        this->updateModelUBO(renderer, frameIndex);
+    if(m_needToUploadModelUBO[frameIndex])
+        this->uploadModelUBO(renderer, frameIndex);
 
     if(m_texDescSetVersion[frameIndex] != VTexturesManager::descriptorSetVersion(frameIndex))
     {

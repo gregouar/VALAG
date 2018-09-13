@@ -10,7 +10,7 @@ namespace vlg
 class AbstractRenderer
 {
     public:
-        AbstractRenderer(RenderWindow *targetWindow, RendererName name);
+        AbstractRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~AbstractRenderer();
 
         virtual void update(size_t frameIndex);
@@ -22,7 +22,7 @@ class AbstractRenderer
         RendererName    getName();
 
     protected:
-        virtual bool    createRenderPass() = 0;
+        virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts() = 0;
         virtual bool    createGraphicsPipeline() = 0;
         virtual bool    createSwapchainFramebuffers();
@@ -59,8 +59,10 @@ class AbstractRenderer
         //std::vector<VkSemaphore>        m_renderFinishedSemaphore;
         //std::vector<VkCommandBuffer>    m_activeSecondaryCommandBuffers;
 
+        RenderereOrder  m_order;
+
     private:
-        RendererName m_name;
+        RendererName    m_name;
 };
 
 }
