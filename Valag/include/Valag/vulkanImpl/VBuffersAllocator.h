@@ -18,8 +18,8 @@ struct VBuffer
 
     VkBuffer                buffer;
     VkDeviceMemory          bufferMemory;
-    VkDeviceSize            offset;
     VkDeviceSize            alignedSize;
+    VkDeviceSize            offset;
 
     VkBufferUsageFlags      usage;
     VkMemoryPropertyFlags   properties;

@@ -6,6 +6,7 @@
 #include "Valag/scene/Scene.h"
 #include "Valag/gfx/Sprite.h"
 #include "Valag/gfx/SpritesBatch.h"
+#include "Valag/scene/IsoSpriteEntity.h"
 
 class TestingState : public vlg::GameState, public Singleton<TestingState>
 {
@@ -39,6 +40,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         std::list<vlg::Sprite>  m_testingSprites;
         std::list<vlg::Sprite>  m_testingSpritesInBatch;
         vlg::SpritesBatch       m_testingSpritesBatch;
+
+        vlg::IsoSpriteModel  m_treeModel;
+        vlg::IsoSpriteEntity m_treeEntity;
 };
 
 #endif // TESTINGSTATE_H

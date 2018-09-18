@@ -53,6 +53,8 @@ class DefaultRenderer : public AbstractRenderer
         std::vector<VkDescriptorSet>    m_viewDescriptorSets;
         VkDescriptorSetLayout           m_viewDescriptorSetLayout;*/
 
+        VGraphicsPipeline m_pipeline;
+
 
         static const char *DEFAULT_VERTSHADERFILE;
         static const char *DEFAULT_FRAGSHADERFILE;

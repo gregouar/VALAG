@@ -4,6 +4,7 @@
 #include "Valag/renderers/AbstractRenderer.h"
 
 #include "Valag/gfx/Sprite.h"
+#include "Valag/vulkanImpl/DynamicVBO.h"
 
 namespace vlg
 {
@@ -49,25 +50,16 @@ class InstancingRenderer : public AbstractRenderer
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
 
-        //bool createVBO(size_t frameIndex);
-        bool expandVBO(size_t frameIndex);
-        void updateVBO(size_t frameIndex);
-
         virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
 
     protected:
-        ///I could create a dynamic VBO class heh
-        //size_t m_maxSpriteRenderQueueSize;
-        size_t m_spritesRenderQueueSize;
-        std::vector<std::vector<InstanciedSpriteDatum>> m_spritesRenderQueue;
+        std::vector<DynamicVBO<InstanciedSpriteDatum> > m_spritesVbos;
 
-        std::vector<VBuffer>    m_vbos;
+        VGraphicsPipeline m_pipeline;
 
     private:
         static const char *INSTANCING_VERTSHADERFILE;
         static const char *INSTANCING_FRAGSHADERFILE;
-
-        static const size_t VBO_CHUNK_SIZE;
 
         static const float  DEPTH_SCALING_FACTOR;
 };

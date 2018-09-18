@@ -13,6 +13,8 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
 					<Add option="-g" />
 					<Add directory="Valag/include/Valag/gfx" />
 				</Compiler>
@@ -66,8 +68,10 @@
 			<Add directory="../../Valag/libs" />
 		</Linker>
 		<Unit filename="../../Valag/include/Valag/Types.h" />
-		<Unit filename="../../Valag/include/Valag/core/Asset.h" />
-		<Unit filename="../../Valag/include/Valag/core/AssetHandler.h" />
+		<Unit filename="../../Valag/include/Valag/assets/Asset.h" />
+		<Unit filename="../../Valag/include/Valag/assets/AssetHandler.h" />
+		<Unit filename="../../Valag/include/Valag/assets/MaterialAsset.h" />
+		<Unit filename="../../Valag/include/Valag/assets/TextureAsset.h" />
 		<Unit filename="../../Valag/include/Valag/core/Config.h" />
 		<Unit filename="../../Valag/include/Valag/core/EventsManager.h" />
 		<Unit filename="../../Valag/include/Valag/core/GameState.h" />
@@ -76,10 +80,8 @@
 		<Unit filename="../../Valag/include/Valag/core/StatesManager.h" />
 		<Unit filename="../../Valag/include/Valag/core/VApp.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Drawable.h" />
-		<Unit filename="../../Valag/include/Valag/gfx/MaterialAsset.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/Sprite.h" />
 		<Unit filename="../../Valag/include/Valag/gfx/SpritesBatch.h" />
-		<Unit filename="../../Valag/include/Valag/gfx/TextureAsset.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/AbstractRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/InstancingRenderer.h" />
@@ -100,8 +102,11 @@
 		<Unit filename="../../Valag/include/Valag/utils/SingletonsCleaner.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBO.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicUBODescriptor.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/DynamicVBO.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VBuffersAllocator.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VGraphicsPipeline.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexture.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexturesManager.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
@@ -111,11 +116,20 @@
 		<Unit filename="../../Valag/libs/tinyxml/tinyxml.cpp" />
 		<Unit filename="../../Valag/libs/tinyxml/tinyxmlerror.cpp" />
 		<Unit filename="../../Valag/libs/tinyxml/tinyxmlparser.cpp" />
+		<Unit filename="../../Valag/shaders/ambientLighting.frag" />
+		<Unit filename="../../Valag/shaders/ambientLighting.vert" />
 		<Unit filename="../../Valag/shaders/defaultShader.frag" />
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/shaders/instancingShader.frag" />
 		<Unit filename="../../Valag/shaders/instancingShader.vert" />
-		<Unit filename="../../Valag/src/core/Asset.cpp" />
+		<Unit filename="../../Valag/shaders/isoSpriteShader.frag" />
+		<Unit filename="../../Valag/shaders/isoSpriteShader.vert" />
+		<Unit filename="../../Valag/shaders/toneMapping.frag" />
+		<Unit filename="../../Valag/shaders/toneMapping.vert" />
+		<Unit filename="../../Valag/src/assets/Asset.cpp" />
+		<Unit filename="../../Valag/src/assets/AssetHandler.inc" />
+		<Unit filename="../../Valag/src/assets/MaterialAsset.cpp" />
+		<Unit filename="../../Valag/src/assets/TextureAsset.cpp" />
 		<Unit filename="../../Valag/src/core/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/core/Config.cpp" />
 		<Unit filename="../../Valag/src/core/EventsManager.cpp" />
@@ -125,10 +139,8 @@
 		<Unit filename="../../Valag/src/core/StatesManager.cpp" />
 		<Unit filename="../../Valag/src/core/VApp.cpp" />
 		<Unit filename="../../Valag/src/gfx/Drawable.cpp" />
-		<Unit filename="../../Valag/src/gfx/MaterialAsset.cpp" />
 		<Unit filename="../../Valag/src/gfx/Sprite.cpp" />
 		<Unit filename="../../Valag/src/gfx/SpritesBatch.cpp" />
-		<Unit filename="../../Valag/src/gfx/TextureAsset.cpp" />
 		<Unit filename="../../Valag/src/renderers/AbstractRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
@@ -148,8 +160,11 @@
 		<Unit filename="../../Valag/src/utils/SingletonsCleaner.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBO.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/DynamicUBODescriptor.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/DynamicVBO.inc" />
 		<Unit filename="../../Valag/src/vulkanImpl/VBuffersAllocator.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VGraphicsPipeline.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexture.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexturesManager.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />

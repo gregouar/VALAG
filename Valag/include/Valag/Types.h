@@ -21,6 +21,7 @@ class ShadowCaster;**/
 
 template<class AssetType> class AssetHandler;
 class TextureAsset;
+class MaterialAsset;
 
 enum RendererName
 {
@@ -35,6 +36,14 @@ enum RenderereOrder
     Renderer_Middle,
     Renderer_Last,
     Renderer_Unique,
+};
+
+enum BlendMode
+{
+    BlendMode_None,
+    BlendMode_Add,
+    BlendMode_Alpha,
+    BlendMode_Custom,
 };
 
 enum AssetLoadType
@@ -107,9 +116,6 @@ typedef std::chrono::duration<double, std::chrono::seconds::period> Time;
 typedef unsigned int AssetTypeID;
 typedef unsigned int NodeTypeID;
 typedef unsigned int ObjectTypeID;
-typedef size_t VBufferID;
-//typedef unsigned int RenderTargetTypeID;
-typedef std::string AnimationTypeID;
 
 typedef glm::vec4 Color;
 
@@ -119,7 +125,8 @@ typedef ListIterator<ShadowCaster*> ShadowCasterIterator;
 typedef ListIterator<Light*> LightIterator;
 typedef MapIterator<NodeTypeID, SceneNode*> SceneNodeIterator;**/
 
-typedef AssetHandler<TextureAsset> TexturesHandler;
+typedef AssetHandler<TextureAsset>  TexturesHandler;
+typedef AssetHandler<MaterialAsset> MaterialsHandler;
 
 const std::string emptyString;
 ///const sf::Texture emptyTexture;

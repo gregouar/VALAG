@@ -19,26 +19,26 @@ class Scene;
 class SceneNode : public NotificationSender, public NotificationListener
 {
     public:
-        SceneNode(const NodeTypeID&);
-        SceneNode(const NodeTypeID&, SceneNode* parent);
-        SceneNode(const NodeTypeID&, SceneNode* parent, Scene* scene);
+        SceneNode(const NodeTypeID);
+        SceneNode(const NodeTypeID, SceneNode* parent);
+        SceneNode(const NodeTypeID, SceneNode* parent, Scene* scene);
         virtual ~SceneNode();
 
         void addChildNode(SceneNode*);
-        void addChildNode(const NodeTypeID &id, SceneNode*);
+        void addChildNode(const NodeTypeID id, SceneNode*);
 
         SceneNode* removeChildNode(SceneNode*);
-        SceneNode* removeChildNode(const NodeTypeID &id);
+        SceneNode* removeChildNode(const NodeTypeID id);
 
         SceneNode* createChildNode();
         SceneNode* createChildNode(float, float );
         SceneNode* createChildNode(float, float, float );
         SceneNode* createChildNode(glm::vec2 );
         SceneNode* createChildNode(glm::vec3 );
-        SceneNode* createChildNode(const NodeTypeID &id);
+        SceneNode* createChildNode(const NodeTypeID id);
 
         bool destroyChildNode(SceneNode*);
-        bool destroyChildNode(const NodeTypeID &id);
+        bool destroyChildNode(const NodeTypeID id);
 
         void removeAndDestroyAllChilds(bool destroyNonCreatedChilds = false);
 
@@ -69,9 +69,11 @@ class SceneNode : public NotificationSender, public NotificationListener
         /**sf::FloatRect getGlobalBounds();
         sf::FloatRect getBounds();**/
 
-        const NodeTypeID& getID();
+        NodeTypeID getID();
         SceneNode* getParent();
         Scene*  getScene();
+
+        //void searchInsideForEntities(std::list<SceneEntity*>  *renderQueue);
 
         /**void SearchInsideForEntities(std::list<SceneEntity*>  *renderQueue);
 
@@ -88,7 +90,7 @@ class SceneNode : public NotificationSender, public NotificationListener
     protected:
         void setParent(SceneNode *);
         void setScene(Scene *);
-        void setID(const NodeTypeID &);
+        void setID(const NodeTypeID );
         NodeTypeID generateID();
 
         glm::vec3 m_position;

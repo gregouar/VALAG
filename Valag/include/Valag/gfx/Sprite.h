@@ -50,11 +50,11 @@ class Sprite : public NotificationSender, public Drawable
 
     protected:
         void updateModelUBO();
-        void uploadModelUBO(DefaultRenderer *renderer, size_t frameIndex);
+        void uploadModelUBO(size_t frameIndex);
 
         void cleanup();
 
-        bool checkUpdates(DefaultRenderer *renderer, size_t frameIndex);
+        bool checkUpdates(size_t frameIndex);
 
         bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);

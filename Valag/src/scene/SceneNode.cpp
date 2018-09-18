@@ -8,11 +8,13 @@
 namespace vlg
 {
 
-SceneNode::SceneNode(const NodeTypeID &id) : SceneNode(id, nullptr)
+SceneNode::SceneNode(const NodeTypeID id) : SceneNode(id, nullptr)
 {
 }
 
-SceneNode::SceneNode(const NodeTypeID &id, SceneNode *p)
+SceneNode::SceneNode(const NodeTypeID id, SceneNode *p) :
+    m_position(0.0,0.0,0.0),
+    m_globalPosition(0.0,0.0,0.0)
 {
     m_scene = nullptr;
     m_parent = p;
@@ -22,12 +24,9 @@ SceneNode::SceneNode(const NodeTypeID &id, SceneNode *p)
 
     m_id = id;
     m_curNewId = 0;
-
-    m_globalPosition = glm::vec3(0,0,0);
-    m_position = glm::vec3(0,0,0);
 }
 
-SceneNode::SceneNode(const NodeTypeID &id, SceneNode *p, Scene* scene) :
+SceneNode::SceneNode(const NodeTypeID id, SceneNode *p, Scene* scene) :
     SceneNode(id,p)
 {
     this->setScene(scene);
@@ -47,7 +46,7 @@ void SceneNode::addChildNode(SceneNode* node)
         node->setID(id);
 }
 
-void SceneNode::addChildNode(const NodeTypeID &id, SceneNode* node)
+void SceneNode::addChildNode(const NodeTypeID id, SceneNode* node)
 {
     auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
@@ -69,7 +68,7 @@ void SceneNode::addChildNode(const NodeTypeID &id, SceneNode* node)
         m_scene->askToComputeRenderQueue();
 }
 
-SceneNode* SceneNode::removeChildNode(const NodeTypeID &id)
+SceneNode* SceneNode::removeChildNode(const NodeTypeID id)
 {
     SceneNode* node = nullptr;
 
@@ -140,7 +139,7 @@ SceneNode* SceneNode::createChildNode(glm::vec3 p)
     return this->createChildNode(p.x, p.y, p.z);
 }
 
-SceneNode* SceneNode::createChildNode(const NodeTypeID &id)
+SceneNode* SceneNode::createChildNode(const NodeTypeID id)
 {
     auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
@@ -167,7 +166,7 @@ bool SceneNode::destroyChildNode(SceneNode* node)
     return (false);
 }
 
-bool SceneNode::destroyChildNode(const NodeTypeID& id)
+bool SceneNode::destroyChildNode(const NodeTypeID id)
 {
     /*std::list<NodeTypeID>::iterator createdChildsIt;
     createdChildsIt = std::find(m_createdChildsList.begin(),
@@ -180,7 +179,9 @@ bool SceneNode::destroyChildNode(const NodeTypeID& id)
     else
         m_createdChildsList.erase(createdChildsIt);
 
+
     auto childsIt = m_childs.find(id);
+
     if(childsIt == m_childs.end())
     {
         std::ostringstream error_report;
@@ -359,7 +360,7 @@ glm::vec3 SceneNode::getGlobalPosition()
 }
 
 
-const NodeTypeID& SceneNode::getID()
+NodeTypeID SceneNode::getID()
 {
     return m_id;
 }
@@ -376,7 +377,7 @@ SceneNode* SceneNode::getParent()
 
 
 
-void SceneNode::setID(const NodeTypeID &id)
+void SceneNode::setID(const NodeTypeID id)
 {
     m_id = id;
 }

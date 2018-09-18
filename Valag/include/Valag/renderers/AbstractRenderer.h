@@ -25,7 +25,7 @@ class AbstractRenderer
         virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts() = 0;
         virtual bool    createGraphicsPipeline() = 0;
-        virtual bool    createSwapchainFramebuffers();
+        virtual bool    createFramebuffers();
         virtual bool    createRenderView();
         virtual bool    createUBO() = 0;
         virtual bool    createDescriptorPool() = 0;
@@ -43,12 +43,12 @@ class AbstractRenderer
         RenderWindow  *m_targetWindow;
 
         VkRenderPass        m_renderPass;
-        VkPipelineLayout    m_pipelineLayout;
-        VkPipeline          m_pipeline;
+        /*VkPipelineLayout    m_pipelineLayout;
+        VkPipeline          m_pipeline;*/
 
         VkDescriptorPool                m_descriptorPool;
 
-        std::vector<VkFramebuffer>      m_swapchainFramebuffers;
+        std::vector<VkFramebuffer>      m_framebuffers;
         std::vector<VkExtent2D>         m_swapchainExtents; //Could be needed if I implement resizing
 
         size_t                          m_curFrameIndex;

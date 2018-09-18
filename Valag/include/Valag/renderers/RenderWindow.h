@@ -10,6 +10,7 @@
 #include <map>
 
 #include "Valag/Types.h"
+#include "Valag/vulkanImpl/vulkanImpl.h"
 
 namespace vlg
 {
@@ -32,6 +33,7 @@ class RenderWindow
         bool detachRenderer(RendererName renderer);
 
         size_t      getFramesCount();
+        size_t      getSwapchainSize();
         size_t      getCurrentFrameIndex();
         VkExtent2D  getSwapchainExtent();
         VkFormat    getSwapchainImageFormat();
@@ -72,8 +74,10 @@ class RenderWindow
         VkFormat    m_swapchainImageFormat;
         VkExtent2D  m_swapchainExtent;
 
-        std::vector<VkImage>        m_depthStencilImages;
-        std::vector<VkDeviceMemory> m_depthStencilImagesMemory;
+        ///Maybe I should turn this into FramebufferAttachment
+        std::vector<VImage>         m_depthStencilImages;
+        //std::vector<VkImage>        m_depthStencilImages;
+        //std::vector<VkDeviceMemory> m_depthStencilImagesMemory;
         std::vector<VkImageView>    m_depthStencilImagesViews;
 
         size_t      m_framesCount;

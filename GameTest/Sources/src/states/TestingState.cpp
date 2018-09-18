@@ -4,9 +4,9 @@
 #include "Valag/utils/Clock.h"
 
 #include "Valag/scene/SceneNode.h"
-#include "Valag/core/AssetHandler.h"
-#include "Valag/gfx/TextureAsset.h"
-#include "Valag/gfx/MaterialAsset.h"
+#include "Valag/assets/AssetHandler.h"
+#include "Valag/assets/TextureAsset.h"
+#include "Valag/assets/MaterialAsset.h"
 #include "Valag/renderers/DefaultRenderer.h"
 #include "Valag/renderers/InstancingRenderer.h"
 
@@ -49,7 +49,6 @@ void TestingState::init()
     tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
     tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",vlg::LoadType_InThread)->getID();
 
-    vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
 
     m_testingSprites.resize(2);
 
@@ -64,7 +63,7 @@ void TestingState::init()
     }
 
 
-    m_testingSpritesInBatch.resize(10000);
+    m_testingSpritesInBatch.resize(100);
 
     it = m_testingSpritesInBatch.begin();
     for(size_t i = 0 ; i < m_testingSpritesInBatch.size() ; ++i,++it)
@@ -79,8 +78,18 @@ void TestingState::init()
     }
 
     vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
+    vlg::MaterialAsset *treeMaterial = vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
 
+    m_treeModel.setMaterial(treeMaterial->getID());
+    m_treeModel.setTextureRect({0,0},{512,512});
+    m_treeModel.setTextureCenter({256,526});
 
+    m_treeEntity.setSpriteModel(&m_treeModel);
+
+    vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
+    vlg::SceneNode *treeNode  =  m_scene->getRootNode()->createChildNode();
+
+    treeNode->attachObject(&m_treeEntity);
 }
 
 void TestingState::entered()
@@ -120,15 +129,10 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         for(size_t j = 0 ; j < 1000 ; ++j)
     {
         m_testingSprites.resize(m_testingSprites.size() + 1);
-        (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,j%100));
+        (--m_testingSprites.end())->setPosition(glm::vec3(eventsManager->mousePosition()+glm::vec2(j,j%100), j));
         (--m_testingSprites.end())->setSize(glm::vec2(100,100));
         (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         //m_testingSpritesBatch.addSprite(&(*(--m_testingSprites.end())));
-
-       /* m_testingSprites.resize(m_testingSprites.size() + 1);
-        (--m_testingSprites.end())->setPosition(eventsManager->mousePosition()+glm::vec2(j,0));
-        (--m_testingSprites.end())->setSize(glm::vec2(100,100));
-        (--m_testingSprites.end())->setTexture(vlg::TextureHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());*/
     }
 }
 
@@ -144,20 +148,18 @@ void TestingState::update(const vlg::Time &elapsedTime)
         m_nbrFps = 0;
     }
 
-    m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
+   // m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }
 
 void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
     //vlg::DefaultRenderer *renderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
-    vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
-    //vlg::DefaultRenderer *defaultRenderer = (vlg::DefaultRenderer*)renderWindow->getRenderer(vlg::Renderer_Default);
+   // vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
 
-    for(auto &sprite : m_testingSprites)
-        renderer->draw(&sprite);
-        //defaultRenderer->draw(&sprite);
+   // for(auto &sprite : m_testingSprites)
+     //   renderer->draw(&sprite);
 
-    renderer->draw(&m_testingSpritesBatch);
+  //  renderer->draw(&m_testingSpritesBatch);
 
 }
 

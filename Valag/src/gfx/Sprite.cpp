@@ -3,8 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Valag/renderers/DefaultRenderer.h"
-#include "Valag/core/AssetHandler.h"
-#include "Valag/gfx/TextureAsset.h"
+#include "Valag/assets/AssetHandler.h"
+#include "Valag/assets/TextureAsset.h"
 
 namespace vlg
 {
@@ -146,7 +146,7 @@ void Sprite::updateModelUBO()
     for(auto b : m_needToUploadModelUBO) b = true;
 }
 
-void Sprite::uploadModelUBO(DefaultRenderer *renderer, size_t frameIndex)
+void Sprite::uploadModelUBO(size_t frameIndex)
 {
     /*SpriteModelUBO modelUBO = {};
     modelUBO.model = glm::mat4(1.0);
@@ -161,7 +161,7 @@ void Sprite::uploadModelUBO(DefaultRenderer *renderer, size_t frameIndex)
     m_needToUploadModelUBO[frameIndex] = false;
 }
 
-bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
+bool Sprite::checkUpdates(size_t frameIndex)
 {
     m_preventDrawing = false;
     bool needToUpdateDrawCMB = false;
@@ -184,7 +184,7 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
     }
 
     if(m_needToUploadModelUBO[frameIndex])
-        this->uploadModelUBO(renderer, frameIndex);
+        this->uploadModelUBO(frameIndex);
 
     if(m_texDescSetVersion[frameIndex] != VTexturesManager::descriptorSetVersion(frameIndex))
     {
@@ -203,7 +203,7 @@ bool Sprite::checkUpdates(DefaultRenderer *renderer, size_t frameIndex)
 
 VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
-    if(this->checkUpdates(renderer, frameIndex))
+    if(this->checkUpdates(frameIndex))
         this->askToUpdateDrawCMB(frameIndex);
        // m_needToUpdateDrawCMB[frameIndex] = true;
 

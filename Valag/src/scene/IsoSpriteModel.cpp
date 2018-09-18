@@ -4,7 +4,7 @@ namespace vlg
 {
 
 IsoSpriteModel::IsoSpriteModel() :
-    m_texture(0),
+    m_material(0),
     m_texturePosition({0.0f,0.0f}),
     m_textureExtent({1.0f,1.0f}),
     m_textureCenter({0.0f,0.0f})
@@ -22,29 +22,57 @@ IsoSpriteModel::~IsoSpriteModel()
     m_size = size;
 }*/
 
-void IsoSpriteModel::setTexture(AssetTypeID textureID)
+void IsoSpriteModel::setMaterial(AssetTypeID materialID)
 {
-    m_texture = textureID;
+    m_material = materialID;
 }
+
 void IsoSpriteModel::setTextureRect(glm::vec2 pos, glm::vec2 extent)
 {
     m_texturePosition = pos;
     m_textureExtent = extent;
 }
+
 void IsoSpriteModel::setTextureCenter(glm::vec2 pos)
 {
     m_textureCenter = pos;
 }
 
-AssetTypeID IsoSpriteModel::getTexture()
+void IsoSpriteModel::setColor(Color color)
 {
-    return m_texture;
+    m_color = color;
 }
 
-void IsoSpriteModel::updateModel(SceneRenderer *renderer, size_t frameIndex)
+void IsoSpriteModel::setRmt(Color rmt)
+{
+    m_rmt = rmt;
+}
+
+
+AssetTypeID IsoSpriteModel::getMaterial()
+{
+    return m_material;
+}
+
+glm::vec2 IsoSpriteModel::getTextureExtent()
+{
+    return m_textureExtent;
+}
+
+glm::vec2 IsoSpriteModel::getTexturePosition()
+{
+    return m_texturePosition;
+}
+
+glm::vec2 IsoSpriteModel::getTextureCenter()
+{
+    return m_textureCenter;
+}
+
+/*void IsoSpriteModel::updateModel(SceneRenderer *renderer, size_t frameIndex)
 {
 
-}
+}*/
 
 void IsoSpriteModel::cleanup()
 {
@@ -53,12 +81,12 @@ void IsoSpriteModel::cleanup()
 
 
 /** Static **/
-DynamicUBODescriptor IsoSpriteModel::s_modelUBO(sizeof(IsoSpriteModelUBO), 1024);
+/*DynamicUBODescriptor IsoSpriteModel::s_modelUBO(sizeof(IsoSpriteModelUBO), 1024);
 
 VkDescriptorSetLayout IsoSpriteModel::getUBODescriptorSetLayout()
 {
     return IsoSpriteModel::s_modelUBO.getDescriptorSetLayout();
-}
+}*/
 
 
 }

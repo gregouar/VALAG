@@ -11,8 +11,8 @@ namespace vlg
 AbstractRenderer::AbstractRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
     m_targetWindow(targetWindow),
     m_renderPass(VK_NULL_HANDLE),
-    m_pipelineLayout(VK_NULL_HANDLE),
-    m_pipeline(VK_NULL_HANDLE),
+   /* m_pipelineLayout(VK_NULL_HANDLE),
+    m_pipeline(VK_NULL_HANDLE),*/
     m_descriptorPool(VK_NULL_HANDLE),
     m_curFrameIndex(0),
     m_order(order),
@@ -84,6 +84,7 @@ bool AbstractRenderer::createRenderPass()
 
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     } else {
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -131,22 +132,22 @@ bool AbstractRenderer::createRenderPass()
 }
 
 
-bool AbstractRenderer::createSwapchainFramebuffers()
+bool AbstractRenderer::createFramebuffers()
 {
     if(m_renderPass == VK_NULL_HANDLE)
         return (true);
 
-    auto swapChainImageViews = m_targetWindow->getSwapchainImageViews();
-    auto depthImagesView = m_targetWindow->getDepthStencilImageViews();
+    auto swapchainImageViews = m_targetWindow->getSwapchainImageViews();
+    auto swapchainDepthImagesView = m_targetWindow->getDepthStencilImageViews();
 
-    m_swapchainFramebuffers.resize(swapChainImageViews.size());
-    m_swapchainExtents.resize(swapChainImageViews.size());
+    m_framebuffers.resize(swapchainImageViews.size());
+    m_swapchainExtents.resize(swapchainImageViews.size());
 
-    for (size_t i = 0; i < swapChainImageViews.size(); ++i)
+    for (size_t i = 0; i < swapchainImageViews.size(); ++i)
     {
         std::array<VkImageView, 2> attachments = {
-            swapChainImageViews[i],
-            depthImagesView[i]
+            swapchainImageViews[i],
+            swapchainDepthImagesView[i]
         };
 
         m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
@@ -160,7 +161,7 @@ bool AbstractRenderer::createSwapchainFramebuffers()
         framebufferInfo.height = m_swapchainExtents[i].height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
             return (false);
 
     }
@@ -232,9 +233,9 @@ bool AbstractRenderer::init()
         return (false);
     }
 
-    if(!this->createSwapchainFramebuffers())
+    if(!this->createFramebuffers())
     {
-        Logger::error("Cannot create swapchain framebuffers");
+        Logger::error("Cannot create framebuffers");
         return (false);
     }
 
@@ -285,16 +286,16 @@ void AbstractRenderer::cleanup()
    // for (auto semaphore : m_renderFinishedSemaphore)
       //  vkDestroySemaphore(device, semaphore, nullptr);
 
-    for (auto framebuffer : m_swapchainFramebuffers)
+    for (auto framebuffer : m_framebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
 
-    if(m_pipeline != VK_NULL_HANDLE)
+    /*if(m_pipeline != VK_NULL_HANDLE)
         vkDestroyPipeline(device, m_pipeline, nullptr);
     m_pipeline = VK_NULL_HANDLE;
 
     if(m_pipelineLayout != VK_NULL_HANDLE)
         vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
-    m_pipelineLayout = VK_NULL_HANDLE;
+    m_pipelineLayout = VK_NULL_HANDLE;*/
 
     if(m_renderPass != VK_NULL_HANDLE)
         vkDestroyRenderPass(device, m_renderPass, nullptr);

@@ -5,8 +5,8 @@
 #include "Valag/utils/Clock.h"
 #include "Valag/core/Config.h"
 
-#include "Valag/core/AssetHandler.h"
-#include "Valag/gfx/TextureAsset.h"
+#include "Valag/assets/AssetHandler.h"
+#include "Valag/assets/TextureAsset.h"
 #include "Valag/vulkanImpl/VBuffersAllocator.h"
 
 #include "Valag/renderers/DefaultRenderer.h"
@@ -107,11 +107,6 @@ bool VApp::init()
     Profiler::pushClock("Create renderers");
     if(!this->createRenderers())
         throw std::runtime_error("Cannot create renderers");
-    /*if(!this->createDefaultRenderer())
-        throw std::runtime_error("Cannot create default renderer");
-
-    if(!this->createSceneRenderer())
-        throw std::runtime_error("Cannot create scene renderer");*/
     Profiler::popClock();
 
     return (true);
@@ -133,39 +128,17 @@ bool VApp::createRenderers()
         delete renderer;
     m_renderers.clear();
 
-    //m_renderers.push_back(new DefaultRenderer(&m_renderWindow, Renderer_Default, Renderer_Unique));
-    //m_renderWindow.attachRenderer(m_renderers.back());
+    /*m_renderers.push_back(new DefaultRenderer(&m_renderWindow, Renderer_Default, Renderer_Unique));
+    m_renderWindow.attachRenderer(m_renderers.back());*/
 
-    m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene, Renderer_First));
-   // m_renderWindow.attachRenderer(m_renderers.back());
-
-    m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing,Renderer_Unique));
+    m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene, Renderer_Unique));
     m_renderWindow.attachRenderer(m_renderers.back());
 
-    return (true);
-}
-
-/*bool VApp::createDefaultRenderer()
-{
-    if(m_defaultRenderer != nullptr)
-        delete m_defaultRenderer;
-
-    m_defaultRenderer = new DefaultRenderer(&m_renderWindow, Renderer_Default);
-    m_renderWindow.attachRenderer(m_defaultRenderer);
+    //m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing,Renderer_Unique));
+    //m_renderWindow.attachRenderer(m_renderers.back());
 
     return (true);
 }
-
-bool VApp::createSceneRenderer()
-{
-    if(m_sceneRenderer != nullptr)
-        delete m_sceneRenderer;
-
-    m_sceneRenderer = new SceneRenderer(&m_renderWindow, Renderer_Scene);
-    m_renderWindow.attachRenderer(m_sceneRenderer);
-
-    return (true);
-}*/
 
 void VApp::loop()
 {

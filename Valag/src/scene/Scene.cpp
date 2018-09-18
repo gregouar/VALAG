@@ -252,7 +252,7 @@ Camera* Scene::CreateCamera(sf::Vector2f viewSize)
 }**/
 
 
-void Scene::addCreatedObject(const ObjectTypeID &id, SceneObject* obj)
+void Scene::addCreatedObject(const ObjectTypeID id, SceneObject* obj)
 {
     auto entityIt = m_createdObjects.find(id);
 
@@ -267,7 +267,7 @@ void Scene::addCreatedObject(const ObjectTypeID &id, SceneObject* obj)
 }
 
 
-void Scene::destroyCreatedObject(const ObjectTypeID &id)
+void Scene::destroyCreatedObject(const ObjectTypeID id)
 {
     auto objIt = m_createdObjects.find(id);
 

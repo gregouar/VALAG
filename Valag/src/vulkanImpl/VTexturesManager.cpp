@@ -9,7 +9,7 @@ namespace vlg
 {
 
 const size_t VTexturesManager::MAX_TEXTURES_ARRAY_SIZE = 128; //Number of texture2DArray
-const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 128; //Number of layers in each texture2DArray
+const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 64; //Number of layers in each texture2DArray
 
 VTexturesManager::VTexturesManager()
 {

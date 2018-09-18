@@ -51,7 +51,7 @@ VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, si
     for(auto spriteSet : m_sortedSprites)
     for(auto sprite : spriteSet.second)
     {
-        if(sprite->checkUpdates(renderer, frameIndex))
+        if(sprite->checkUpdates(frameIndex))
             this->askToUpdateDrawCMB(frameIndex);
             //m_needToUpdateDrawCMB[frameIndex] = true;
     }

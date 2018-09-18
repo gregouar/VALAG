@@ -38,7 +38,7 @@ class Scene
 
         Camera* createCamera(sf::Vector2f viewSize); **/
 
-        void destroyCreatedObject(const ObjectTypeID &);
+        void destroyCreatedObject(const ObjectTypeID);
         void destroyAllCreatedObjects();
 
         /**virtual sf::Vector2f convertMouseToScene(sf::Vector2i);
@@ -52,7 +52,7 @@ class Scene
 
     protected:
         ObjectTypeID generateObjectID();
-        void addCreatedObject(const ObjectTypeID &, SceneObject*);
+        void addCreatedObject(const ObjectTypeID, SceneObject*);
 
         ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 

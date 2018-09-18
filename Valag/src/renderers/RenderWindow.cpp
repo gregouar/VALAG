@@ -98,6 +98,11 @@ size_t RenderWindow::getFramesCount()
     return m_framesCount;
 }
 
+size_t RenderWindow::getSwapchainSize()
+{
+    return m_swapchainImages.size();
+}
+
 size_t RenderWindow::getCurrentFrameIndex()
 {
     return m_curFrameIndex;
@@ -381,15 +386,13 @@ bool RenderWindow::createSwapchain()
 bool RenderWindow::createDepthStencil()
 {
     m_depthStencilImages.resize(m_swapchainImages.size());
-    m_depthStencilImagesMemory.resize(m_swapchainImages.size());
-
-    //VulkanHelpers::createImage();
     for (size_t i = 0; i < m_swapchainImages.size(); i++)
         if(!VulkanHelpers::createImage(m_swapchainExtent.width, m_swapchainExtent.height, 1, VK_FORMAT_D24_UNORM_S8_UINT,
                                     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                    m_depthStencilImages[i], m_depthStencilImagesMemory[i]))
+                                    m_depthStencilImages[i]/*, m_depthStencilImagesMemory[i]*/))
             return (false);
-       // depthImagesView[i] = createImageView(depthImages[i], depthFormat);
+
+   /// for(size_t i = 0 ; i < m_swapchainImages.size() ; ++i) WHAT THE BUG ?
 
     return (true);
 }
@@ -404,9 +407,10 @@ bool RenderWindow::createImageViews()
         m_swapchainImageViews[i] =
             VulkanHelpers::createImageView(m_swapchainImages[i],m_swapchainImageFormat,VK_IMAGE_ASPECT_COLOR_BIT,1);
         m_depthStencilImagesViews[i] =
-            VulkanHelpers::createImageView(m_depthStencilImages[i], VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+            VulkanHelpers::createImageView(m_depthStencilImages[i].vkImage, VK_FORMAT_D24_UNORM_S8_UINT,
+                                           VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 1);
 
-        VulkanHelpers::transitionImageLayout(m_depthStencilImages[i],0, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
+        VulkanHelpers::transitionImageLayout(m_depthStencilImages[i].vkImage,0, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         /*VkImageViewCreateInfo createInfo = {};
@@ -481,13 +485,17 @@ void RenderWindow::destroy()
         vkDestroyImageView(device, imageView, nullptr);
     m_depthStencilImagesViews.clear();
 
-    for(auto image : m_depthStencilImages)
+    /*for(auto image : m_depthStencilImages)
         vkDestroyImage(device, image, nullptr);
     m_depthStencilImages.clear();
 
     for(auto memory : m_depthStencilImagesMemory)
         vkFreeMemory(device, memory, nullptr);
-    m_depthStencilImagesMemory.clear();
+    m_depthStencilImagesMemory.clear();*/
+
+    for(auto image : m_depthStencilImages)
+        VulkanHelpers::destroyImage(image);
+    m_depthStencilImages.clear();
 
     for (auto imageView : m_swapchainImageViews)
         vkDestroyImageView(device, imageView, nullptr);

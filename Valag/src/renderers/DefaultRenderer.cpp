@@ -7,8 +7,8 @@
 #include "Valag/core/Config.h"
 #include "Valag/core/VApp.h"
 
-#include "Valag/core/AssetHandler.h"
-#include "Valag/gfx/TextureAsset.h"
+#include "Valag/assets/AssetHandler.h"
+#include "Valag/assets/TextureAsset.h"
 #include "Valag/gfx/Sprite.h"
 
 #include "Valag/vulkanImpl/VulkanHelpers.h"
@@ -61,7 +61,7 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
+    renderPassInfo.framebuffer = m_framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
 
@@ -102,7 +102,7 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID te
         pc[1] = vtexture.m_textureLayer;
     }
 
-    vkCmdPushConstants(commandBuffer, m_pipelineLayout,
+    vkCmdPushConstants(commandBuffer, m_pipeline.getLayout(),
             VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int)*2, (void*)pc);
 
     return (true);
@@ -110,13 +110,14 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID te
 
 void DefaultRenderer::bindPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex)
 {
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    m_pipeline.bind(commandBuffer);
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(frameIndex)/*m_viewDescriptorSets[frameIndex]*/,
                                         VTexturesManager::instance()->getDescriptorSet(frameIndex) };
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayout,0,2, descriptorSets, 0, nullptr);
+                            m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 }
 
 void DefaultRenderer::bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer &commandBuffer, DynamicUBODescriptor &uboDesc, size_t index)
@@ -124,7 +125,7 @@ void DefaultRenderer::bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer 
     uint32_t dynamicOffset  = uboDesc.getDynamicOffset(frameIndex, index);
     auto descSet            = uboDesc.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayout,2,1, &descSet, 1, &dynamicOffset);
+                            m_pipeline.getLayout(),2,1, &descSet, 1, &dynamicOffset);
 }
 
 bool DefaultRenderer::init()
@@ -145,7 +146,31 @@ bool DefaultRenderer::createDescriptorSetLayouts()
 
 bool DefaultRenderer::createGraphicsPipeline()
 {
-    VkDevice device = VInstance::device();
+
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << DEFAULT_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << DEFAULT_FRAGSHADERFILE;
+
+    m_pipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_pipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    m_pipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
+
+    m_pipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_pipeline.setBlendMode(BlendMode_Alpha);
+
+    m_pipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_pipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_pipeline.attachDescriptorSetLayout(Sprite::getModelDescriptorSetLayout());
+
+    m_pipeline.attachPushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(int)*2);
+
+    m_pipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    return m_pipeline.init(m_renderPass, 0);
+
+
+    /*VkDevice device = VInstance::device();
 
     std::ostringstream vertShaderPath,fragShaderPath;
     vertShaderPath << VApp::DEFAULT_SHADERPATH << DEFAULT_VERTSHADERFILE;
@@ -174,14 +199,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    //auto bindingDescription = Vertex2D::getBindingDescription();
-    //auto attributeDescriptions = Vertex2D::getAttributeDescriptions();
-
     vertexInputInfo.vertexBindingDescriptionCount = 0;
-    /*vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
 
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -258,10 +276,9 @@ bool DefaultRenderer::createGraphicsPipeline()
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     //pipelineLayoutInfo.setLayoutCount = 0;
 
-    VkDescriptorSetLayout descriptorSetLayouts[] = {m_renderView.getDescriptorSetLayout()/*m_viewDescriptorSetLayout*/,
+    VkDescriptorSetLayout descriptorSetLayouts[] = {m_renderView.getDescriptorSetLayout(),
                                                     VTexturesManager::instance()->getDescriptorSetLayout(),
-                                                    Sprite::getModelDescriptorSetLayout()
-                                                    /*m_modelDescriptorSetLayout*/};
+                                                    Sprite::getModelDescriptorSetLayout()};
     pipelineLayoutInfo.setLayoutCount = 3;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
 
@@ -320,7 +337,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
-    return (true);
+    return (true);*/
 }
 
 bool DefaultRenderer::createDescriptorPool()
@@ -341,6 +358,7 @@ bool DefaultRenderer::createUBO()
 void DefaultRenderer::cleanup()
 {
     AbstractRenderer::cleanup();
+    m_pipeline.destroy();
     Sprite::cleanupRendering();
 }
 
