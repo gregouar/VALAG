@@ -29,6 +29,7 @@ class VGraphicsPipeline
         void setCullMode(VkCullModeFlagBits cullMode);
 
         void setBlendMode(BlendMode blendMode, size_t attachmentNbr = 0);
+        void setWriteMask(VkFlags  writeMask, size_t attachmentNbr = 0);
         void setCustomBlendMode(VkPipelineColorBlendStateCreateInfo blendMode, size_t attachmentsCount = 1);
 
         void attachDescriptorSetLayout(VkDescriptorSetLayout setLayout);
@@ -59,6 +60,7 @@ class VGraphicsPipeline
         VkExtent2D          m_defaultExtent;
         VkCullModeFlagBits  m_cullMode;
         std::vector<BlendMode>                              m_blendModes;
+        std::vector<VkFlags >                               m_writeMasks;
         std::vector<VkPipelineColorBlendStateCreateInfo>    m_customBlends;
         std::vector<VkDescriptorSetLayout>      m_attachedDescriptorSetLayouts;
         std::vector<VkPushConstantRange>        m_attachedPushConstants;

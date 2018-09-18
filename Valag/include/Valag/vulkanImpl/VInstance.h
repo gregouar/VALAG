@@ -47,6 +47,7 @@ class VInstance : public Singleton<VInstance>
         static VkCommandPool commandPool(CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
 
         static void submitToGraphicsQueue(VkSubmitInfo &infos, VkFence fence = VK_NULL_HANDLE);
+        static void submitToGraphicsQueue(std::vector<VkSubmitInfo> &infos, VkFence fence = VK_NULL_HANDLE);
         static void presentQueue(VkPresentInfoKHR &infos);
         static void waitDeviceIdle();
 
@@ -74,7 +75,7 @@ class VInstance : public Singleton<VInstance>
 
         bool    createLogicalDevice();
         bool    createCommandPools();
-        bool    createSingleTimeCMBs();
+        bool    createSingleTimeCmbs();
         bool    createSemaphoresAndFences();
 
         void init(VkSurfaceKHR &surface);
@@ -108,7 +109,7 @@ class VInstance : public Singleton<VInstance>
         ///I should try to do one command pool per frame (and reset) ?
         std::vector<VkCommandPool>  m_commandPools;
 
-        std::vector<VkCommandBuffer> m_singleTimeCMB;
+        std::vector<VkCommandBuffer> m_singleTimeCmb;
 
         bool m_isInit;
 

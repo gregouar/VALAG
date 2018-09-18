@@ -52,7 +52,7 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;  //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    if (vkBeginCommandBuffer(m_primaryCMB[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_primaryCmb[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
     {
         Logger::error("Failed to begin recording command buffer");
         return (false);
@@ -71,16 +71,16 @@ bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(m_primaryCmb[m_curFrameIndex], &renderPassInfo, /*VK_SUBPASS_CONTENTS_INLINE*/ VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
         if(!m_activeSecondaryCommandBuffers.empty())
-            vkCmdExecuteCommands(m_primaryCMB[m_curFrameIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
+            vkCmdExecuteCommands(m_primaryCmb[m_curFrameIndex], (uint32_t) m_activeSecondaryCommandBuffers.size(), m_activeSecondaryCommandBuffers.data());
 
-    vkCmdEndRenderPass(m_primaryCMB[m_curFrameIndex]);
+    vkCmdEndRenderPass(m_primaryCmb[m_curFrameIndex]);
 
     m_activeSecondaryCommandBuffers.clear();
 
-    if (vkEndCommandBuffer(m_primaryCMB[m_curFrameIndex]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_primaryCmb[m_curFrameIndex]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);

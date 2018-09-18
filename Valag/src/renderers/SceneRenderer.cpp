@@ -64,15 +64,78 @@ void SceneRenderer::draw(IsoSpriteEntity* sprite)
     m_spritesVbos[m_curFrameIndex].push_back(spriteDatum);
 }
 
-bool SceneRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
+void SceneRenderer::updateCmb(uint32_t imageIndex)
 {
-    size_t spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
+    this->recordDefferedCmb(imageIndex);
 
+    this->submitToGraphicsQueue(imageIndex);
+
+    m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
+}
+
+
+VkCommandBuffer SceneRenderer::getCommandBuffer(size_t frameIndex , size_t imageIndex)
+{
+    return m_primaryCmb[imageIndex];
+}
+
+VkSemaphore SceneRenderer::getFinalPassWaitSemaphore(size_t frameIndex)
+{
+    return m_ambientLightingToToneMappingSemaphore[frameIndex];
+}
+
+void SceneRenderer::submitToGraphicsQueue(size_t imageIndex)
+{
+    std::vector<VkSubmitInfo> submitInfos;
+
+    submitInfos.resize(2);
+
+    for(size_t i = 0 ; i < submitInfos.size() ; ++i)
+    {
+        submitInfos[i] = {};
+        submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    }
+
+    //VkSemaphore waitSemaphores[] = {};
+   /* VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = m_defferedCmb[m_curFrameIndex];
+
+    VkSemaphore signalSemaphores[] = {m_deferredToAmbientLightingSemaphore[m_curFrameIndex]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;*/
+
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    submitInfos[0].pWaitDstStageMask = waitStages;
+    submitInfos[0].signalSemaphoreCount = 1;
+    submitInfos[0].pSignalSemaphores = &m_deferredToAmbientLightingSemaphore[m_curFrameIndex];
+    submitInfos[0].commandBufferCount = 1;
+    submitInfos[0].pCommandBuffers = &m_deferredCmb[m_curFrameIndex];
+
+    VkSemaphore waitSemaphores[] = {m_deferredToAmbientLightingSemaphore[m_curFrameIndex]};
+    submitInfos[1].pWaitDstStageMask = waitStages;
+    submitInfos[1].waitSemaphoreCount = 1;
+    submitInfos[1].pWaitSemaphores = waitSemaphores;
+    submitInfos[1].signalSemaphoreCount = 1;
+    submitInfos[1].pSignalSemaphores = &m_ambientLightingToToneMappingSemaphore[m_curFrameIndex];
+    submitInfos[1].commandBufferCount = 1;
+    submitInfos[1].pCommandBuffers = &m_ambientLightingCmb[imageIndex];
+
+
+    VInstance::submitToGraphicsQueue(submitInfos, 0);
+}
+
+bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
+{
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT ;
 
-    if (vkBeginCommandBuffer(m_primaryCMB[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_primaryCmb[imageIndex], &beginInfo) != VK_SUCCESS)
     {
         Logger::error("Failed to begin recording command buffer");
         return (false);
@@ -115,52 +178,154 @@ bool SceneRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
         renderPassInfo.pClearValues = clearValues.data();
     }
 
-    /** I could reuse the same commandBuffer though, I'll just need to rewrite updateCMB => also need one framebuffer per imageIndex then **/
+    vkCmdBeginRenderPass(m_primaryCmb[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        m_toneMappingPipeline.bind(m_primaryCMB[m_curFrameIndex]);
-        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
+        m_toneMappingPipeline.bind(m_primaryCmb[imageIndex]);
+        vkCmdBindDescriptorSets(m_primaryCmb[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
                                 0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
-        vkCmdDraw(m_primaryCMB[m_curFrameIndex], 3, 1, 0, 0);
+        vkCmdDraw(m_primaryCmb[imageIndex], 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(m_primaryCmb[imageIndex]);
 
     /**
     ///Deferred subpass
 
-        m_deferredPipeline.bind(m_primaryCMB[m_curFrameIndex]);
+        m_deferredPipeline.bind(m_primaryCmb[m_curFrameIndex]);
 
         VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                             VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
-        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
         if(spritesVboSize != 0)
         {
             VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
-            vkCmdBindVertexBuffers(m_primaryCMB[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
-            vkCmdDraw(m_primaryCMB[m_curFrameIndex], 4, spritesVboSize, 0, 0);
+            vkCmdBindVertexBuffers(m_primaryCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdDraw(m_primaryCmb[m_curFrameIndex], 4, spritesVboSize, 0, 0);
         }
 
     ///Ambient lighting subpass
-    vkCmdNextSubpass(m_primaryCMB[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdNextSubpass(m_primaryCmb[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
 
-        m_ambientLightingPipeline.bind(m_primaryCMB[m_curFrameIndex]);
-        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
+        m_ambientLightingPipeline.bind(m_primaryCmb[m_curFrameIndex]);
+        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
                                 0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
-        //vkCmdDraw(m_primaryCMB[m_curFrameIndex], 3, 1, 0, 0);
+        //vkCmdDraw(m_primaryCmb[m_curFrameIndex], 3, 1, 0, 0);
 
     ///Tone mapping subpass
-    vkCmdNextSubpass(m_primaryCMB[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdNextSubpass(m_primaryCmb[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
 
-        m_toneMappingPipeline.bind(m_primaryCMB[m_curFrameIndex]);
-        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
+        m_toneMappingPipeline.bind(m_primaryCmb[m_curFrameIndex]);
+        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
                                 0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
-        vkCmdDraw(m_primaryCMB[m_curFrameIndex], 3, 1, 0, 0);
+        vkCmdDraw(m_primaryCmb[m_curFrameIndex], 3, 1, 0, 0);**/
 
-    vkCmdEndRenderPass(m_primaryCMB[m_curFrameIndex]);**/
 
-    if (vkEndCommandBuffer(m_primaryCMB[m_curFrameIndex]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_primaryCmb[imageIndex]) != VK_SUCCESS)
+    {
+        Logger::error("Failed to record primary command buffer");
+        return (false);
+    }
+
+    return (true);
+}
+
+
+bool SceneRenderer::recordDefferedCmb(uint32_t imageIndex)
+{
+    size_t spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
+
+    if (vkBeginCommandBuffer(m_deferredCmb[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
+    {
+        Logger::error("Failed to begin recording command buffer");
+        return (false);
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_deferredRenderPass;
+    renderPassInfo.framebuffer = m_deferredFramebuffers[imageIndex];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
+
+    std::array<VkClearValue, 4> clearValues = {};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    clearValues[1].depthStencil = {0.0f, 0};
+    clearValues[2].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    clearValues[3].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+
+    vkCmdBeginRenderPass(m_deferredCmb[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        m_deferredPipeline.bind(m_deferredCmb[m_curFrameIndex]);
+
+        VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
+
+        vkCmdBindDescriptorSets(m_deferredCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+        if(spritesVboSize != 0)
+        {
+            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
+            vkCmdBindVertexBuffers(m_deferredCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdDraw(m_deferredCmb[m_curFrameIndex], 4, spritesVboSize, 0, 0);
+        }
+
+    vkCmdEndRenderPass(m_deferredCmb[m_curFrameIndex]);
+
+    if (vkEndCommandBuffer(m_deferredCmb[m_curFrameIndex]) != VK_SUCCESS)
+    {
+        Logger::error("Failed to record primary command buffer");
+        return (false);
+    }
+
+    return (true);
+
+}
+
+
+bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
+{
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT  ;
+
+    if (vkBeginCommandBuffer(m_ambientLightingCmb[imageIndex], &beginInfo) != VK_SUCCESS)
+    {
+        Logger::error("Failed to begin recording command buffer");
+        return (false);
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_ambientLightingRenderPass;
+    renderPassInfo.framebuffer = m_ambientLightingFramebuffers[imageIndex];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
+
+    std::array<VkClearValue, 1> clearValues = {};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    vkCmdBeginRenderPass(m_ambientLightingCmb[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        m_ambientLightingPipeline.bind(m_ambientLightingCmb[imageIndex]);
+        vkCmdBindDescriptorSets(m_ambientLightingCmb[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
+                                0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
+        vkCmdDraw(m_ambientLightingCmb[imageIndex], 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(m_ambientLightingCmb[imageIndex]);
+
+    if (vkEndCommandBuffer(m_ambientLightingCmb[imageIndex]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);
@@ -175,7 +340,7 @@ bool SceneRenderer::init()
 
     m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
                             m_targetWindow->getSwapchainExtent().height});
-    //m_renderView.setDepthFactor(1024*1024);
+    m_renderView.setDepthFactor(1024*1024);
 
     m_spritesVbos = std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedIsoSpriteDatum>(1024));
 
@@ -619,6 +784,33 @@ bool SceneRenderer::createUBO()
     return (true);
 }
 
+bool SceneRenderer::createPrimaryCmb()
+{
+    if(!this->createDeferredCmb())
+        return (false);
+    if(!this->createAmbientLightingCmb())
+        return (false);
+
+
+    m_primaryCmb.resize(m_targetWindow->getSwapchainSize());
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = VInstance::commandPool();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(m_primaryCmb.size());
+
+    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) != VK_SUCCESS)
+        return (false);
+
+    for(size_t i = 0 ; i < m_primaryCmb.size() ; ++i)
+        this->recordPrimaryCmb(i);
+
+    return (true);
+
+    //return AbstractRenderer::createPrimaryCommandBuffers();
+}
+
 bool SceneRenderer::createAttachments()
 {
     size_t imagesCount = m_targetWindow->getSwapchainSize();
@@ -638,7 +830,7 @@ bool SceneRenderer::createAttachments()
             VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_heightAttachments[i]) &
             VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[i]) &
             VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[i])
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[i])
         )
             return (false);
 
@@ -650,7 +842,7 @@ bool SceneRenderer::createAttachments()
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         VulkanHelpers::transitionImageLayout(m_rmtAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        VulkanHelpers::transitionImageLayout(m_hdrAttachements[i].image.vkImage, 0, VK_FORMAT_R16G16_SFLOAT,
+        VulkanHelpers::transitionImageLayout(m_hdrAttachements[i].image.vkImage, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
@@ -873,6 +1065,23 @@ bool SceneRenderer::createAmbientLightingRenderPass()
 
 bool SceneRenderer::createSemaphores()
 {
+    size_t framesCount = m_targetWindow->getSwapchainSize();
+    VkDevice device = VInstance::device();
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    m_deferredToAmbientLightingSemaphore.resize(framesCount);
+    m_ambientLightingToToneMappingSemaphore.resize(framesCount);
+
+    for(size_t i = 0 ; i < framesCount ; ++i)
+    {
+        if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_deferredToAmbientLightingSemaphore[i]) != VK_SUCCESS)
+            return (false);
+        if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_ambientLightingToToneMappingSemaphore[i]) != VK_SUCCESS)
+            return (false);
+    }
+
     return (true);
 }
 
@@ -920,7 +1129,6 @@ bool SceneRenderer::createAmbientLightingPipeline()
     return m_ambientLightingPipeline.init(m_ambientLightingRenderPass, 0);
 }
 
-
 bool SceneRenderer::createToneMappingPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
@@ -932,9 +1140,43 @@ bool SceneRenderer::createToneMappingPipeline()
 
     m_toneMappingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
+    m_toneMappingPipeline.setBlendMode(BlendMode_None);
+
     m_toneMappingPipeline.attachDescriptorSetLayout(m_hdrDescriptorSetLayout);
 
     return m_toneMappingPipeline.init(m_renderPass, 0);
+}
+
+bool SceneRenderer::createDeferredCmb()
+{
+    m_deferredCmb.resize(m_targetWindow->getFramesCount());
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = VInstance::commandPool(COMMANDPOOL_SHORTLIVED);
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(m_deferredCmb.size());
+
+    return (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_deferredCmb.data()) == VK_SUCCESS);
+}
+
+bool SceneRenderer::createAmbientLightingCmb()
+{
+    m_ambientLightingCmb.resize(m_targetWindow->getSwapchainSize());
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = VInstance::commandPool();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(m_ambientLightingCmb.size());
+
+    if(vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_ambientLightingCmb.data()) != VK_SUCCESS)
+        return (false);
+
+    for(size_t i = 0 ; i < m_ambientLightingCmb.size() ; ++i)
+        this->recordAmbientLightingCmb(i);
+
+    return (true);
 }
 
 void SceneRenderer::cleanup()
@@ -942,6 +1184,8 @@ void SceneRenderer::cleanup()
     VkDevice device = VInstance::device();
 
     m_spritesVbos.clear();
+
+    vkDestroySampler(device, m_attachmentsSampler, nullptr);
 
     for(auto attachement : m_albedoAttachments)
         VulkanHelpers::destroyAttachment(attachement);
@@ -962,6 +1206,25 @@ void SceneRenderer::cleanup()
     for(auto attachement : m_hdrAttachements)
         VulkanHelpers::destroyAttachment(attachement);
     m_hdrAttachements.clear();
+
+    for(auto framebuffer : m_deferredFramebuffers)
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    m_deferredFramebuffers.clear();
+
+    for(auto framebuffer : m_ambientLightingFramebuffers)
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    m_deferredFramebuffers.clear();
+
+    for(auto semaphore : m_deferredToAmbientLightingSemaphore)
+        vkDestroySemaphore(device, semaphore, nullptr);
+    m_deferredToAmbientLightingSemaphore.clear();
+
+    for(auto semaphore : m_ambientLightingToToneMappingSemaphore)
+        vkDestroySemaphore(device, semaphore, nullptr);
+    m_ambientLightingToToneMappingSemaphore.clear();
+
+    vkDestroyRenderPass(device, m_deferredRenderPass, nullptr);
+    vkDestroyRenderPass(device, m_ambientLightingRenderPass, nullptr);
 
     vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
 

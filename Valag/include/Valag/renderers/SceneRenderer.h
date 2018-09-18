@@ -22,9 +22,13 @@ class SceneRenderer : public AbstractRenderer
         virtual ~SceneRenderer();
 
         void update(size_t frameIndex);
+        virtual VkCommandBuffer getCommandBuffer(size_t frameIndex , size_t imageIndex);
+        virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);
 
         void draw(Scene* scene);
         void draw(IsoSpriteEntity* sprite);
+
+        virtual void updateCmb(uint32_t imageIndex);
 
     protected:
         virtual bool init();
@@ -37,6 +41,7 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    createUBO();
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
+        virtual bool    createPrimaryCmb();
 
         bool createAttachments();
 
@@ -50,9 +55,16 @@ class SceneRenderer : public AbstractRenderer
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
+        bool createDeferredCmb();
+        bool createAmbientLightingCmb();
+
         bool createSemaphores();
 
-        virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex);
+        virtual bool    recordDefferedCmb(uint32_t imageIndex);
+        virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
+
+        virtual void submitToGraphicsQueue(size_t imageIndex);
 
     private:
         ///Should I do a pipeline for alpha and one for opacity or could I play with descriptors ?
@@ -70,9 +82,15 @@ class SceneRenderer : public AbstractRenderer
         VkRenderPass m_deferredRenderPass,
                      m_ambientLightingRenderPass;
 
+        std::vector<VkSemaphore>    m_deferredToAmbientLightingSemaphore,
+                                    m_ambientLightingToToneMappingSemaphore;
+
         VGraphicsPipeline   m_deferredPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
+
+        std::vector<VkCommandBuffer>    m_deferredCmb, //Re-recordead each frame
+                                        m_ambientLightingCmb; //Recorded only once
 
         VkSampler m_attachmentsSampler;
         std::vector<VFramebufferAttachment> m_albedoAttachments,

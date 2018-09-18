@@ -20,7 +20,7 @@ layout(location = 2) out vec4 outRmt;
 
 void main()
 {
-    outAlbedo = texture(sampler2DArray(textures[int(fragAlbedoTexId.x)], samp), vec3(fragTexCoord,fragAlbedoTexId.y))  * fragColor;
+    outAlbedo = texture(sampler2DArray(textures[int(fragAlbedoTexId.x)], samp), vec3(fragTexCoord,fragAlbedoTexId.y))* fragColor;
     if(outAlbedo.a != 1.0f)
         discard;
 

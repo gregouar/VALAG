@@ -9,6 +9,7 @@
 #include "Valag/assets/MaterialAsset.h"
 #include "Valag/renderers/DefaultRenderer.h"
 #include "Valag/renderers/InstancingRenderer.h"
+#include "Valag/renderers/SceneRenderer.h"
 
 #include "Valag/Types.h"
 
@@ -77,19 +78,27 @@ void TestingState::init()
         m_testingSpritesBatch.addSprite(&(*it));
     }
 
-    vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
-    vlg::MaterialAsset *treeMaterial = vlg::AssetHandler<vlg::MaterialAsset>::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
+    vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
+    vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
 
     m_treeModel.setMaterial(treeMaterial->getID());
-    m_treeModel.setTextureRect({0,0},{512,512});
+    m_treeModel.setSize({512,512});
+    m_treeModel.setTextureRect({0,0},{1,1});
     m_treeModel.setTextureCenter({256,526});
 
+    m_abbeyModel.setMaterial(abbeyMaterial->getID());
+    m_abbeyModel.setSize({1920,1080});
+    m_abbeyModel.setTextureRect({0,0},{1,1});
+    m_abbeyModel.setTextureCenter({1920/2,1080/2});
+
     m_treeEntity.setSpriteModel(&m_treeModel);
+    m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
-    vlg::SceneNode *abbeyNode =  m_scene->getRootNode()->createChildNode();
-    vlg::SceneNode *treeNode  =  m_scene->getRootNode()->createChildNode();
+    m_treeNode  =  m_scene->getRootNode()->createChildNode({0,0,-100});
+    m_abbeyNode =  m_scene->getRootNode()->createChildNode({100,100});
 
-    treeNode->attachObject(&m_treeEntity);
+    m_treeNode->attachObject(&m_treeEntity);
+    m_abbeyNode->attachObject(&m_abbeyEntity);
 }
 
 void TestingState::entered()
@@ -123,7 +132,10 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_manager->stop();
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
-        (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
+    {
+        //(++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
+        m_treeNode->setPosition(eventsManager->mousePosition());
+    }
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
         for(size_t j = 0 ; j < 1000 ; ++j)
@@ -153,6 +165,10 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
 void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
+    vlg::SceneRenderer *renderer = dynamic_cast<vlg::SceneRenderer*>(renderWindow->getRenderer(vlg::Renderer_Scene));
+    renderer->draw(&m_treeEntity);
+    renderer->draw(&m_abbeyEntity);
+
     //vlg::DefaultRenderer *renderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
    // vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
 
@@ -160,6 +176,7 @@ void TestingState::draw(vlg::RenderWindow *renderWindow)
      //   renderer->draw(&sprite);
 
   //  renderer->draw(&m_testingSpritesBatch);
+
 
 }
 

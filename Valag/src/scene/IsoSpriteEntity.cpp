@@ -101,7 +101,8 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
 
 
 IsoSpriteEntity::IsoSpriteEntity() :
-    m_spriteModel(nullptr)
+    m_spriteModel(nullptr),
+    m_color(1.0,1.0,1.0,1.0)
 {
     //ctor
 }
@@ -151,7 +152,7 @@ InstanciedIsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
                               material->getRmtMap().m_textureLayer};
     }
 
-    glm::vec2 scale = m_spriteModel->getTextureExtent();
+    glm::vec2 scale = m_spriteModel->getSize();
 
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), m_parentNode->getGlobalPosition());
     modelMatrix = glm::scale(modelMatrix, glm::vec3(scale, material->getHeightFactor()));

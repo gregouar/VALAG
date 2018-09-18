@@ -80,13 +80,20 @@ void VGraphicsPipeline::setBlendMode(BlendMode blendMode, size_t attachmentNbr)
     m_blendModes[attachmentNbr] = blendMode;
 }
 
+void VGraphicsPipeline::setWriteMask(VkFlags  writeMask, size_t attachmentNbr)
+{
+    VkFlags  defaultWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    m_writeMasks.insert(m_writeMasks.end(), attachmentNbr + 1 - m_writeMasks.size(),defaultWriteMask);
+    m_writeMasks[attachmentNbr] = writeMask;
+}
+
 void VGraphicsPipeline::setCustomBlendMode(VkPipelineColorBlendStateCreateInfo blendMode, size_t attachmentNbr)
 {
     m_blendModes.insert(m_blendModes.end(), attachmentNbr + 1 - m_blendModes.size(), BlendMode_None);
     m_customBlends.insert(m_customBlends.end(), attachmentNbr + 1 - m_customBlends.size(), VkPipelineColorBlendStateCreateInfo{});
 
     m_blendModes[attachmentNbr]     = BlendMode_Custom;
-    m_customBlends[attachmentNbr]    = blendMode;
+    m_customBlends[attachmentNbr]   = blendMode;
 }
 
 void VGraphicsPipeline::attachDescriptorSetLayout(VkDescriptorSetLayout setLayout)
@@ -175,6 +182,8 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     colorBlendAttachments.resize(attachmentsCount);
 
     m_blendModes.insert(m_blendModes.end(), attachmentsCount - m_blendModes.size(), BlendMode_None);
+    m_writeMasks.insert(m_writeMasks.end(), attachmentsCount + 1 - m_writeMasks.size(),
+                       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
 
     for(size_t i = 0 ; i < attachmentsCount ; ++i)
     {
@@ -184,12 +193,11 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
         {
             colorBlending = m_customBlends[i];
         } else {
+            colorBlendAttachments[i].colorWriteMask = m_writeMasks[i];
 
             switch(m_blendModes[i])
             {
                 case BlendMode_Add:
-                    colorBlendAttachments[i].colorWriteMask
-                        = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
                     colorBlendAttachments[i].blendEnable = VK_TRUE;
                     colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
                     colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -200,8 +208,6 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
                     break;
 
                 case BlendMode_Alpha:
-                    colorBlendAttachments[i].colorWriteMask
-                        = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
                     colorBlendAttachments[i].blendEnable = VK_TRUE;
                     colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
                     colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

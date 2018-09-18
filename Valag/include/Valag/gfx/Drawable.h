@@ -26,10 +26,10 @@ class Drawable : public NotificationListener
                                                 uint32_t subpass, VkFramebuffer framebuffer) = 0;
 
         virtual void createDrawCommandBuffers();
-        virtual bool updateDrawCMB(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
+        virtual bool updateDrawCmb(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer);
 
-        void askToUpdateDrawCMB(size_t frameIndex);
+        void askToUpdateDrawCmb(size_t frameIndex);
 
         virtual void notify(NotificationSender*, NotificationType);
 
@@ -37,8 +37,8 @@ class Drawable : public NotificationListener
         std::vector<VkCommandBuffer>    m_drawCommandBuffers;
 
     private:
-        bool m_needToCreateDrawCMB;
-        std::vector<bool> m_needToUpdateDrawCMB;
+        bool m_needToCreateDrawCmb;
+        std::vector<bool> m_needToUpdateDrawCmb;
 };
 
 }

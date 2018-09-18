@@ -41,8 +41,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         std::list<vlg::Sprite>  m_testingSpritesInBatch;
         vlg::SpritesBatch       m_testingSpritesBatch;
 
-        vlg::IsoSpriteModel  m_treeModel;
-        vlg::IsoSpriteEntity m_treeEntity;
+        vlg::IsoSpriteModel  m_treeModel, m_abbeyModel;
+        vlg::IsoSpriteEntity m_treeEntity, m_abbeyEntity;
+        vlg::SceneNode  *m_treeNode, *m_abbeyNode;
 };
 
 #endif // TESTINGSTATE_H

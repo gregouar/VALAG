@@ -14,10 +14,11 @@ class AbstractRenderer
         virtual ~AbstractRenderer();
 
         virtual void update(size_t frameIndex);
-        virtual void updateCMB(uint32_t imageIndex);
+        virtual void updateCmb(uint32_t imageIndex);
 
-        VkCommandBuffer getCommandBuffer(size_t frameIndex);
+        virtual VkCommandBuffer getCommandBuffer(size_t frameIndex, size_t imageIndex);
         //VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
+        virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);
 
         RendererName    getName();
 
@@ -30,21 +31,19 @@ class AbstractRenderer
         virtual bool    createUBO() = 0;
         virtual bool    createDescriptorPool() = 0;
         virtual bool    createDescriptorSets() = 0;
-        virtual bool    createPrimaryCommandBuffers();
+        virtual bool    createPrimaryCmb();
         //virtual bool    createSemaphores();
 
         virtual bool    init();
         virtual void    cleanup();
 
-        virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex) = 0;
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex) = 0;
 
 
     protected:
         RenderWindow  *m_targetWindow;
 
         VkRenderPass        m_renderPass;
-        /*VkPipelineLayout    m_pipelineLayout;
-        VkPipeline          m_pipeline;*/
 
         VkDescriptorPool                m_descriptorPool;
 
@@ -52,12 +51,9 @@ class AbstractRenderer
         std::vector<VkExtent2D>         m_swapchainExtents; //Could be needed if I implement resizing
 
         size_t                          m_curFrameIndex;
-        std::vector<VkCommandBuffer>    m_primaryCMB;
+        std::vector<VkCommandBuffer>    m_primaryCmb;
 
         RenderView  m_renderView;
-
-        //std::vector<VkSemaphore>        m_renderFinishedSemaphore;
-        //std::vector<VkCommandBuffer>    m_activeSecondaryCommandBuffers;
 
         RenderereOrder  m_order;
 

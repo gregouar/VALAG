@@ -11,8 +11,6 @@ namespace vlg
 AbstractRenderer::AbstractRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
     m_targetWindow(targetWindow),
     m_renderPass(VK_NULL_HANDLE),
-   /* m_pipelineLayout(VK_NULL_HANDLE),
-    m_pipeline(VK_NULL_HANDLE),*/
     m_descriptorPool(VK_NULL_HANDLE),
     m_curFrameIndex(0),
     m_order(order),
@@ -30,18 +28,23 @@ void AbstractRenderer::update(size_t frameIndex)
     m_renderView.update(frameIndex);
 }
 
-void AbstractRenderer::updateCMB(uint32_t imageIndex)
+void AbstractRenderer::updateCmb(uint32_t imageIndex)
 {
     Profiler::pushClock("Record primary buffer");
-    this->recordPrimaryCommandBuffer(imageIndex);
+    this->recordPrimaryCmb(imageIndex);
     Profiler::popClock();
 
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
 }
 
-VkCommandBuffer AbstractRenderer::getCommandBuffer(size_t frameIndex)
+VkCommandBuffer AbstractRenderer::getCommandBuffer(size_t frameIndex , size_t imageIndex)
 {
-    return m_primaryCMB[frameIndex];
+    return m_primaryCmb[frameIndex];
+}
+
+VkSemaphore AbstractRenderer::getFinalPassWaitSemaphore(size_t frameIndex)
+{
+    return VK_NULL_HANDLE;
 }
 
 /*VkSemaphore AbstractRenderer::getRenderFinishedSemaphore(size_t frameIndex)
@@ -169,17 +172,17 @@ bool AbstractRenderer::createFramebuffers()
     return (true);
 }
 
-bool AbstractRenderer::createPrimaryCommandBuffers()
+bool AbstractRenderer::createPrimaryCmb()
 {
-    m_primaryCMB.resize(m_targetWindow->getFramesCount());
+    m_primaryCmb.resize(m_targetWindow->getFramesCount());
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = VInstance::commandPool(/*COMMANDPOOL_DEFAULT*/COMMANDPOOL_SHORTLIVED);
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) m_primaryCMB.size();
+    allocInfo.commandBufferCount = (uint32_t) m_primaryCmb.size();
 
-    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCMB.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) != VK_SUCCESS)
     {
         Logger::error("Failed to allocate command buffers");
         return (false);
@@ -258,7 +261,7 @@ bool AbstractRenderer::init()
         return (false);
     }
 
-    if(!this->createPrimaryCommandBuffers())
+    if(!this->createPrimaryCmb())
     {
         Logger::error("Cannot create primary command buffers");
         return (false);

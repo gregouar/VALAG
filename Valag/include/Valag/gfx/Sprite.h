@@ -60,7 +60,7 @@ class Sprite : public NotificationSender, public Drawable
                                                 uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
 
-        bool recordDrawCMBContent(VkCommandBuffer &commandBuffer, DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
+        bool recordDrawCmbContent(VkCommandBuffer &commandBuffer, DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                                 uint32_t subpass, VkFramebuffer framebuffer);
 
     private:

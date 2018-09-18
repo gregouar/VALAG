@@ -140,7 +140,7 @@ bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
 
-    if (vkBeginCommandBuffer(m_primaryCMB[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(m_primaryCmb[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
     {
         Logger::error("Failed to begin recording command buffer");
         return (false);
@@ -162,28 +162,28 @@ bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
         renderPassInfo.pClearValues = clearValues.data();
     }
 
-    vkCmdBeginRenderPass(m_primaryCMB[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE /*VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS*/);
+    vkCmdBeginRenderPass(m_primaryCmb[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE /*VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS*/);
 
     if(spritesVertexBufferSize != 0)
     {
-        //vkCmdBindPipeline(m_primaryCMB[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        m_pipeline.bind(m_primaryCMB[m_curFrameIndex]);
+        //vkCmdBindPipeline(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        m_pipeline.bind(m_primaryCmb[m_curFrameIndex]);
 
         VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                             VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
-        vkCmdBindDescriptorSets(m_primaryCMB[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
         VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
-        vkCmdBindVertexBuffers(m_primaryCMB[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+        vkCmdBindVertexBuffers(m_primaryCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
 
-        vkCmdDraw(m_primaryCMB[m_curFrameIndex], 4, spritesVertexBufferSize, 0, 0);
+        vkCmdDraw(m_primaryCmb[m_curFrameIndex], 4, spritesVertexBufferSize, 0, 0);
     }
 
-    vkCmdEndRenderPass(m_primaryCMB[m_curFrameIndex]);
+    vkCmdEndRenderPass(m_primaryCmb[m_curFrameIndex]);
 
-    if (vkEndCommandBuffer(m_primaryCMB[m_curFrameIndex]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_primaryCmb[m_curFrameIndex]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);

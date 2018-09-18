@@ -26,6 +26,7 @@ class IsoSpriteModel
         //void setSize(glm::vec2 size);
 
         void setMaterial(AssetTypeID textureID);
+        void setSize(glm::vec2 size);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
         void setTextureCenter(glm::vec2 pos);
 
@@ -33,6 +34,7 @@ class IsoSpriteModel
         void setRmt(Color rmt);
 
         AssetTypeID getMaterial();
+        glm::vec2 getSize();
         glm::vec2 getTextureExtent();
         glm::vec2 getTexturePosition();
         glm::vec2 getTextureCenter();
@@ -46,6 +48,7 @@ class IsoSpriteModel
         AssetTypeID m_material;
         std::vector<bool>   m_needToCheckLoading;
 
+        glm::vec2 m_size;
         glm::vec2 m_texturePosition;
         glm::vec2 m_textureExtent;
         glm::vec2 m_textureCenter;

@@ -164,7 +164,7 @@ void Sprite::uploadModelUBO(size_t frameIndex)
 bool Sprite::checkUpdates(size_t frameIndex)
 {
     m_preventDrawing = false;
-    bool needToUpdateDrawCMB = false;
+    bool needToUpdateDrawCmb = false;
 
     if(m_needToAllocModel[frameIndex])
     {
@@ -174,12 +174,12 @@ bool Sprite::checkUpdates(size_t frameIndex)
             return (false);
         }
         m_needToAllocModel[frameIndex] = false;
-        needToUpdateDrawCMB = true;
+        needToUpdateDrawCmb = true;
     }
 
     if(m_modelBufferVersion[frameIndex] != s_modelUBO.getBufferVersion(frameIndex))
     {
-        needToUpdateDrawCMB = true;
+        needToUpdateDrawCmb = true;
         m_modelBufferVersion[frameIndex] = s_modelUBO.getBufferVersion(frameIndex);
     }
 
@@ -188,24 +188,24 @@ bool Sprite::checkUpdates(size_t frameIndex)
 
     if(m_texDescSetVersion[frameIndex] != VTexturesManager::descriptorSetVersion(frameIndex))
     {
-        needToUpdateDrawCMB = true;
+        needToUpdateDrawCmb = true;
         m_texDescSetVersion[frameIndex] = VTexturesManager::descriptorSetVersion(frameIndex);
     }
 
     if(m_needToCheckLoading[frameIndex] && TexturesHandler::instance()->getAsset(m_texture)->isLoaded())
     {
-        needToUpdateDrawCMB = true;
+        needToUpdateDrawCmb = true;
         m_needToCheckLoading[frameIndex] = false;
     }
 
-    return needToUpdateDrawCMB;
+    return needToUpdateDrawCmb;
 }
 
 VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass, uint32_t subpass, VkFramebuffer framebuffer)
 {
     if(this->checkUpdates(frameIndex))
-        this->askToUpdateDrawCMB(frameIndex);
-       // m_needToUpdateDrawCMB[frameIndex] = true;
+        this->askToUpdateDrawCmb(frameIndex);
+       // m_needToUpdateDrawCmb[frameIndex] = true;
 
     if(m_preventDrawing)
         return (VK_NULL_HANDLE);
@@ -214,7 +214,7 @@ VkCommandBuffer Sprite::getDrawCommandBuffer(DefaultRenderer *renderer, size_t f
 }
 
 
-bool Sprite::recordDrawCMBContent(VkCommandBuffer &commandBuffer,DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
+bool Sprite::recordDrawCmbContent(VkCommandBuffer &commandBuffer,DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                   uint32_t subpass, VkFramebuffer framebuffer)
 {
     if(m_preventDrawing)
@@ -255,7 +255,7 @@ bool Sprite::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameInd
 
     renderer->bindPipeline(m_drawCommandBuffers[frameIndex],frameIndex);
 
-    if(!this->recordDrawCMBContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer))
+    if(!this->recordDrawCmbContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer))
     {
         if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
             throw std::runtime_error("Failed to record command buffer");

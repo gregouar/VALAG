@@ -45,7 +45,7 @@ class RenderWindow
     protected:
         uint32_t    acquireNextImage();
     // void        submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaphore finishedRenderingSemaphore);
-        void        submitToGraphicsQueue(VkCommandBuffer *commandBuffer, size_t cmbCount);
+        void        submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBuffers, std::vector<VkSemaphore> &waitSemaphores);
         void        display();
 
         bool    checkVideoMode(size_t w, size_t h, GLFWmonitor *monitor);

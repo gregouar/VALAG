@@ -80,6 +80,14 @@ void VInstance::submitToGraphicsQueue(VkSubmitInfo &infos, VkFence fence)
     VInstance::instance()->m_graphicsQueueAccessMutex.unlock();
 }
 
+void VInstance::submitToGraphicsQueue(std::vector<VkSubmitInfo> &infos, VkFence fence)
+{
+    VInstance::instance()->m_graphicsQueueAccessMutex.lock();
+        if (vkQueueSubmit(VInstance::instance()->m_graphicsQueue, infos.size(), infos.data(), fence) != VK_SUCCESS)
+            throw std::runtime_error("Failed to submit draw command buffer");
+    VInstance::instance()->m_graphicsQueueAccessMutex.unlock();
+}
+
 void VInstance::presentQueue(VkPresentInfoKHR &infos)
 {
     vkQueuePresentKHR(VInstance::instance()->m_presentQueue, &infos);
@@ -106,7 +114,7 @@ void VInstance::init(VkSurfaceKHR &surface)
     if(!this->createCommandPools())
         throw std::runtime_error("Cannot create command pools");
 
-    if(!this->createSingleTimeCMBs())
+    if(!this->createSingleTimeCmbs())
         throw std::runtime_error("Cannot create single time command buffers");
 
     if(!this->createSemaphoresAndFences())
@@ -444,9 +452,9 @@ bool VInstance::createCommandPools()
     return (true);
 }
 
-bool VInstance::createSingleTimeCMBs()
+bool VInstance::createSingleTimeCmbs()
 {
-    m_singleTimeCMB.resize(COMMANDPOOL_NBR_NAMES);
+    m_singleTimeCmb.resize(COMMANDPOOL_NBR_NAMES);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -456,7 +464,7 @@ bool VInstance::createSingleTimeCMBs()
     for(size_t i = 0 ; i < m_commandPools.size() ; ++i)
     {
         allocInfo.commandPool = m_commandPools[i];
-        if(vkAllocateCommandBuffers(m_device, &allocInfo, &m_singleTimeCMB[i]) != VK_SUCCESS)
+        if(vkAllocateCommandBuffers(m_device, &allocInfo, &m_singleTimeCmb[i]) != VK_SUCCESS)
             return (false);
     }
 
@@ -547,9 +555,9 @@ VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolNa
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(m_singleTimeCMB[commandPoolName], &beginInfo);
+    vkBeginCommandBuffer(m_singleTimeCmb[commandPoolName], &beginInfo);
 
-    return m_singleTimeCMB[commandPoolName];
+    return m_singleTimeCmb[commandPoolName];
 }
 
 

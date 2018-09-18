@@ -47,21 +47,29 @@ MaterialAsset::~MaterialAsset()
 
 VTexture MaterialAsset::getAlbedoMap()
 {
+    if(!m_albedoMap)
+        return VTexture();
     return m_albedoMap->getVTexture();
 }
 
 VTexture MaterialAsset::getNormalMap()
 {
+    if(!m_normalMap)
+        return VTexture();
     return m_normalMap->getVTexture();
 }
 
 VTexture MaterialAsset::getHeightMap()
 {
+    if(!m_heightMap)
+        return VTexture();
     return m_heightMap->getVTexture();
 }
 
 VTexture MaterialAsset::getRmtMap()
 {
+    if(!m_rmtMap)
+        return VTexture();
     return m_rmtMap->getVTexture();
 }
 

@@ -161,18 +161,19 @@ uint32_t RenderWindow::acquireNextImage()
     return imageIndex;
 }
 
-void RenderWindow::submitToGraphicsQueue(VkCommandBuffer *commandBuffer, size_t cmbCount/*, VkSemaphore finishedRenderingSemaphore*/)
+void RenderWindow::submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBuffers, std::vector<VkSemaphore> &waitSemaphores)
 {
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_curFrameIndex]};
+    //VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_curFrameIndex]};
+    waitSemaphores.push_back(m_imageAvailableSemaphore[m_curFrameIndex]);
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = cmbCount;
-    submitInfo.pCommandBuffers = commandBuffer;
+    submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+    submitInfo.pCommandBuffers = commandBuffers.data();
 
     VkSemaphore signalSemaphores[] = {m_finishedRenderingSemaphores[m_curFrameIndex]};
     submitInfo.signalSemaphoreCount = 1;
@@ -187,15 +188,21 @@ void RenderWindow::display()
 {
    // Profiler::pushClock("Update buffers");
     for(auto renderer : m_attachedRenderers)
-        renderer.second->updateCMB(m_curImageIndex);
+        renderer.second->updateCmb(m_curImageIndex);
    // Profiler::popClock();
 
     //Profiler::pushClock("Submit to queue");
     std::vector<VkCommandBuffer> cmb(m_attachedRenderers.size());
+    std::vector<VkSemaphore> waitSemaphores;
     size_t i = 0;
     for(auto renderer : m_attachedRenderers)
-        cmb[i++] = renderer.second->getCommandBuffer(m_curFrameIndex);
-    this->submitToGraphicsQueue(cmb.data(),cmb.size());
+    {
+        VkSemaphore waitSemaphore = renderer.second->getFinalPassWaitSemaphore(m_curFrameIndex);
+        if(waitSemaphore != VK_NULL_HANDLE)
+            waitSemaphores.push_back(waitSemaphore);
+        cmb[i++] = renderer.second->getCommandBuffer(m_curFrameIndex, m_curImageIndex);
+    }
+    this->submitToGraphicsQueue(cmb,waitSemaphores);
 
    /* for(auto renderer m_attachedRenderers)
         this->submitToGraphicsQueue(renderer.second->getCommandBuffer(m_curFrameIndex),

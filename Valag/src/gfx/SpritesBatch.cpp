@@ -25,7 +25,7 @@ void SpritesBatch::addSprite(Sprite *sprite)
     if(m_sortedSprites[texId].insert(sprite).second)
     {
         sprite->askForAllNotifications(this);
-        ///for(auto b : m_needToUpdateDrawCMB) b = 0;
+        ///for(auto b : m_needToUpdateDrawCmb) b = 0;
     }
 }
 
@@ -52,8 +52,8 @@ VkCommandBuffer SpritesBatch::getDrawCommandBuffer(DefaultRenderer *renderer, si
     for(auto sprite : spriteSet.second)
     {
         if(sprite->checkUpdates(frameIndex))
-            this->askToUpdateDrawCMB(frameIndex);
-            //m_needToUpdateDrawCMB[frameIndex] = true;
+            this->askToUpdateDrawCmb(frameIndex);
+            //m_needToUpdateDrawCmb[frameIndex] = true;
     }
 
     return Drawable::getDrawCommandBuffer(renderer, frameIndex, renderPass, subpass, framebuffer);
@@ -84,7 +84,7 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
 
     for(auto spriteSet : m_sortedSprites)
     for(auto sprite : spriteSet.second)
-        sprite->recordDrawCMBContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer);
+        sprite->recordDrawCmbContent(m_drawCommandBuffers[frameIndex], renderer, frameIndex, renderPass, subpass, framebuffer);
 
     if (vkEndCommandBuffer(m_drawCommandBuffers[frameIndex]) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer");
@@ -96,8 +96,8 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
 void SpritesBatch::notify(NotificationSender* sender, NotificationType notificationType)
 {
     /// Could check if sender is in m_sprites... or just trust it ?///
-    /*if(notificationType == Notification_UpdateCMB)
-        for(auto b : m_needToUpdateDrawCMB) b = true;
+    /*if(notificationType == Notification_UpdateCmb)
+        for(auto b : m_needToUpdateDrawCmb) b = true;
     else */if(notificationType == Notification_TextureIsAboutToChange)
     {
         if(m_enableSorting)

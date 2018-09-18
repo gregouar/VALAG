@@ -5,6 +5,7 @@ namespace vlg
 
 IsoSpriteModel::IsoSpriteModel() :
     m_material(0),
+    m_size({1.0f,1.0f}),
     m_texturePosition({0.0f,0.0f}),
     m_textureExtent({1.0f,1.0f}),
     m_textureCenter({0.0f,0.0f})
@@ -25,6 +26,11 @@ IsoSpriteModel::~IsoSpriteModel()
 void IsoSpriteModel::setMaterial(AssetTypeID materialID)
 {
     m_material = materialID;
+}
+
+void IsoSpriteModel::setSize(glm::vec2 size)
+{
+    m_size = size;
 }
 
 void IsoSpriteModel::setTextureRect(glm::vec2 pos, glm::vec2 extent)
@@ -52,6 +58,11 @@ void IsoSpriteModel::setRmt(Color rmt)
 AssetTypeID IsoSpriteModel::getMaterial()
 {
     return m_material;
+}
+
+glm::vec2 IsoSpriteModel::getSize()
+{
+    return m_size;
 }
 
 glm::vec2 IsoSpriteModel::getTextureExtent()
