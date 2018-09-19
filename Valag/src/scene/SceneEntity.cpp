@@ -5,7 +5,7 @@ namespace vlg
 
 SceneEntity::SceneEntity()
 {
-    //ctor
+    m_isAnEntity = true;
 }
 
 SceneEntity::~SceneEntity()

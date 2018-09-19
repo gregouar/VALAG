@@ -44,6 +44,10 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         vlg::IsoSpriteModel  m_treeModel, m_abbeyModel;
         vlg::IsoSpriteEntity m_treeEntity, m_abbeyEntity;
         vlg::SceneNode  *m_treeNode, *m_abbeyNode;
+
+        vlg::CameraObject   *m_camera;
+        vlg::SceneNode      *m_cameraNode;
+        glm::vec2            m_camVelocity;
 };
 
 #endif // TESTINGSTATE_H

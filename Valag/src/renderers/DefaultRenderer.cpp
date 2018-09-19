@@ -46,7 +46,7 @@ void DefaultRenderer::draw(Drawable *drawable)
         m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
 
-bool DefaultRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
+bool DefaultRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -132,9 +132,10 @@ bool DefaultRenderer::init()
 {
     Sprite::initRendering(m_targetWindow->getFramesCount());
 
-    m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
-                            m_targetWindow->getSwapchainExtent().height});
+   // m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
+     //                       m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(DEPTH_SCALING_FACTOR);
+    m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
 
     return AbstractRenderer::init();
 }

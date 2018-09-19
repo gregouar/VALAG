@@ -37,6 +37,11 @@ void AbstractRenderer::updateCmb(uint32_t imageIndex)
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
 }
 
+void AbstractRenderer::setView(glm::mat4 view)
+{
+    m_renderView.setView(view);
+}
+
 VkCommandBuffer AbstractRenderer::getCommandBuffer(size_t frameIndex , size_t imageIndex)
 {
     return m_primaryCmb[frameIndex];
@@ -193,6 +198,9 @@ bool AbstractRenderer::createPrimaryCmb()
 
 bool AbstractRenderer::createRenderView()
 {
+    m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
+                            m_targetWindow->getSwapchainExtent().height});
+
     return m_renderView.create(m_targetWindow->getFramesCount());
 }
 

@@ -85,9 +85,11 @@
 		<Unit filename="../../Valag/include/Valag/renderers/AbstractRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/InstancingRenderer.h" />
+		<Unit filename="../../Valag/include/Valag/renderers/RenderGraph.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderView.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderWindow.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/SceneRenderer.h" />
+		<Unit filename="../../Valag/include/Valag/scene/CameraObject.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteModel.h" />
 		<Unit filename="../../Valag/include/Valag/scene/Scene.h" />
@@ -144,9 +146,11 @@
 		<Unit filename="../../Valag/src/renderers/AbstractRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
+		<Unit filename="../../Valag/src/renderers/RenderGraph.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderView.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderWindow.cpp" />
 		<Unit filename="../../Valag/src/renderers/SceneRenderer.cpp" />
+		<Unit filename="../../Valag/src/scene/CameraObject.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteModel.cpp" />
 		<Unit filename="../../Valag/src/scene/Scene.cpp" />

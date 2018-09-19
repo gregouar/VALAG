@@ -50,7 +50,7 @@ class InstancingRenderer : public AbstractRenderer
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
 
-        virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 
     protected:
         std::vector<DynamicVBO<InstanciedSpriteDatum> > m_spritesVbos;

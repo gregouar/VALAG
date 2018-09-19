@@ -33,11 +33,12 @@ class SceneObject : public NotificationListener
         SceneNode *setParentNode(SceneNode*);
         SceneNode *m_parentNode;
 
-    private:
         bool m_isALight;
         bool m_isAnEntity;
         bool m_isAShadowCaster;
         bool m_isVisible;
+
+    private:
 };
 
 }

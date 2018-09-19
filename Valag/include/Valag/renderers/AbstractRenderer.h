@@ -16,6 +16,8 @@ class AbstractRenderer
         virtual void update(size_t frameIndex);
         virtual void updateCmb(uint32_t imageIndex);
 
+        virtual void setView(glm::mat4 view);
+
         virtual VkCommandBuffer getCommandBuffer(size_t frameIndex, size_t imageIndex);
         //VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
         virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);

@@ -4,13 +4,18 @@ namespace vlg
 {
 
 RenderView::RenderView() :
-    m_depthFactor(1.0f),
-    m_extent(1.0f, 1.0f),
-    m_position(0.0f, 0.0f),
+    m_position(0.0f, 0.0f, 0.0f),
+    m_lookAt(0.0f, 0.0f, -1.0f),
+    m_zoom(1.0f),
     m_descriptorPool(VK_NULL_HANDLE),
     m_descriptorSetLayout(VK_NULL_HANDLE)
 {
     //ctor
+    m_viewUbo = {};
+    m_viewUbo.depthOffsetAndFactor  = glm::vec2(0.0f, 0.0f);
+    m_viewUbo.screenOffset          = glm::vec2(0.0f, 0.0f);
+    m_viewUbo.screenSizeFactor      = glm::vec2(1.0f, 1.0f);
+    m_viewUbo.view                  = glm::mat4(1.0f);
 }
 
 RenderView::~RenderView()
@@ -52,20 +57,68 @@ void RenderView::update(size_t frameIndex)
 {
     if(m_needToUpdateBuffers[frameIndex])
     {
-        ViewUBO viewUbo = {};
-        viewUbo.view = glm::translate(glm::mat4(1.0f), glm::vec3(-1,-1,.5));
+        //ViewUBO viewUbo = {};
+        /**viewUbo.view = glm::translate(glm::mat4(1.0f), glm::vec3(-1,-1,.5));
         viewUbo.view = glm::scale(viewUbo.view, glm::vec3(2.0f/m_extent.x,
                                                           2.0f/m_extent.y,
                                                           1.0f/m_depthFactor));
-        viewUbo.view = glm::translate(viewUbo.view, glm::vec3(m_position.x,m_position.y,0));
+        viewUbo.view = glm::translate(viewUbo.view, glm::vec3(m_position.x,m_position.y,0));**/
 
-        VBuffersAllocator::writeBuffer(m_buffers[frameIndex],&viewUbo,sizeof(viewUbo));
+        /*viewUbo.screenOffset = glm::vec2(-1,-1);
+        viewUbo.screenSizeFactor = glm::vec2(2.0f/m_extent.x, 2.0f/m_extent.y);
+        viewUbo.depthOffsetAndFactor = glm::vec2(.5, 1.0f/m_depthFactor);
+        viewUbo.view = glm::mat4(1.0f);*/
+
+        VBuffersAllocator::writeBuffer(m_buffers[frameIndex],&m_viewUbo,sizeof(m_viewUbo));
 
         m_needToUpdateBuffers[frameIndex] = false;
     }
 }
 
+
 void RenderView::setDepthFactor(float depthFactor)
+{
+    if(m_viewUbo.depthOffsetAndFactor.y != 1.0f/depthFactor)
+        for(auto b : m_needToUpdateBuffers) b = true;
+    m_viewUbo.depthOffsetAndFactor.y = 1.0f/depthFactor;
+}
+
+void RenderView::setExtent(glm::vec2 extent)
+{
+    if(m_viewUbo.screenSizeFactor.x != 2.0f/extent.x || m_viewUbo.screenSizeFactor.y != 2.0f/extent.y)
+        for(auto b : m_needToUpdateBuffers) b = true;
+    m_viewUbo.screenSizeFactor.x = 2.0f/extent.x;
+    m_viewUbo.screenSizeFactor.y = 2.0f/extent.y;
+}
+
+void RenderView::setScreenOffset(glm::vec3 offset)
+{
+    if(m_viewUbo.screenOffset.x != offset.x || m_viewUbo.screenOffset.y != offset.y || m_viewUbo.depthOffsetAndFactor.x != offset.z)
+        for(auto b : m_needToUpdateBuffers) b = true;
+    m_viewUbo.screenOffset.x = offset.x;
+    m_viewUbo.screenOffset.y = offset.y;
+    m_viewUbo.depthOffsetAndFactor.x = offset.z;
+}
+
+void RenderView::setLookAt(glm::vec3 position, glm::vec3 lookAt)
+{
+    for(auto b : m_needToUpdateBuffers) b = true;
+    m_viewUbo.view = glm::lookAt(position, lookAt, glm::vec3(0.0,0.0,1.0));
+}
+
+void RenderView::setView(glm::mat4 view)
+{
+    for(auto b : m_needToUpdateBuffers) b = true;
+    m_viewUbo.view = view;
+}
+
+void RenderView::setZoom(float zoom)
+{
+
+}
+
+
+/**void RenderView::setDepthFactor(float depthFactor)
 {
     if(m_depthFactor != depthFactor)
         for(auto b : m_needToUpdateBuffers) b = true;
@@ -84,7 +137,7 @@ void RenderView::setPosition(glm::vec2 position)
     if(m_position != position)
         for(auto b : m_needToUpdateBuffers) b = true;
     m_position = position;
-}
+}**/
 
 VkDescriptorSetLayout RenderView::getDescriptorSetLayout()
 {
@@ -123,7 +176,7 @@ bool RenderView::createDescriptorSetLayout()
     layoutBinding.binding = 0;
     layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     layoutBinding.descriptorCount = 1;
-    layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; ///I could need to update to frag stage also
+    layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //| VK_SHADER_STAGE_FRAGMENT_BIT; ///I could need to update to frag stage also
     layoutBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};

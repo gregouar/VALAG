@@ -25,8 +25,10 @@ class SceneRenderer : public AbstractRenderer
         virtual VkCommandBuffer getCommandBuffer(size_t frameIndex , size_t imageIndex);
         virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);
 
-        void draw(Scene* scene);
-        void draw(IsoSpriteEntity* sprite);
+        //void draw(Scene* scene);
+        //void draw(IsoSpriteEntity* sprite);
+
+        void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
 
         virtual void updateCmb(uint32_t imageIndex);
 

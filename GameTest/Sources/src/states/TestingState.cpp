@@ -32,6 +32,8 @@ void TestingState::init()
 {
     m_firstEntering = false;
 
+    m_camVelocity = glm::vec2(0,0);
+
     m_scene = new vlg::Scene();
 
     vlg::TexturesHandler* textureHandler =  vlg::TexturesHandler::instance();
@@ -82,7 +84,7 @@ void TestingState::init()
     vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
 
     m_treeModel.setMaterial(treeMaterial->getID());
-    m_treeModel.setSize({512,512});
+    m_treeModel.setSize({512.0,512.0});
     m_treeModel.setTextureRect({0,0},{1,1});
     m_treeModel.setTextureCenter({256,526});
 
@@ -94,11 +96,21 @@ void TestingState::init()
     m_treeEntity.setSpriteModel(&m_treeModel);
     m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
-    m_treeNode  =  m_scene->getRootNode()->createChildNode({0,0,-100});
-    m_abbeyNode =  m_scene->getRootNode()->createChildNode({100,100});
+    m_treeNode  =  m_scene->getRootNode()->createChildNode({0,0,-90});
+    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100});
 
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
+
+    m_treeEntity.setColor({0.0,1.0,0.0,1.0});
+    //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
+
+    m_camera = m_scene->createCamera();
+    m_cameraNode = m_scene->getRootNode()->createChildNode(500,500,500);
+    m_cameraNode->attachObject(m_camera);
+    m_scene->setCurrentCamera(m_camera);
+    m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
+                          glm::pi<float>()/6.0f); //30
 }
 
 void TestingState::entered()
@@ -131,10 +143,38 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     if(eventsManager->isAskingToClose())
         m_manager->stop();
 
+
+    glm::vec2 worldMousePos = m_scene->convertScreenToWorldCoord(eventsManager->centeredMousePosition(), m_camera);
+
+    //std::cout<<worldMousePos.x<<" "<<worldMousePos.y<<std::endl;
+    m_camVelocity = {0,0};
+
+    if(eventsManager->keyPressed(GLFW_KEY_A))
+        m_treeEntity.setRotation(m_treeEntity.getRotation()+0.1f);
+    if(eventsManager->keyPressed(GLFW_KEY_Z))
+        m_treeEntity.setRotation(m_treeEntity.getRotation()-0.1f);
+
+    if(eventsManager->keyIsPressed(GLFW_KEY_DOWN))
+        m_camVelocity.y = 100.0;
+        //m_treeNode->move(0,0,-5);
+    if(eventsManager->keyIsPressed(GLFW_KEY_UP))
+        m_camVelocity.y = -100.0;
+    if(eventsManager->keyIsPressed(GLFW_KEY_LEFT))
+        m_camVelocity.x = -100.0;
+    if(eventsManager->keyIsPressed(GLFW_KEY_RIGHT))
+        m_camVelocity.x = 100.0;
+        //m_treeNode->move(0,0,5);
+
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        //(++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
-        m_treeNode->setPosition(eventsManager->mousePosition());
+        (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
+        (++m_testingSprites.begin())->setSize({256,256});
+        m_treeNode->setPosition(worldMousePos);
+    }
+
+    if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_RIGHT))
+    {
+        m_abbeyNode->setPosition(eventsManager->mousePosition());
     }
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
@@ -146,12 +186,20 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
         //m_testingSpritesBatch.addSprite(&(*(--m_testingSprites.end())));
     }
+
 }
 
 void TestingState::update(const vlg::Time &elapsedTime)
 {
     m_totalTime += elapsedTime;
     m_nbrFps++;
+
+    glm::vec2 camMove = m_scene->convertScreenToWorldCoord(m_camVelocity);
+    camMove.x *= elapsedTime.count();
+    camMove.y *= elapsedTime.count();
+    m_cameraNode->move(camMove);
+
+    m_scene->update(elapsedTime);
 
     if(m_totalTime.count() > 1)
     {
@@ -165,17 +213,24 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
 void TestingState::draw(vlg::RenderWindow *renderWindow)
 {
-    vlg::SceneRenderer *renderer = dynamic_cast<vlg::SceneRenderer*>(renderWindow->getRenderer(vlg::Renderer_Scene));
-    renderer->draw(&m_treeEntity);
-    renderer->draw(&m_abbeyEntity);
+    if(renderWindow->getRenderer(vlg::Renderer_Scene) != nullptr)
+    {
+        vlg::SceneRenderer *renderer = dynamic_cast<vlg::SceneRenderer*>(renderWindow->getRenderer(vlg::Renderer_Scene));
+        //renderer->draw(&m_abbeyEntity);
+        //renderer->draw(&m_treeEntity);
+        m_scene->render(renderer);
+    }
 
     //vlg::DefaultRenderer *renderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
-   // vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
+    if(renderWindow->getRenderer(vlg::Renderer_Instancing) != nullptr)
+    {
+        vlg::InstancingRenderer *renderer = dynamic_cast<vlg::InstancingRenderer*>(renderWindow->getRenderer(vlg::Renderer_Instancing));
 
-   // for(auto &sprite : m_testingSprites)
-     //   renderer->draw(&sprite);
+        for(auto &sprite : m_testingSprites)
+            renderer->draw(&sprite);
 
-  //  renderer->draw(&m_testingSpritesBatch);
+        renderer->draw(&m_testingSpritesBatch);
+    }
 
 
 }

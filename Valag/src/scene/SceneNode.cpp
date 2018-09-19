@@ -244,10 +244,10 @@ void SceneNode::attachObject(SceneObject *e)
     {
         m_attachedObjects.push_back(e);
 
-        /**if(e->IsAnEntity())
-            m_entities.push_back((SceneEntity*)e);
+        if(e->isAnEntity())
+            m_entities.push_back(dynamic_cast<SceneEntity*>(e));
 
-        if(e->IsALight())
+        /**if(e->IsALight())
             m_lights.push_back((Light*)e);
 
         if(e->IsAShadowCaster())
@@ -269,10 +269,10 @@ void SceneNode::detachObject(SceneObject *e)
 {
     m_attachedObjects.remove(e);
 
-    /**if(e != nullptr && e->isAnEntity())
-        m_entities.remove((SceneEntity*)e);
+    if(e != nullptr && e->isAnEntity())
+        m_entities.remove(dynamic_cast<SceneEntity*>(e));
 
-    if(e != nullptr && e->isALight())
+    /**if(e != nullptr && e->isALight())
         m_lights.remove((Light*)e);
 
     if(e != nullptr && e->isAShadowCaster())
@@ -385,6 +385,10 @@ void SceneNode::setID(const NodeTypeID id)
 void SceneNode::setScene(Scene *scene)
 {
     m_scene = scene;
+
+    for(auto node : m_childs)
+        node.second->setScene(scene);
+
     /**SceneNodeIterator childIt = GetChildIterator();
     while(!childIt.IsAtTheEnd())
     {
@@ -510,6 +514,16 @@ void SceneNode::update(const Time &elapsedTime)
         nodeIt.GetElement()->Update(elapsedTime);
         ++nodeIt;
     }**/
+}
+
+void SceneNode::render(SceneRenderer *renderer)
+{
+    for(auto entity : m_entities)
+        if(entity->isVisible())
+            entity->draw(renderer);
+
+    for(auto node : m_childs)
+        node.second->render(renderer);
 }
 
 void SceneNode::notify(NotificationSender* sender, NotificationType type)

@@ -37,7 +37,7 @@ class DefaultRenderer : public AbstractRenderer
 
        // void            updateViewUBO();
 
-        virtual bool    recordPrimaryCommandBuffer(uint32_t imageIndex);
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 
         void    bindPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex);
         bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);

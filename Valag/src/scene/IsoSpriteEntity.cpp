@@ -2,6 +2,7 @@
 
 #include "Valag/assets/AssetHandler.h"
 #include "Valag/assets/MaterialAsset.h"
+#include "Valag/renderers/SceneRenderer.h"
 #include "Valag/scene/SceneNode.h"
 
 namespace vlg
@@ -23,7 +24,7 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
     std::array<VkVertexInputAttributeDescription, 12> attributeDescriptions = {};
 
     size_t i = 0;
-    attributeDescriptions[i].binding = 0;
+    /**attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, model_0);
@@ -45,7 +46,34 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, model_3);
+    ++i;**/
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, position);
     ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, rotation);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, size);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, center);
+    ++i;
+
+
+
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
@@ -102,6 +130,7 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
 
 IsoSpriteEntity::IsoSpriteEntity() :
     m_spriteModel(nullptr),
+    m_rotation(0.0f),
     m_color(1.0,1.0,1.0,1.0)
 {
     //ctor
@@ -110,6 +139,11 @@ IsoSpriteEntity::IsoSpriteEntity() :
 IsoSpriteEntity::~IsoSpriteEntity()
 {
     //dtor
+}
+
+void IsoSpriteEntity::setRotation(float rotation)
+{
+    m_rotation = rotation;
 }
 
 
@@ -128,11 +162,26 @@ void IsoSpriteEntity::setSpriteModel(IsoSpriteModel* model)
     m_spriteModel = model;
 }
 
+
+float IsoSpriteEntity::getRotation()
+{
+    return m_rotation;
+}
+
+Color IsoSpriteEntity::getColor()
+{
+    return m_color;
+}
+
+glm::vec3 IsoSpriteEntity::getRmt()
+{
+    return m_rmt;
+}
+
 ///I'll need to improve modelMatrix
 InstanciedIsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
 {
     InstanciedIsoSpriteDatum datum;
-
 
     datum.albedo_texId = {0,0};
     datum.height_texId = {0,0};
@@ -152,21 +201,35 @@ InstanciedIsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
                               material->getRmtMap().m_textureLayer};
     }
 
-    glm::vec2 scale = m_spriteModel->getSize();
+    /**glm::vec2 scale = m_spriteModel->getSize();
+
 
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), m_parentNode->getGlobalPosition());
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(-m_spriteModel->getTextureCenter(), 0.0));
     modelMatrix = glm::scale(modelMatrix, glm::vec3(scale, material->getHeightFactor()));
 
     datum.model_0 = modelMatrix[0];
     datum.model_1 = modelMatrix[1];
     datum.model_2 = modelMatrix[2];
-    datum.model_3 = modelMatrix[3];
+    datum.model_3 = modelMatrix[3];**/
+
+    datum.position = m_parentNode->getGlobalPosition();
+    datum.size = glm::vec3(m_spriteModel->getSize(), material->getHeightFactor());
+    datum.rotation = m_rotation;
+    datum.center = m_spriteModel->getTextureCenter();
+
     datum.albedo_color = m_color;
     datum.rmt_color = m_rmt * material->getRmtFactor();
     datum.texPos    = m_spriteModel->getTexturePosition();
     datum.texExtent = m_spriteModel->getTextureExtent();
 
     return datum;
+}
+
+
+void IsoSpriteEntity::draw(SceneRenderer *renderer)
+{
+    renderer->addToSpritesVbo(this->getIsoSpriteDatum());
 }
 
 

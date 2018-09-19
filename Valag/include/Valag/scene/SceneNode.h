@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 
 #include "Valag/Types.h"
-///#include "Valag/gfx/SceneEntity.h"
+#include "Valag/scene/SceneEntity.h"
 
 #include "Valag/core/NotificationListener.h"
 #include "Valag/core/NotificationSender.h"
@@ -15,6 +15,7 @@
 namespace vlg{
 
 class Scene;
+class SceneRenderer;
 
 class SceneNode : public NotificationSender, public NotificationListener
 {
@@ -85,6 +86,8 @@ class SceneNode : public NotificationSender, public NotificationListener
 
         void update(const Time &elapsedTime);
 
+        void render(SceneRenderer *renderer);
+
         virtual void notify(NotificationSender*, NotificationType);
 
     protected:
@@ -105,8 +108,8 @@ class SceneNode : public NotificationSender, public NotificationListener
         std::set<NodeTypeID> m_createdChildsList;
 
         std::list<SceneObject *> m_attachedObjects;
-        /**std::list<SceneEntity *> m_entities;
-        std::list<Light *> m_lights;
+        std::list<SceneEntity *> m_entities;
+        /**std::list<Light *> m_lights;
         std::list<ShadowCaster *> m_shadowCasters;**/
 
         int m_curNewId;

@@ -3,6 +3,9 @@
 
 layout(binding = 0, set = 0) uniform ViewUBO {
     mat4 view;
+    vec2 screenOffset;
+    vec2 screenSizeFactor;
+    vec2 depthOffsetAndFactor;
 } viewUbo;
 
 /*layout(location = 0) in vec2 inPosUpLeft;
@@ -29,7 +32,10 @@ vec2 vertPos[4] = vec2[](
 
 void main()
 {
-    gl_Position =  viewUbo.view * inModel *  vec4(vertPos[gl_VertexIndex], 0.0, 1.0);
+    gl_Position =  /*viewUbo.view * */ inModel *  vec4(vertPos[gl_VertexIndex], 0.0, 1.0);
+    //gl_Position.xyz = gl_Position.xyz * viewUbo.screenSizeFactor + viewUbo.screenOffset;
+    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
+                        + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);
     fragTexCoord = inTexExtent * vertPos[gl_VertexIndex] + inTexCoord;
     fragColor       = inColor;
     fragTexId       = inTexId;

@@ -25,6 +25,8 @@ class EventsManager
         bool mouseButtonReleased(int button)    const;
 
         glm::vec2 mousePosition()   const;
+        glm::vec2 normalizedMousePosition()   const;
+        glm::vec2 centeredMousePosition()   const;
         glm::vec2 mouseScroll()     const;
 
         bool isAskingToClose() const;
@@ -33,7 +35,7 @@ class EventsManager
         void updateKey(int key, int action);
         void updateMouseButton(int button, int action);
         void updateMouseScroll(double xoffset, double yoffset);
-        void updateMousePosition(double xpos, double ypos);
+        void updateMousePosition(double xpos, double ypos, int width, int height);
 
         static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
         static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -55,6 +57,8 @@ class EventsManager
         bool m_mouseButtonReleased[GLFW_MOUSE_BUTTON_LAST+1];
 
         glm::vec2 m_mousePosition;
+        glm::vec2 m_normalizedMousePosition;
+        glm::vec2 m_centeredMousePosition;
         glm::vec2 m_mouseScroll;
 
         bool m_askingToClose;

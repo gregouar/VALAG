@@ -3,6 +3,7 @@
 
 #include "Valag/Types.h"
 #include "Valag/scene/SceneNode.h"
+#include "Valag/scene/CameraObject.h"
 
 namespace vlg
 {
@@ -25,6 +26,8 @@ class Scene
                                     int = -1); // -1 is GL_MAX_LIGHTS
         virtual void renderEntity(sf::RenderTarget* ,SceneEntity*);**/
 
+        virtual void render(SceneRenderer *renderer);
+
         void askToComputeRenderQueue();
 
         SceneNode *getRootNode();
@@ -34,21 +37,25 @@ class Scene
         SpriteEntity*   createSpriteEntity(sf::IntRect = sf::IntRect(0,0,0,0));
 
         Light* createLight(LightType = OmniLight, sf::Vector3f = sf::Vector3f(0,0,-1),
-                           sf::Color = sf::Color::White);
+                           sf::Color = sf::Color::White);**/
 
-        Camera* createCamera(sf::Vector2f viewSize); **/
+        CameraObject* createCamera();
 
         void destroyCreatedObject(const ObjectTypeID);
         void destroyAllCreatedObjects();
 
-        /**virtual sf::Vector2f convertMouseToScene(sf::Vector2i);
+        virtual glm::vec2 convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam = nullptr);
 
-        virtual void setCurrentCamera(Camera *);
-        virtual void setAmbientLight(sf::Color);
+        /**virtual void setAmbientLight(sf::Color);
 
         virtual void setShadowCasting(ShadowCastingType);
         virtual void enableGammaCorrection();
         virtual void disableGammaCorrection();**/
+
+        virtual void generateViewAngle();
+
+        virtual void setViewAngle(float zAngle, float xyAngle);
+        virtual void setCurrentCamera(CameraObject *);
 
     protected:
         ObjectTypeID generateObjectID();
@@ -57,7 +64,7 @@ class Scene
         ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 
 
-        ///Camera *m_currentCamera;
+        CameraObject *m_currentCamera;
         SceneNode m_rootNode;
 
         /**sf::Color m_ambientLight;
@@ -67,6 +74,11 @@ class Scene
         std::list<SceneEntity*> m_renderQueue;
         //std::list<SceneEntity*> m_staticRenderQueue;
         sf::RenderTarget *m_last_target;**/
+
+        float m_zAngle;
+        float m_xyAngle;
+        glm::mat4   m_viewAngle,    //World to screen transformation matrix
+                    m_viewAngleInv; //Screen to world transformation matrix
 
     private:
         std::map<ObjectTypeID, SceneObject*> m_createdObjects;

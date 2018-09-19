@@ -134,7 +134,7 @@ bool VApp::createRenderers()
     m_renderers.push_back(new SceneRenderer(&m_renderWindow, Renderer_Scene, Renderer_Unique));
     m_renderWindow.attachRenderer(m_renderers.back());
 
-    //m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing,Renderer_Unique));
+    m_renderers.push_back(new InstancingRenderer(&m_renderWindow, Renderer_Instancing,Renderer_Unique));
     //m_renderWindow.attachRenderer(m_renderers.back());
 
     return (true);

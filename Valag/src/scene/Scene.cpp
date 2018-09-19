@@ -1,6 +1,7 @@
 #include "Valag/scene/Scene.h"
 
 #include "Valag/utils/Logger.h"
+#include "Valag/renderers/SceneRenderer.h"
 #include "Valag/scene/SceneObject.h"
 
 namespace vlg
@@ -21,6 +22,8 @@ Scene::Scene() :
     ///m_ambientLight = sf::Color::White;
     ///m_shadowCastingOption = NoShadow;
     ///m_enableSRGB = false;
+
+    this->setViewAngle(0,0);
 }
 
 Scene::~Scene()
@@ -43,6 +46,7 @@ void Scene::cleanAll()
 void Scene::update(const Time &elapsedTime)
 {
     m_rootNode.update(elapsedTime);
+
 
     /**if(m_needToUpdateRenderQueue)
     {
@@ -208,6 +212,22 @@ void Scene::RenderShadows(std::multimap<float, Light*> &lightList,const sf::View
     }
 }*/
 
+void Scene::render(SceneRenderer *renderer)
+{
+    if(m_currentCamera != nullptr)
+    {
+        glm::vec3 camPos = m_currentCamera->getParentNode()->getGlobalPosition();
+       // camPos.z = 0;
+        glm::mat4 view = glm::translate(glm::mat4(1.0), -camPos);
+        /*glm::mat4 view(1,0,0,-m_currentCamera->getParentNode()->getGlobalPosition().x,
+                       0,1,0,-m_currentCamera->getParentNode()->getGlobalPosition().y,
+                       0,0,1,-m_currentCamera->getParentNode()->getGlobalPosition().z,
+                       0,0,0,1);*/
+        renderer->setView(m_viewAngle*view);
+        m_rootNode.render(renderer);
+    }
+}
+
 SceneNode *Scene::getRootNode()
 {
     return &m_rootNode;
@@ -241,15 +261,14 @@ Light* Scene::CreateLight(LightType type, sf::Vector3f direction, sf::Color colo
     light->SetShadowMapSize(DEFAULT_SHADOWMAP_SIZE);
     AddCreatedObject(GenerateObjectID(), light);
     return light;
-}
-
-Camera* Scene::CreateCamera(sf::Vector2f viewSize)
-{
-    Camera* camera = new Camera();
-    camera->SetSize(viewSize);
-    AddCreatedObject(GenerateObjectID(), camera);
-    return camera;
 }**/
+
+CameraObject* Scene::createCamera()
+{
+    CameraObject* camera = new CameraObject();
+    this->addCreatedObject(this->generateObjectID(), camera);
+    return camera;
+}
 
 
 void Scene::addCreatedObject(const ObjectTypeID id, SceneObject* obj)
@@ -325,14 +344,73 @@ sf::Vector2f Scene::ConvertMouseToScene(sf::Vector2i mouse)
         m_last_target->setView(oldView);
     }
     return scenePos;
+}**/
+
+
+glm::vec2 Scene::convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam)
+{
+    glm::vec3 camPos = glm::vec3(0.0,0.0,0.0);
+    if(cam != nullptr)
+        camPos = cam->getParentNode()->getGlobalPosition();
+
+    p.y +=  glm::vec4(m_viewAngle*glm::vec4(0,0,camPos.z,1.0)).y;
+    camPos.z = 0;
+
+    glm::vec4 worldPos = m_viewAngleInv*glm::vec4(p,0.0,1.0) + glm::vec4(camPos, 0.0);
+
+    return {worldPos.x/worldPos.w, worldPos.y/worldPos.w};
 }
 
-void Scene::SetCurrentCamera(Camera *cam)
+
+
+void Scene::setCurrentCamera(CameraObject *cam)
 {
     m_currentCamera = cam;
 }
 
-void Scene::SetAmbientLight(sf::Color light)
+void Scene::generateViewAngle()
+{
+    /**m_viewAngle = glm::mat4(1.0);
+    m_viewAngle = glm::scale(m_viewAngle, glm::vec3(1.0,-1.0,1.0));
+    m_viewAngle = glm::rotate(m_viewAngle,m_zAngle, glm::vec3(0.0,0.0,1.0));
+    m_viewAngle = glm::rotate(m_viewAngle,m_xyAngle, glm::vec3(1.0,0.0,0.0));
+    m_viewAngle = glm::scale(m_viewAngle, glm::vec3(1.0,-1.0,1.0));**/
+
+    /**m_viewAngleInv = glm::mat4(1.0);
+    m_viewAngleInv = glm::scale(m_viewAngleInv, glm::vec3(1.0,-1.0,1.0));
+    m_viewAngleInv = glm::rotate(m_viewAngleInv,-m_xyAngle, glm::vec3(1.0,0.0,0.0));
+    m_viewAngleInv = glm::rotate(m_viewAngleInv,-m_zAngle, glm::vec3(0.0,0.0,1.0));
+    m_viewAngleInv = glm::scale(m_viewAngleInv, glm::vec3(1.0,-1.0,1.0));**/ ///Cant use that since I lose z-information
+
+     /**m_viewAngle = glm::mat4(cos(m_zAngle) , -sin(m_zAngle) , 0, 0,
+                               sin(m_zAngle) * sin(m_xyAngle) , cos(m_zAngle)*sin(m_xyAngle), -cos(m_xyAngle)     , 0 ,
+                                0     , 0     , 0     , 0,
+                                0     , 0     , 0     , 1);
+
+     m_viewAngleInv = glm::mat4(cos(m_zAngle) , sin(m_zAngle)/sin(m_xyAngle), 0, 0,
+                               -sin(m_zAngle) , cos(m_zAngle)/sin(m_xyAngle), 0     , 0 ,
+                                0     , 0     , 0     , 0,
+                                0     , 0     , 0     , 1);**/
+
+    m_viewAngle = glm::mat4(cos(m_zAngle) ,  sin(m_zAngle) * sin(m_xyAngle), 0, 0,
+                               -sin(m_zAngle) , cos(m_zAngle)*sin(m_xyAngle), 0     , 0 ,
+                                0     , -cos(m_xyAngle)     , 0     , 0,
+                                0     , 0     , 0     , 1);
+
+     m_viewAngleInv = glm::mat4(cos(m_zAngle) , -sin(m_zAngle), 0, 0,
+                               sin(m_zAngle)/sin(m_xyAngle) , cos(m_zAngle)/sin(m_xyAngle), 0     , 0 ,
+                                0     , 0     , 0     , 0,
+                                0     , 0     , 0     , 1);
+}
+
+void Scene::setViewAngle(float zAngle, float xyAngle)
+{
+    m_zAngle = zAngle;
+    m_xyAngle = xyAngle;
+    this->generateViewAngle();
+}
+
+/**void Scene::SetAmbientLight(sf::Color light)
 {
     m_ambientLight = light;
     //m_ambientLight.a = 255;

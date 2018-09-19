@@ -17,6 +17,8 @@ EventsManager::EventsManager()
     }
 
     m_mousePosition = glm::vec2(0,0);
+    m_normalizedMousePosition = glm::vec2(0,0);
+    m_centeredMousePosition = glm::vec2(0,0);
     m_mouseScroll   = glm::vec2(0,0);
 
     m_askingToClose = false;
@@ -118,6 +120,16 @@ glm::vec2 EventsManager::mousePosition() const
     return m_mousePosition;
 }
 
+glm::vec2 EventsManager::normalizedMousePosition() const
+{
+    return m_normalizedMousePosition;
+}
+
+glm::vec2 EventsManager::centeredMousePosition() const
+{
+    return m_centeredMousePosition;
+}
+
 glm::vec2 EventsManager::mouseScroll() const
 {
     return m_mouseScroll;
@@ -173,9 +185,12 @@ void EventsManager::updateMouseScroll(double xoffset, double yoffset)
     m_mouseScroll = glm::vec2(xoffset, yoffset);
 }
 
-void EventsManager::updateMousePosition(double xpos, double ypos)
+void EventsManager::updateMousePosition(double xpos, double ypos, int width, int height)
 {
     m_mousePosition = glm::vec2(xpos, ypos);
+    m_normalizedMousePosition.x = xpos/(double)width;
+    m_normalizedMousePosition.y = ypos/(double)height;
+    m_centeredMousePosition = glm::vec2(xpos - (double)width/2, ypos - (double)height/2);
 }
 
 
@@ -213,6 +228,10 @@ void EventsManager::cursor_position_callback(GLFWwindow* window, double xpos, do
       static_cast<EventsManager*>(glfwGetWindowUserPointer(window));
 
     if(eventsManager != nullptr)
-        eventsManager->updateMousePosition(xpos, ypos);
+    {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        eventsManager->updateMousePosition(xpos, ypos, width, height);
+    }
 }
 

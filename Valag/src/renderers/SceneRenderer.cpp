@@ -31,37 +31,20 @@ void SceneRenderer::update(size_t frameIndex)
     AbstractRenderer::update(frameIndex);
 }
 
-void SceneRenderer::draw(Scene* scene)
+/*void SceneRenderer::draw(Scene* scene)
 {
    // scene->getRootNode()->searchInsideForEntities();
 }
 
 void SceneRenderer::draw(IsoSpriteEntity* sprite)
 {
-    /*IsoSpriteModel *spriteModel = sprite->getModel();
-    MaterialAsset *texAsset = MaterialsHandler::instance()->getAsset(spriteModel->getMaterial());
-
-    if(texAsset != nullptr && texAsset->isLoaded())
-    {
-        VTexture vtexture = texAsset->getVTexture();
-
-       InstanciedSpriteDatum datum = {};
-       datum.model_0 = modelUBO.model[0];
-       datum.model_1 = modelUBO.model[1];
-       datum.model_2 = modelUBO.model[2];
-       datum.model_3 = modelUBO.model[3];
-       datum.color   = modelUBO.color;
-       datum.texExtent = modelUBO.texExt;
-       datum.texPos = modelUBO.texPos;
-       datum.texId = {vtexture.m_textureId, vtexture.m_textureLayer};
-
-       m_spritesVbos[m_curFrameIndex].push_back(datum);
-    }*/
-
-
     InstanciedIsoSpriteDatum spriteDatum = sprite->getIsoSpriteDatum();
-
     m_spritesVbos[m_curFrameIndex].push_back(spriteDatum);
+}*/
+
+void SceneRenderer::addToSpritesVbo(const InstanciedIsoSpriteDatum &datum)
+{
+    m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
 void SceneRenderer::updateCmb(uint32_t imageIndex)
@@ -96,18 +79,6 @@ void SceneRenderer::submitToGraphicsQueue(size_t imageIndex)
         submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     }
 
-    //VkSemaphore waitSemaphores[] = {};
-   /* VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = nullptr;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = m_defferedCmb[m_curFrameIndex];
-
-    VkSemaphore signalSemaphores[] = {m_deferredToAmbientLightingSemaphore[m_curFrameIndex]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;*/
-
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     submitInfos[0].pWaitDstStageMask = waitStages;
@@ -141,27 +112,6 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
         return (false);
     }
 
-    /**VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_framebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
-
-    std::array<VkClearValue, 7> clearValues = {};
-    //Swapchain
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[1].depthStencil = {0.0f, 0};
-    //Deferred
-    clearValues[2].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[3].depthStencil = {0.0f, 0};
-    clearValues[4].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[5].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    //Hdr
-    clearValues[6].color = {1.0f, 0.0f, 0.0f, 1.0f};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();**/
-
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
@@ -186,41 +136,6 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
         vkCmdDraw(m_primaryCmb[imageIndex], 3, 1, 0, 0);
 
     vkCmdEndRenderPass(m_primaryCmb[imageIndex]);
-
-    /**
-    ///Deferred subpass
-
-        m_deferredPipeline.bind(m_primaryCmb[m_curFrameIndex]);
-
-        VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
-
-        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
-
-        if(spritesVboSize != 0)
-        {
-            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
-            vkCmdBindVertexBuffers(m_primaryCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
-            vkCmdDraw(m_primaryCmb[m_curFrameIndex], 4, spritesVboSize, 0, 0);
-        }
-
-    ///Ambient lighting subpass
-    vkCmdNextSubpass(m_primaryCmb[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
-
-        m_ambientLightingPipeline.bind(m_primaryCmb[m_curFrameIndex]);
-        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
-                                0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
-        //vkCmdDraw(m_primaryCmb[m_curFrameIndex], 3, 1, 0, 0);
-
-    ///Tone mapping subpass
-    vkCmdNextSubpass(m_primaryCmb[m_curFrameIndex], VK_SUBPASS_CONTENTS_INLINE);
-
-        m_toneMappingPipeline.bind(m_primaryCmb[m_curFrameIndex]);
-        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
-                                0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
-        vkCmdDraw(m_primaryCmb[m_curFrameIndex], 3, 1, 0, 0);**/
-
 
     if (vkEndCommandBuffer(m_primaryCmb[imageIndex]) != VK_SUCCESS)
     {
@@ -338,11 +253,14 @@ bool SceneRenderer::init()
 {
      //IsoSpriteEntity::initRendering(m_targetWindow->getFramesCount());
 
-    m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
-                            m_targetWindow->getSwapchainExtent().height});
+    //m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
+      //                      m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(1024*1024);
 
     m_spritesVbos = std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedIsoSpriteDatum>(1024));
+
+   // m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
+    m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
     this->createAttachments();
 
@@ -351,238 +269,6 @@ bool SceneRenderer::init()
 
 bool SceneRenderer::createRenderPass()
 {
-    /**VkDevice device = VInstance::device();
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = m_targetWindow->getSwapchainImageFormat();
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    if(m_order == Renderer_First || m_order == Renderer_Unique)
-    {
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else {
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    }
-
-    if(m_order == Renderer_Last || m_order == Renderer_Unique)
-    {
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    } else {
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    }
-
-    std::array<VkAttachmentDescription, 4> deferredAttachments{};
-
-    deferredAttachments[0].format = m_albedoAttachments[0].format;
-    deferredAttachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    deferredAttachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    deferredAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    deferredAttachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    deferredAttachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    deferredAttachments[1].format = m_heightAttachments[0].format;
-    deferredAttachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-    deferredAttachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    deferredAttachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    deferredAttachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    deferredAttachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    deferredAttachments[2].format = m_normalAttachments[0].format;
-    deferredAttachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
-    deferredAttachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    deferredAttachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    deferredAttachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    deferredAttachments[2].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    deferredAttachments[3].format = m_rmtAttachments[0].format;
-    deferredAttachments[3].samples = VK_SAMPLE_COUNT_1_BIT;
-    deferredAttachments[3].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    deferredAttachments[3].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[3].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    deferredAttachments[3].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    deferredAttachments[3].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    deferredAttachments[3].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-
-    VkAttachmentDescription hdrAttachment = {};
-
-    hdrAttachment.format = m_hdrAttachements[0].format;
-    hdrAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    hdrAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    hdrAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    hdrAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    hdrAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    hdrAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    hdrAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-
-
-    VkSubpassDependency initialDependencies[2] = {};
-    initialDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    initialDependencies[0].dstSubpass = 0;
-    initialDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    initialDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    initialDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    initialDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    initialDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    initialDependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-    initialDependencies[1].dstSubpass = 0;
-    initialDependencies[1].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    initialDependencies[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    initialDependencies[1].srcAccessMask = 0;
-    initialDependencies[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    initialDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    ///Deferred rendering subpass
-    std::array<VkAttachmentReference, 3> deferredColorAttachmentRef{};
-    deferredColorAttachmentRef[0] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    deferredColorAttachmentRef[1] = {4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    deferredColorAttachmentRef[2] = {5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-    VkAttachmentReference deferredDepthAttachmentRef = {3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-    VkSubpassDescription deferredSubpass = {};
-    deferredSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    deferredSubpass.colorAttachmentCount = 3;
-    deferredSubpass.pColorAttachments = deferredColorAttachmentRef.data();
-    deferredSubpass.pDepthStencilAttachment = &deferredDepthAttachmentRef;
-
-
-    ///Deferred to lighting dependencies
-    VkSubpassDependency deferredToLightingDependencies[2];
-    deferredToLightingDependencies[0].srcSubpass = 0;
-    deferredToLightingDependencies[0].dstSubpass = 1;
-    deferredToLightingDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    deferredToLightingDependencies[0].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    deferredToLightingDependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    deferredToLightingDependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    deferredToLightingDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    deferredToLightingDependencies[1].srcSubpass = 0;
-    deferredToLightingDependencies[1].dstSubpass = 1;
-    deferredToLightingDependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    deferredToLightingDependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    deferredToLightingDependencies[1].srcAccessMask =  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    deferredToLightingDependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    deferredToLightingDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    ///Global illumination, SSR, ambient lighting subpass
-    std::array<VkAttachmentReference,4> inputReferences{};
-    inputReferences[0] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL   };
-    inputReferences[1] = { 3,  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    inputReferences[2] = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    inputReferences[3] = { 5, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-
-    VkAttachmentReference ambientLightingColorAttachementRef = {6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-    VkSubpassDescription ambientLightingSubpass = {};
-    ambientLightingSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    ambientLightingSubpass.colorAttachmentCount = 1;
-    ambientLightingSubpass.pColorAttachments = &ambientLightingColorAttachementRef;
-    ambientLightingSubpass.pDepthStencilAttachment = 0;
-    ambientLightingSubpass.inputAttachmentCount = static_cast<uint32_t>(inputReferences.size());
-    ambientLightingSubpass.pInputAttachments = inputReferences.data();
-
-
-    ///Lighthing to tone mapping dependency
-    VkSubpassDependency lightingToneMappingDependency;
-    lightingToneMappingDependency.srcSubpass = 1;
-    lightingToneMappingDependency.dstSubpass = 2;
-    lightingToneMappingDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    lightingToneMappingDependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    lightingToneMappingDependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    lightingToneMappingDependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    lightingToneMappingDependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-
-    ///Tone mapping/bloom subpass
-    VkAttachmentReference toneMappingInputRef = {6, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-
-    VkAttachmentReference swapchainColorAttachmentRef = {};
-    swapchainColorAttachmentRef.attachment = 0;
-    swapchainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference swapchainDepthAttachmentRef = {};
-    swapchainDepthAttachmentRef.attachment = 1;
-    swapchainDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription toneMappingSubpass = {};
-    toneMappingSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    toneMappingSubpass.colorAttachmentCount = 1;
-    toneMappingSubpass.pColorAttachments = &swapchainColorAttachmentRef;
-    toneMappingSubpass.pDepthStencilAttachment = &swapchainDepthAttachmentRef;
-    toneMappingSubpass.inputAttachmentCount = 1;
-    toneMappingSubpass.pInputAttachments = &toneMappingInputRef;
-
-    VkSubpassDependency finalDependecy = {};
-    finalDependecy.srcSubpass = 0;
-    finalDependecy.dstSubpass = VK_SUBPASS_EXTERNAL;
-    finalDependecy.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    finalDependecy.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    finalDependecy.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    finalDependecy.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    finalDependecy.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    std::vector<VkAttachmentDescription> attachments;
-
-    attachments.push_back(colorAttachment);
-    attachments.push_back(depthAttachment);
-    attachments.insert(attachments.end(), deferredAttachments.begin(), deferredAttachments.end());
-    attachments.push_back(hdrAttachment);
-
-    std::vector<VkSubpassDescription> subpassDescriptions;
-    subpassDescriptions.push_back(deferredSubpass);
-    subpassDescriptions.push_back(ambientLightingSubpass);
-    subpassDescriptions.push_back(toneMappingSubpass);
-
-
-    std::vector<VkSubpassDependency> dependencies;
-    dependencies.push_back(initialDependencies[0]);
-    dependencies.push_back(initialDependencies[1]);
-    dependencies.push_back(deferredToLightingDependencies[0]);
-    dependencies.push_back(deferredToLightingDependencies[1]);
-    dependencies.push_back(lightingToneMappingDependency);
-    dependencies.push_back(finalDependecy);
-
-
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = static_cast<uint32_t>(subpassDescriptions.size());
-    renderPassInfo.pSubpasses = subpassDescriptions.data();
-    renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-    renderPassInfo.pDependencies = dependencies.data();
-
-    return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass) == VK_SUCCESS);**/
-
     if(!this->createDeferredRenderPass())
         return (false);
     if(!this->createAmbientLightingRenderPass())
@@ -651,39 +337,6 @@ bool SceneRenderer::createGraphicsPipeline()
 
 bool SceneRenderer::createFramebuffers()
 {
-    /**auto swapchainImageViews = m_targetWindow->getSwapchainImageViews();
-    auto swapchainDepthImagesView = m_targetWindow->getDepthStencilImageViews();
-
-    m_framebuffers.resize(swapchainImageViews.size());
-    m_swapchainExtents.resize(swapchainImageViews.size());
-
-    for (size_t i = 0; i < swapchainImageViews.size(); ++i)
-    {
-        std::array<VkImageView, 7> attachments = {
-            swapchainImageViews[i],
-            swapchainDepthImagesView[i],
-            m_albedoAttachments[i].view,
-            m_heightAttachments[i].view,
-            m_normalAttachments[i].view,
-            m_rmtAttachments[i].view,
-            m_hdrAttachements[i].view
-        };
-
-        m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_swapchainExtents[i].width;
-        framebufferInfo.height = m_swapchainExtents[i].height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
-            return (false);
-    }**/
-
     if(!this->createDeferredFramebuffers())
         return (false);
 
@@ -834,7 +487,7 @@ bool SceneRenderer::createAttachments()
         )
             return (false);
 
-        VulkanHelpers::transitionImageLayout(m_albedoAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
+        /*VulkanHelpers::transitionImageLayout(m_albedoAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         VulkanHelpers::transitionImageLayout(m_heightAttachments[i].image.vkImage, 0, VK_FORMAT_D32_SFLOAT,
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
@@ -843,7 +496,7 @@ bool SceneRenderer::createAttachments()
         VulkanHelpers::transitionImageLayout(m_rmtAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
                                              VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         VulkanHelpers::transitionImageLayout(m_hdrAttachements[i].image.vkImage, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);*/
     }
 
     VkSamplerCreateInfo samplerInfo = {};

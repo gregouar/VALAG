@@ -16,10 +16,16 @@ namespace vlg
 
 struct InstanciedIsoSpriteDatum
 {
-    glm::vec4 model_0;
+    /*glm::vec4 model_0;
     glm::vec4 model_1;
     glm::vec4 model_2;
-    glm::vec4 model_3;
+    glm::vec4 model_3;*/
+
+    glm::vec3 position;
+    float rotation;
+    glm::vec3 size;
+    glm::vec2 center;
+
     glm::vec4 albedo_color;
     glm::vec3 rmt_color;
     glm::vec2 texPos;
@@ -36,15 +42,23 @@ struct InstanciedIsoSpriteDatum
 
 class IsoSpriteEntity : public SceneEntity
 {
-    friend class SceneRenderer;
+    //friend class SceneRenderer;
+    friend class SceneNode;
 
     public:
         IsoSpriteEntity();
         virtual ~IsoSpriteEntity();
 
+        void setRotation(float rotation);
         void setColor(Color color);
         void setRmt(glm::vec3 rmt);
         void setSpriteModel(IsoSpriteModel* model);
+
+
+        float getRotation();
+        Color getColor();
+        glm::vec3 getRmt();
+
 
         InstanciedIsoSpriteDatum getIsoSpriteDatum();
 
@@ -52,11 +66,15 @@ class IsoSpriteEntity : public SceneEntity
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
 
+        virtual void draw(SceneRenderer *renderer);
+
         //bool checkUpdates(SceneRenderer *renderer, size_t frameIndex);
 
         IsoSpriteModel *m_spriteModel;
 
     private:
+        ///I'll need to rotate normal and depth accordingly (in shader ?)
+        float m_rotation;
         glm::vec3 m_rmt;
         glm::vec4 m_color;
 

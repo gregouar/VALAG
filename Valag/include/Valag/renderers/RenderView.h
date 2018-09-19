@@ -8,6 +8,9 @@ namespace vlg
 
 struct ViewUBO {
     glm::mat4 view;
+    glm::vec2 screenOffset;
+    glm::vec2 screenSizeFactor;
+    glm::vec2 depthOffsetAndFactor;
 };
 
 class RenderView
@@ -22,8 +25,13 @@ class RenderView
         void update(size_t frameIndex);
 
         void setDepthFactor(float depthFactor);
+
         void setExtent(glm::vec2 extent);
-        void setPosition(glm::vec2 position);
+        void setScreenOffset(glm::vec3 offset);
+
+        void setLookAt(glm::vec3 position, glm::vec3 lookAt);
+        void setView(glm::mat4 view);
+        void setZoom(float zoom);
 
         VkDescriptorSetLayout   getDescriptorSetLayout();
         VkDescriptorSet         getDescriptorSet(size_t frameIndex);
@@ -35,9 +43,10 @@ class RenderView
         bool createDescriptorSets(size_t framesCount);
 
     private:
-        float     m_depthFactor;
-        glm::vec2 m_extent;
-        glm::vec2 m_position;
+        ViewUBO   m_viewUbo;
+        glm::vec3 m_position;
+        glm::vec3 m_lookAt;
+        float m_zoom;
 
         VkDescriptorPool                m_descriptorPool;
         VkDescriptorSetLayout           m_descriptorSetLayout; ///Could be static...

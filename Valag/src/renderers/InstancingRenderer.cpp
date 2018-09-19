@@ -132,7 +132,7 @@ void InstancingRenderer::draw(SpritesBatch* spritesBatch)
     spritesBatch->draw(this);
 }
 
-bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
+bool InstancingRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     size_t spritesVertexBufferSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
 
@@ -194,9 +194,10 @@ bool InstancingRenderer::recordPrimaryCommandBuffer(uint32_t imageIndex)
 
 bool InstancingRenderer::init()
 {
-    m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
-                            m_targetWindow->getSwapchainExtent().height});
+    //m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
+      //                      m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(DEPTH_SCALING_FACTOR);
+    m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
 
     m_spritesVbos = std::vector<DynamicVBO<InstanciedSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedSpriteDatum>(1024));
 
