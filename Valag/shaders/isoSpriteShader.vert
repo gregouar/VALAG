@@ -50,7 +50,6 @@ void main()
     spriteViewCenter = vec4(spriteViewCenter.xyz/spriteViewCenter.w,1.0);
     spriteViewCenter.z = inPos.z;
 
-    //I should maybe change to rotate around textureCenter
     float c = cos(inRotation);
     float s = sin(inRotation);
 

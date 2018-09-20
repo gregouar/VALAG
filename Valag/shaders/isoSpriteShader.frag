@@ -21,7 +21,8 @@ layout(location = 2) out vec4 outRmt;
 void main()
 {
     outAlbedo = fragColor * texture(sampler2DArray(textures[int(fragAlbedoTexId.x)], samp), vec3(fragTexCoord,fragAlbedoTexId.y));
-    if(outAlbedo.a != 1.0f)
+
+    if(outAlbedo.a < .99f)
         discard;
 
     vec3 height = texture(sampler2DArray(textures[int(fragHeightTexId.x)], samp), vec3(fragTexCoord,fragHeightTexId.y)).xyz;
@@ -30,5 +31,9 @@ void main()
     outRmt    = vec4(texture(sampler2DArray(textures[int(fragRmtTexId.x)], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
 
     gl_FragDepth = gl_FragCoord.z + ( (height.x + height.y + height.z) * heightFactor)* 0.33333333;
+
+    //if(outAlbedo.a < .98f)
+        //gl_FragDepth = 0.000000001;
+        //discard;
 }
 

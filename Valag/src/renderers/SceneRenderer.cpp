@@ -103,7 +103,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT ;
+    beginInfo.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT ;
 
     if (vkBeginCommandBuffer(m_primaryCmb[imageIndex], &beginInfo) != VK_SUCCESS)
     {
@@ -210,7 +210,7 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT  ;
+    beginInfo.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT  ;
 
     if (vkBeginCommandBuffer(m_ambientLightingCmb[imageIndex], &beginInfo) != VK_SUCCESS)
     {
@@ -643,7 +643,7 @@ bool SceneRenderer::createDeferredRenderPass()
     dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dstAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     ///Maybe I need dependency to read/write to depth buffer
@@ -652,7 +652,7 @@ bool SceneRenderer::createDeferredRenderPass()
     dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].srcAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -765,7 +765,7 @@ bool SceneRenderer::createDeferredPipeline()
 
     m_deferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    m_deferredPipeline.setWriteMask(VK_COLOR_COMPONENT_R_BIT, 1);
+    //m_deferredPipeline.setWriteMask(VK_COLOR_COMPONENT_R_BIT, 1);
 
     return m_deferredPipeline.init(m_deferredRenderPass, 0, 3);
 }
