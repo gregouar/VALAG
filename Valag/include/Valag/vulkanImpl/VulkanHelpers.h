@@ -24,6 +24,7 @@ struct VFramebufferAttachment
     VImage          image;
     VkImageView     view;
     VkFormat        format;
+    VkExtent2D      extent;
 };
 
 class VulkanHelpers
@@ -59,6 +60,9 @@ public:
     static void destroyAttachment(VFramebufferAttachment attachment);
 
     static VkShaderModule createShaderModule(const std::vector<char>& code);
+
+
+    static void takeScreenshot(const VFramebufferAttachment &source, const std::string &filepath);
 
 };
 

@@ -175,6 +175,9 @@ void VApp::loop()
         Profiler::pushClock("Display");
         m_renderWindow.display();
         Profiler::popClock();
+
+        if(m_eventsManager.keyPressed(GLFW_KEY_P))
+            VulkanHelpers::takeScreenshot(m_renderWindow.getSwapchainAttachments()[m_renderWindow.getCurrentFrameIndex()], "../screenshots/screen.jpg");
     }
 
     VInstance::waitDeviceIdle();

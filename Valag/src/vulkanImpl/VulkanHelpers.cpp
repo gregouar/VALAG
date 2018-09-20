@@ -5,6 +5,12 @@
 
 #include "Valag/vulkanImpl/VMemoryAllocator.h"
 
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+
 namespace vlg
 {
 
@@ -318,21 +324,23 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkIma
 bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment)
 {
     VkImageAspectFlags aspectMask = 0;
-   // VkImageLayout imageLayout;
+    VkImageLayout imageLayout;
 
     attachment.format = format;
+    attachment.extent.width = width;
+    attachment.extent.height = height;
 
     if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
     {
         aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-       // imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     }
     if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
     {
         aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         if(hasStencilComponent(format))
             aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-       // imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     }
 
     if(aspectMask == 0)
@@ -344,8 +352,7 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
 
     attachment.view = VulkanHelpers::createImageView(attachment.image.vkImage, format, aspectMask, 1);
 
-    /// I don't need it since it will be done as subpass
-    //VulkanHelpers::transitionImageLayout(attachment.image.vkImage, 0, format, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
+    VulkanHelpers::transitionImageLayout(attachment.image.vkImage, 0, format, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
     return (true);
 }
@@ -371,5 +378,118 @@ VkShaderModule VulkanHelpers::createShaderModule(const std::vector<char>& code)
     return shaderModule;
 }
 
+void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const std::string &filepath)
+{
+    int width = source.extent.width;
+    int height = source.extent.height;
+
+    VImage dstImage;
+    VulkanHelpers::createImage(width, height, 1, VK_FORMAT_R8G8B8A8_UNORM,
+                                 VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, dstImage);
+
+    VkCommandBuffer copyCmb = VInstance::instance()->beginSingleTimeCommands(COMMANDPOOL_SHORTLIVED);
+
+    VkImageMemoryBarrier imageMemoryBarrier = {};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+    imageMemoryBarrier.image = dstImage.vkImage;
+    imageMemoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.srcAccessMask        = 0;
+    imageMemoryBarrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(copyCmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier );
+
+    imageMemoryBarrier.image = source.image.vkImage;
+    imageMemoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.srcAccessMask        = VK_ACCESS_MEMORY_READ_BIT;
+    imageMemoryBarrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
+    vkCmdPipelineBarrier(copyCmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier );
+
+
+   /** VkOffset3D blitSize;
+    blitSize.x = source.extent.width;
+    blitSize.y = source.extent.height;
+    blitSize.z = 1;
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
+
+    // Issue the blit command
+    vkCmdBlitImage(
+        copyCmb,
+        source.image.vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        dstImage.vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &imageBlitRegion, VK_FILTER_NEAREST);**/
+
+    VkImageCopy imageCopyRegion{};
+    imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageCopyRegion.srcSubresource.layerCount = 1;
+    imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageCopyRegion.dstSubresource.layerCount = 1;
+    imageCopyRegion.extent.width = width;
+    imageCopyRegion.extent.height = height;
+    imageCopyRegion.extent.depth = 1;
+
+    // Issue the copy command
+    vkCmdCopyImage(copyCmb,
+            source.image.vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            dstImage.vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,&imageCopyRegion);
+
+
+    imageMemoryBarrier.image = dstImage.vkImage;
+    imageMemoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.srcAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imageMemoryBarrier.newLayout            = VK_IMAGE_LAYOUT_GENERAL;
+    imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstAccessMask        = VK_ACCESS_MEMORY_READ_BIT;
+    vkCmdPipelineBarrier(copyCmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier );
+
+    imageMemoryBarrier.image = source.image.vkImage;
+    imageMemoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
+    imageMemoryBarrier.newLayout            = VK_IMAGE_LAYOUT_GENERAL; ///VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstAccessMask        = VK_ACCESS_MEMORY_READ_BIT;
+    vkCmdPipelineBarrier(copyCmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier );
+
+    VInstance::instance()->endSingleTimeCommands(copyCmb);
+
+
+    VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+    VkSubresourceLayout subResourceLayout;
+    vkGetImageSubresourceLayout(VInstance::device(), dstImage.vkImage, &subResource, &subResourceLayout);
+
+    // Map image memory so we can start copying from it
+    const char* data;
+    vkMapMemory(VInstance::device(), dstImage.memory.vkMemory, dstImage.memory.offset, dstImage.memory.memRequirements.size, 0, (void**)&data);
+    data += subResourceLayout.offset;
+
+    std::cout<<filepath.c_str()<<std::endl;
+    //stbi_write_png(filepath.c_str(), width, height, 4, data, 0);
+    stbi_write_jpg(filepath.c_str(), width, height, 4, data, 100);
+    std::cout<<"Done!"<<std::endl;
+
+    vkUnmapMemory(VInstance::device(), dstImage.memory.vkMemory);
+    VulkanHelpers::destroyImage(dstImage);
+}
 
 }

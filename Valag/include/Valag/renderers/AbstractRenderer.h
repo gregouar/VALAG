@@ -50,7 +50,6 @@ class AbstractRenderer
         VkDescriptorPool                m_descriptorPool;
 
         std::vector<VkFramebuffer>      m_framebuffers;
-        std::vector<VkExtent2D>         m_swapchainExtents; //Could be needed if I implement resizing
 
         size_t                          m_curFrameIndex;
         std::vector<VkCommandBuffer>    m_primaryCmb;

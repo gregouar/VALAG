@@ -5,7 +5,7 @@ layout(binding = 0, set = 1) uniform sampler samp;
 layout(binding = 1, set = 1) uniform texture2DArray textures[128];
 
 layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec4 fragRmt;
+layout(location = 1) in vec3 fragRmt;
 layout(location = 2) in vec2 fragTexCoord;
 layout(location = 3) in vec2 fragAlbedoTexId;
 layout(location = 4) in vec2 fragHeightTexId;
@@ -27,7 +27,7 @@ void main()
     vec3 height = texture(sampler2DArray(textures[int(fragHeightTexId.x)], samp), vec3(fragTexCoord,fragHeightTexId.y)).xyz;
     //outHeight = (height.x + height.y + height.z);
     outNormal = texture(sampler2DArray(textures[int(fragNormalTexId.x)], samp), vec3(fragTexCoord,fragNormalTexId.y));
-    outRmt    = texture(sampler2DArray(textures[int(fragRmtTexId.x)], samp), vec3(fragTexCoord,fragRmtTexId.y))  * fragRmt;
+    outRmt    = vec4(texture(sampler2DArray(textures[int(fragRmtTexId.x)], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
 
     gl_FragDepth = gl_FragCoord.z + ( (height.x + height.y + height.z) * heightFactor)* 0.33333333;
 }

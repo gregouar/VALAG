@@ -131,7 +131,8 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
 IsoSpriteEntity::IsoSpriteEntity() :
     m_spriteModel(nullptr),
     m_rotation(0.0f),
-    m_color(1.0,1.0,1.0,1.0)
+    m_color(1.0,1.0,1.0,1.0),
+    m_rmt(1.0,1.0,1.0)
 {
     //ctor
 }

@@ -14,7 +14,7 @@ layout(location = 1) in float inRotation;
 layout(location = 2) in vec3 inSize;
 layout(location = 3) in vec2 inCenter;
 layout(location = 4) in vec4 inColor;
-layout(location = 5) in vec4 inRmt;
+layout(location = 5) in vec3 inRmt;
 layout(location = 6) in vec2 inTexCoord;
 layout(location = 7) in vec2 inTexExtent;
 layout(location = 8) in vec2 inAlbedoTexId;
@@ -23,7 +23,7 @@ layout(location = 10) in vec2 inNormalTexId;
 layout(location = 11) in vec2 inRmtTexId;
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec4 fragRmt;
+layout(location = 1) out vec3 fragRmt;
 layout(location = 2) out vec2 fragTexCoord;
 layout(location = 3) out vec2 fragAlbedoTexId;
 layout(location = 4) out vec2 fragHeightTexId;

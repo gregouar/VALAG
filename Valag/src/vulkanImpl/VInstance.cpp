@@ -389,6 +389,7 @@ bool VInstance::createLogicalDevice()
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.independentBlend  = VK_TRUE; ///Do I really need it ?
 
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -399,7 +400,8 @@ bool VInstance::createLogicalDevice()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(const_deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = const_deviceExtensions.data();
 
-    if (const_enableValidationLayers) {
+    if (const_enableValidationLayers)
+    {
         createInfo.enabledLayerCount = static_cast<uint32_t>(const_validationLayers.size());
         createInfo.ppEnabledLayerNames = const_validationLayers.data();
     } else {
@@ -426,6 +428,7 @@ bool VInstance::createCommandPools()
     {
         poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily; // Optional
 
+        ///I could add a command pool for never resetted cmbs
         switch(i)
         {
             case COMMANDPOOL_DEFAULT:

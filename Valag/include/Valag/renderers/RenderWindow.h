@@ -37,8 +37,10 @@ class RenderWindow
         size_t      getCurrentFrameIndex();
         VkExtent2D  getSwapchainExtent();
         VkFormat    getSwapchainImageFormat();
-        const std::vector<VkImageView> &getSwapchainImageViews();
-        const std::vector<VkImageView> &getDepthStencilImageViews();
+        const std::vector<VFramebufferAttachment> &getSwapchainAttachments();
+        const std::vector<VFramebufferAttachment> &getSwapchainDepthAttachments();
+        /*const std::vector<VkImageView> &getSwapchainImageViews();
+        const std::vector<VkImageView> &getDepthStencilImageViews();*/
 
         AbstractRenderer* getRenderer(RendererName renderer);
 
@@ -56,8 +58,8 @@ class RenderWindow
         VkPresentModeKHR    chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
         VkExtent2D          chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
         bool                createSwapchain();
-        bool                createDepthStencil();
-        bool                createImageViews();
+        //bool                createDepthStencil();
+        //bool                createImageViews();
         bool                createSemaphoresAndFences();
 
         VkSurfaceKHR &getSurface();
@@ -68,17 +70,18 @@ class RenderWindow
         GLFWwindow         *m_window;
         VkSurfaceKHR        m_surface;
 
-        VkSwapchainKHR              m_swapchain;
-        std::vector<VkImage>        m_swapchainImages;
-        std::vector<VkImageView>    m_swapchainImageViews;
-        VkFormat    m_swapchainImageFormat;
-        VkExtent2D  m_swapchainExtent;
+        VkSwapchainKHR                       m_swapchain;
+        std::vector<VFramebufferAttachment>  m_swapchainAttachments;
+        /*std::vector<VkImage>        m_swapchainImages;
+        std::vector<VkImageView>    m_swapchainImageViews;*/
+        /*VkFormat    m_swapchainImageFormat;
+        VkExtent2D  m_swapchainExtent;*/
 
         ///Maybe I should turn this into FramebufferAttachment
-        std::vector<VImage>         m_depthStencilImages;
-        //std::vector<VkImage>        m_depthStencilImages;
-        //std::vector<VkDeviceMemory> m_depthStencilImagesMemory;
-        std::vector<VkImageView>    m_depthStencilImagesViews;
+        std::vector<VFramebufferAttachment> m_depthStencilAttachments;
+        /*std::vector<VImage>         m_depthStencilImages;
+        std::vector<VkImageView>    m_depthStencilImagesViews;*/
+
 
         size_t      m_framesCount;
         uint32_t    m_curImageIndex;

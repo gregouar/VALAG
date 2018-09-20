@@ -48,7 +48,7 @@ bool RenderWindow::init()
         return (false);
     }
 
-    if(!this->createDepthStencil())
+    /*if(!this->createDepthStencil())
     {
         Logger::error("Cannot create depth stencil");
         return (false);
@@ -58,7 +58,7 @@ bool RenderWindow::init()
     {
         Logger::error("Cannot create image views");
         return (false);
-    }
+    }*/
 
     if(!this->createSemaphoresAndFences())
     {
@@ -100,7 +100,7 @@ size_t RenderWindow::getFramesCount()
 
 size_t RenderWindow::getSwapchainSize()
 {
-    return m_swapchainImages.size();
+    return m_swapchainAttachments.size();
 }
 
 size_t RenderWindow::getCurrentFrameIndex()
@@ -110,23 +110,28 @@ size_t RenderWindow::getCurrentFrameIndex()
 
 VkExtent2D RenderWindow::getSwapchainExtent()
 {
-    return m_swapchainExtent;
+    return m_swapchainAttachments[0].extent;
 }
 
 VkFormat RenderWindow::getSwapchainImageFormat()
 {
-    return m_swapchainImageFormat;
+    return m_swapchainAttachments[0].format;
 }
 
-const std::vector<VkImageView> &RenderWindow::getSwapchainImageViews()
+const std::vector<VFramebufferAttachment> &RenderWindow::getSwapchainAttachments()
 {
-    return m_swapchainImageViews;
+    return m_swapchainAttachments;
 }
 
-const std::vector<VkImageView> &RenderWindow::getDepthStencilImageViews()
+const std::vector<VFramebufferAttachment> &RenderWindow::getSwapchainDepthAttachments()
+{
+    return m_depthStencilAttachments;
+}
+
+/*const std::vector<VkImageView> &RenderWindow::getDepthStencilImageViews()
 {
     return m_depthStencilImagesViews;
-}
+}*/
 
 AbstractRenderer *RenderWindow::getRenderer(RendererName renderer)
 {
@@ -167,11 +172,14 @@ void RenderWindow::submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBu
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
     //VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_curFrameIndex]};
+    std::vector<VkPipelineStageFlags> waitStages(waitSemaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
     waitSemaphores.push_back(m_imageAvailableSemaphore[m_curFrameIndex]);
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
     submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data();
-    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
     submitInfo.pCommandBuffers = commandBuffers.data();
 
@@ -338,7 +346,7 @@ bool RenderWindow::createSwapchain()
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
-    m_swapchainExtent = chooseSwapExtent(swapchainSupport.capabilities);
+    VkExtent2D swapchainExtent = chooseSwapExtent(swapchainSupport.capabilities);
 
     uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
     if (swapchainSupport.capabilities.maxImageCount > 0
@@ -352,9 +360,9 @@ bool RenderWindow::createSwapchain()
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = m_swapchainExtent;
+    createInfo.imageExtent = swapchainExtent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; /// Use VK_IMAGE_USAGE_TRANSFER_DST_BIT  for postfx
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /// Use VK_IMAGE_USAGE_TRANSFER_DST_BIT  for postfx
 
     QueueFamilyIndices queueFamilyIndices = VInstance::instance()->getQueueFamilyIndices();
     uint32_t queueFamilyIndicesArray[] = {(uint32_t) queueFamilyIndices.graphicsFamily,
@@ -381,25 +389,41 @@ bool RenderWindow::createSwapchain()
         return (false);
 
     imageCount = 0;
+    std::vector<VkImage> tempSwapchainImages;
     vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, NULL);
-    m_swapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, m_swapchainImages.data());
+    tempSwapchainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, tempSwapchainImages.data());
 
-    m_swapchainImageFormat = surfaceFormat.format;
+    m_swapchainAttachments.resize(imageCount);
+    m_depthStencilAttachments.resize(imageCount);
+
+    for(size_t i = 0 ; i < tempSwapchainImages.size() ; ++i)
+    {
+        m_swapchainAttachments[i].extent = swapchainExtent;
+        m_swapchainAttachments[i].format = surfaceFormat.format;
+        m_swapchainAttachments[i].image.vkImage  = tempSwapchainImages[i];
+        m_swapchainAttachments[i].image.memory  = {};
+        m_swapchainAttachments[i].view =
+                VulkanHelpers::createImageView(m_swapchainAttachments[i].image.vkImage,surfaceFormat.format,
+                                               VK_IMAGE_ASPECT_COLOR_BIT,1);
+
+        VulkanHelpers::createAttachment(swapchainExtent.width, swapchainExtent.height, VK_FORMAT_D24_UNORM_S8_UINT,
+                                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_depthStencilAttachments[i]);
+    }
+
+    //m_swapchainImageFormat = surfaceFormat.format;
 
     return (true);
 }
 
-bool RenderWindow::createDepthStencil()
+/*bool RenderWindow::createDepthStencil()
 {
     m_depthStencilImages.resize(m_swapchainImages.size());
     for (size_t i = 0; i < m_swapchainImages.size(); i++)
         if(!VulkanHelpers::createImage(m_swapchainExtent.width, m_swapchainExtent.height, 1, VK_FORMAT_D24_UNORM_S8_UINT,
                                     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                    m_depthStencilImages[i]/*, m_depthStencilImagesMemory[i]*/))
+                                    m_depthStencilImages[i]))
             return (false);
-
-   /// for(size_t i = 0 ; i < m_swapchainImages.size() ; ++i) WHAT THE BUG ?
 
     return (true);
 }
@@ -419,28 +443,10 @@ bool RenderWindow::createImageViews()
 
         VulkanHelpers::transitionImageLayout(m_depthStencilImages[i].vkImage,0, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-        /*VkImageViewCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = m_swapchainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;,
-        createInfo.format = m_swapchainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(VInstance::device(), &createInfo, nullptr, &m_swapchainImageViews[i]) != VK_SUCCESS)
-            return (false);*/
     }
 
     return (true);
-}
+}*/
 
 bool RenderWindow::createSemaphoresAndFences()
 {
@@ -488,25 +494,21 @@ void RenderWindow::destroy()
         vkDestroySemaphore(device, semaphore, nullptr);
     m_finishedRenderingSemaphores.clear();
 
-    for (auto imageView : m_depthStencilImagesViews)
+    /*for (auto imageView : m_depthStencilImagesViews)
         vkDestroyImageView(device, imageView, nullptr);
     m_depthStencilImagesViews.clear();
 
-    /*for(auto image : m_depthStencilImages)
-        vkDestroyImage(device, image, nullptr);
-    m_depthStencilImages.clear();
-
-    for(auto memory : m_depthStencilImagesMemory)
-        vkFreeMemory(device, memory, nullptr);
-    m_depthStencilImagesMemory.clear();*/
-
     for(auto image : m_depthStencilImages)
         VulkanHelpers::destroyImage(image);
-    m_depthStencilImages.clear();
+    m_depthStencilImages.clear();*/
 
-    for (auto imageView : m_swapchainImageViews)
-        vkDestroyImageView(device, imageView, nullptr);
-    m_swapchainImageViews.clear();
+    for(auto attachment : m_depthStencilAttachments)
+        VulkanHelpers::destroyAttachment(attachment);
+    m_depthStencilAttachments.clear();
+
+    for (auto attachment : m_swapchainAttachments)
+        vkDestroyImageView(device, attachment.view, nullptr);
+    m_swapchainAttachments.clear();
 
     if(m_swapchain != VK_NULL_HANDLE)
         vkDestroySwapchainKHR(device, m_swapchain, nullptr);

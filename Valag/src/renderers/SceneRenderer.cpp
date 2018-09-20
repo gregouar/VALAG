@@ -4,6 +4,8 @@
 #include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/utils/Logger.h"
 
+#include <sstream>
+
 namespace vlg
 {
 
@@ -51,6 +53,10 @@ void SceneRenderer::updateCmb(uint32_t imageIndex)
 {
     this->recordDefferedCmb(imageIndex);
 
+    /*std::ostringstream buf;
+    buf<<"../screenshots/deferredAlbedo"<<imageIndex<<".jpg";
+    VulkanHelpers::takeScreenshot(m_albedoAttachments[imageIndex], buf.str());*/
+
     this->submitToGraphicsQueue(imageIndex);
 
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
@@ -69,19 +75,13 @@ VkSemaphore SceneRenderer::getFinalPassWaitSemaphore(size_t frameIndex)
 
 void SceneRenderer::submitToGraphicsQueue(size_t imageIndex)
 {
-    std::vector<VkSubmitInfo> submitInfos;
-
-    submitInfos.resize(2);
+    std::vector<VkSubmitInfo> submitInfos(2,VkSubmitInfo{});
 
     for(size_t i = 0 ; i < submitInfos.size() ; ++i)
-    {
-        submitInfos[i] = {};
         submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    }
 
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT /*VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT*/};
 
-    submitInfos[0].pWaitDstStageMask = waitStages;
     submitInfos[0].signalSemaphoreCount = 1;
     submitInfos[0].pSignalSemaphores = &m_deferredToAmbientLightingSemaphore[m_curFrameIndex];
     submitInfos[0].commandBufferCount = 1;
@@ -95,7 +95,6 @@ void SceneRenderer::submitToGraphicsQueue(size_t imageIndex)
     submitInfos[1].pSignalSemaphores = &m_ambientLightingToToneMappingSemaphore[m_curFrameIndex];
     submitInfos[1].commandBufferCount = 1;
     submitInfos[1].pCommandBuffers = &m_ambientLightingCmb[imageIndex];
-
 
     VInstance::submitToGraphicsQueue(submitInfos, 0);
 }
@@ -376,7 +375,6 @@ bool SceneRenderer::createDescriptorSets()
     allocInfo.descriptorSetCount = static_cast<uint32_t>(imagesCount);
     allocInfo.pSetLayouts = layouts.data();
 
-
     m_deferredDescriptorSets.resize(imagesCount);
     if (vkAllocateDescriptorSets(device, &allocInfo,m_deferredDescriptorSets.data()) != VK_SUCCESS)
         return (false);
@@ -479,11 +477,16 @@ bool SceneRenderer::createAttachments()
     for(size_t i = 0 ; i < imagesCount ; ++i)
     {
         if(!
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_albedoAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_heightAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[i])
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, m_albedoAttachments[i]) &
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT,
+                                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_heightAttachments[i]) &
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[i]) &
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[i]) &
+            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[i])
         )
             return (false);
 
@@ -761,6 +764,8 @@ bool SceneRenderer::createDeferredPipeline()
     m_deferredPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
 
     m_deferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    m_deferredPipeline.setWriteMask(VK_COLOR_COMPONENT_R_BIT, 1);
 
     return m_deferredPipeline.init(m_deferredRenderPass, 0, 3);
 }

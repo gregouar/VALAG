@@ -80,7 +80,7 @@ bool AbstractRenderer::createRenderPass()
     VkAttachmentDescription depthAttachment = {};
     depthAttachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;//VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -145,28 +145,30 @@ bool AbstractRenderer::createFramebuffers()
     if(m_renderPass == VK_NULL_HANDLE)
         return (true);
 
-    auto swapchainImageViews = m_targetWindow->getSwapchainImageViews();
-    auto swapchainDepthImagesView = m_targetWindow->getDepthStencilImageViews();
+    /*auto swapchainImageViews = m_targetWindow->getSwapchainImageViews();
+    auto swapchainDepthImagesView = m_targetWindow->getDepthStencilImageViews();*/
+    auto swapchainAttachments = m_targetWindow->getSwapchainAttachments();
+    auto swapchainDepthAttachments = m_targetWindow->getSwapchainDepthAttachments();
 
-    m_framebuffers.resize(swapchainImageViews.size());
-    m_swapchainExtents.resize(swapchainImageViews.size());
+    m_framebuffers.resize(swapchainAttachments.size());
+    //m_swapchainExtents.resize(swapchainImageViews.size());
 
-    for (size_t i = 0; i < swapchainImageViews.size(); ++i)
+    for (size_t i = 0; i < m_framebuffers.size(); ++i)
     {
         std::array<VkImageView, 2> attachments = {
-            swapchainImageViews[i],
-            swapchainDepthImagesView[i]
+            swapchainAttachments[i].view,
+            swapchainDepthAttachments[i].view
         };
 
-        m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
+        //m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = m_renderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_swapchainExtents[i].width;
-        framebufferInfo.height = m_swapchainExtents[i].height;
+        framebufferInfo.width = swapchainAttachments[i].extent.width;//m_swapchainExtents[i].width;
+        framebufferInfo.height = swapchainAttachments[i].extent.height;//m_swapchainExtents[i].height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
