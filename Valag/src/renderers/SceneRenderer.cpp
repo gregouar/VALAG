@@ -17,7 +17,8 @@ const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
 const char *SceneRenderer::TONEMAPPING_FRAGSHADERFILE = "toneMapping.frag.spv";
 
 
-SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) : AbstractRenderer(targetWindow, name, order)
+SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
+    AbstractRenderer(targetWindow, name, order)
 {
     this->init();
 }
@@ -27,243 +28,82 @@ SceneRenderer::~SceneRenderer()
     this->cleanup();
 }
 
-void SceneRenderer::update(size_t frameIndex)
-{
-    //IsoSpriteEntity::updateRendering(frameIndex);
-    AbstractRenderer::update(frameIndex);
-}
-
-/*void SceneRenderer::draw(Scene* scene)
-{
-   // scene->getRootNode()->searchInsideForEntities();
-}
-
-void SceneRenderer::draw(IsoSpriteEntity* sprite)
-{
-    InstanciedIsoSpriteDatum spriteDatum = sprite->getIsoSpriteDatum();
-    m_spritesVbos[m_curFrameIndex].push_back(spriteDatum);
-}*/
-
 void SceneRenderer::addToSpritesVbo(const InstanciedIsoSpriteDatum &datum)
 {
     m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
-void SceneRenderer::updateCmb(uint32_t imageIndex)
+bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 {
-    this->recordDefferedCmb(imageIndex);
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_toneMappingPass, imageIndex, m_curFrameIndex);
 
-    /*std::ostringstream buf;
-    buf<<"../screenshots/deferredAlbedo"<<imageIndex<<".jpg";
-    VulkanHelpers::takeScreenshot(m_albedoAttachments[imageIndex], buf.str());*/
+        m_toneMappingPipeline.bind(cmb);
+        vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
+                                0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
+        vkCmdDraw(cmb, 3, 1, 0, 0);
 
-    this->submitToGraphicsQueue(imageIndex);
-
-    m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
+    return m_renderGraph.endRecording(m_toneMappingPass);
 }
 
-
-VkCommandBuffer SceneRenderer::getCommandBuffer(size_t frameIndex , size_t imageIndex)
-{
-    return m_primaryCmb[imageIndex];
-}
-
-VkSemaphore SceneRenderer::getFinalPassWaitSemaphore(size_t frameIndex)
-{
-    return m_ambientLightingToToneMappingSemaphore[frameIndex];
-}
-
-void SceneRenderer::submitToGraphicsQueue(size_t imageIndex)
-{
-    std::vector<VkSubmitInfo> submitInfos(2,VkSubmitInfo{});
-
-    for(size_t i = 0 ; i < submitInfos.size() ; ++i)
-        submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT /*VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT*/};
-
-    submitInfos[0].signalSemaphoreCount = 1;
-    submitInfos[0].pSignalSemaphores = &m_deferredToAmbientLightingSemaphore[m_curFrameIndex];
-    submitInfos[0].commandBufferCount = 1;
-    submitInfos[0].pCommandBuffers = &m_deferredCmb[m_curFrameIndex];
-
-    VkSemaphore waitSemaphores[] = {m_deferredToAmbientLightingSemaphore[m_curFrameIndex]};
-    submitInfos[1].pWaitDstStageMask = waitStages;
-    submitInfos[1].waitSemaphoreCount = 1;
-    submitInfos[1].pWaitSemaphores = waitSemaphores;
-    submitInfos[1].signalSemaphoreCount = 1;
-    submitInfos[1].pSignalSemaphores = &m_ambientLightingToToneMappingSemaphore[m_curFrameIndex];
-    submitInfos[1].commandBufferCount = 1;
-    submitInfos[1].pCommandBuffers = &m_ambientLightingCmb[imageIndex];
-
-    VInstance::submitToGraphicsQueue(submitInfos, 0);
-}
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT ;
-
-    if (vkBeginCommandBuffer(m_primaryCmb[imageIndex], &beginInfo) != VK_SUCCESS)
-    {
-        Logger::error("Failed to begin recording command buffer");
-        return (false);
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_framebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
-
-    std::array<VkClearValue, 2> clearValues = {};
-    if(m_order == Renderer_First || m_order == Renderer_Unique)
-    {
-        clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-        clearValues[1].depthStencil = {0.0f, 0};
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-    }
-
-    vkCmdBeginRenderPass(m_primaryCmb[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        m_toneMappingPipeline.bind(m_primaryCmb[imageIndex]);
-        vkCmdBindDescriptorSets(m_primaryCmb[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
-                                0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
-        vkCmdDraw(m_primaryCmb[imageIndex], 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(m_primaryCmb[imageIndex]);
-
-    if (vkEndCommandBuffer(m_primaryCmb[imageIndex]) != VK_SUCCESS)
-    {
-        Logger::error("Failed to record primary command buffer");
-        return (false);
-    }
-
-    return (true);
-}
-
-
-bool SceneRenderer::recordDefferedCmb(uint32_t imageIndex)
-{
     size_t spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
 
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_deferredPass, imageIndex, m_curFrameIndex);
 
-    if (vkBeginCommandBuffer(m_deferredCmb[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
-    {
-        Logger::error("Failed to begin recording command buffer");
-        return (false);
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_deferredRenderPass;
-    renderPassInfo.framebuffer = m_deferredFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
-
-    std::array<VkClearValue, 4> clearValues = {};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
-    clearValues[1].depthStencil = {0.0f, 0};
-    clearValues[2].color = {0.0f, 0.0f, 0.0f, 0.0f};
-    clearValues[3].color = {0.0f, 0.0f, 0.0f, 0.0f};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-
-    vkCmdBeginRenderPass(m_deferredCmb[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        m_deferredPipeline.bind(m_deferredCmb[m_curFrameIndex]);
+        m_deferredPipeline.bind(cmb);
 
         VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                             VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
-        vkCmdBindDescriptorSets(m_deferredCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
         if(spritesVboSize != 0)
         {
             VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
-            vkCmdBindVertexBuffers(m_deferredCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
-            vkCmdDraw(m_deferredCmb[m_curFrameIndex], 4, spritesVboSize, 0, 0);
+            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
 
-    vkCmdEndRenderPass(m_deferredCmb[m_curFrameIndex]);
-
-    if (vkEndCommandBuffer(m_deferredCmb[m_curFrameIndex]) != VK_SUCCESS)
-    {
-        Logger::error("Failed to record primary command buffer");
-        return (false);
-    }
-
-    return (true);
-
+    return m_renderGraph.endRecording(m_deferredPass);
 }
 
 
 bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT  ;
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_ambientLightingPass, imageIndex, m_curFrameIndex);
 
-    if (vkBeginCommandBuffer(m_ambientLightingCmb[imageIndex], &beginInfo) != VK_SUCCESS)
-    {
-        Logger::error("Failed to begin recording command buffer");
-        return (false);
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_ambientLightingRenderPass;
-    renderPassInfo.framebuffer = m_ambientLightingFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
-
-    std::array<VkClearValue, 1> clearValues = {};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    vkCmdBeginRenderPass(m_ambientLightingCmb[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        m_ambientLightingPipeline.bind(m_ambientLightingCmb[imageIndex]);
-        vkCmdBindDescriptorSets(m_ambientLightingCmb[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
+        m_ambientLightingPipeline.bind(cmb);
+        vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
                                 0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
-        vkCmdDraw(m_ambientLightingCmb[imageIndex], 3, 1, 0, 0);
+        vkCmdDraw(cmb, 3, 1, 0, 0);
 
-    vkCmdEndRenderPass(m_ambientLightingCmb[imageIndex]);
-
-    if (vkEndCommandBuffer(m_ambientLightingCmb[imageIndex]) != VK_SUCCESS)
-    {
-        Logger::error("Failed to record primary command buffer");
-        return (false);
-    }
-
-    return (true);
+    return m_renderGraph.endRecording(m_ambientLightingPass);
 }
 
 bool SceneRenderer::init()
 {
-     //IsoSpriteEntity::initRendering(m_targetWindow->getFramesCount());
-
-    //m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
-      //                      m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(1024*1024);
-
-    m_spritesVbos = std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedIsoSpriteDatum>(1024));
-
-   // m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
     m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
-    this->createAttachments();
+    m_spritesVbos.resize(m_targetWindow->getFramesCount(),
+                         DynamicVBO<InstanciedIsoSpriteDatum>(1024));
 
-    return AbstractRenderer::init();
+    if(!this->createAttachments())
+        return (false);
+
+    if(!AbstractRenderer::init())
+        return (false);
+
+    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    {
+        this->recordAmbientLightingCmb(i);
+        this->recordToneMappingCmb(i);
+    }
+
+    return (true);
 }
 
 bool SceneRenderer::createRenderPass()
@@ -272,11 +112,13 @@ bool SceneRenderer::createRenderPass()
         return (false);
     if(!this->createAmbientLightingRenderPass())
         return (false);
-
-    if(!this->createSemaphores())
+    if(!this->createToneMappingRenderPass())
         return (false);
 
-    return AbstractRenderer::createRenderPass();
+    m_renderGraph.connectRenderPasses(m_deferredPass, m_ambientLightingPass);
+    m_renderGraph.connectRenderPasses(m_ambientLightingPass, m_toneMappingPass);
+
+    return (true);
 }
 
 bool SceneRenderer::createDescriptorSetLayouts()
@@ -331,18 +173,6 @@ bool SceneRenderer::createGraphicsPipeline()
         return (false);
 
     return (true);
-}
-
-
-bool SceneRenderer::createFramebuffers()
-{
-    if(!this->createDeferredFramebuffers())
-        return (false);
-
-    if(!this->createAmbientLightingFramebuffers())
-        return (false);
-
-    return AbstractRenderer::createFramebuffers();
 }
 
 bool SceneRenderer::createDescriptorPool()
@@ -430,38 +260,6 @@ bool SceneRenderer::createDescriptorSets()
     return (true);
 }
 
-bool SceneRenderer::createUBO()
-{
-    return (true);
-}
-
-bool SceneRenderer::createPrimaryCmb()
-{
-    if(!this->createDeferredCmb())
-        return (false);
-    if(!this->createAmbientLightingCmb())
-        return (false);
-
-
-    m_primaryCmb.resize(m_targetWindow->getSwapchainSize());
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_primaryCmb.size());
-
-    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) != VK_SUCCESS)
-        return (false);
-
-    for(size_t i = 0 ; i < m_primaryCmb.size() ; ++i)
-        this->recordPrimaryCmb(i);
-
-    return (true);
-
-    //return AbstractRenderer::createPrimaryCommandBuffers();
-}
-
 bool SceneRenderer::createAttachments()
 {
     size_t imagesCount = m_targetWindow->getSwapchainSize();
@@ -524,218 +322,41 @@ bool SceneRenderer::createAttachments()
     return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_attachmentsSampler) == VK_SUCCESS);
 }
 
-bool SceneRenderer::createDeferredFramebuffers()
-{
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
-
-    m_deferredFramebuffers.resize(imagesCount);
-
-    for (size_t i = 0; i < imagesCount ; ++i)
-    {
-        std::array<VkImageView, 4> attachments = {
-            m_albedoAttachments[i].view,
-            m_heightAttachments[i].view,
-            m_normalAttachments[i].view,
-            m_rmtAttachments[i].view
-        };
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_deferredRenderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_targetWindow->getSwapchainExtent().width;
-        framebufferInfo.height = m_targetWindow->getSwapchainExtent().height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_deferredFramebuffers[i]) != VK_SUCCESS)
-            return (false);
-    }
-
-    return (true);
-}
-
-bool SceneRenderer::createAmbientLightingFramebuffers()
-{
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
-
-    m_ambientLightingFramebuffers.resize(imagesCount);
-
-    for (size_t i = 0; i < imagesCount ; ++i)
-    {
-        std::array<VkImageView, 1> attachments = {
-            m_hdrAttachements[i].view
-        };
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_ambientLightingRenderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_targetWindow->getSwapchainExtent().width;
-        framebufferInfo.height = m_targetWindow->getSwapchainExtent().height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_ambientLightingFramebuffers[i]) != VK_SUCCESS)
-            return (false);
-    }
-
-    return (true);
-}
-
 bool SceneRenderer::createDeferredRenderPass()
 {
-     std::array<VkAttachmentDescription, 4> attachments{};
+    m_deferredPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    {
+        std::vector<VFramebufferAttachment> attachements = {m_albedoAttachments[i],
+                                                            m_heightAttachments[i],
+                                                            m_normalAttachments[i],
+                                                            m_rmtAttachments[i]};
+        m_renderGraph.setAttachments(m_deferredPass, i, attachements);
+    }
 
-    attachments[0].format = m_albedoAttachments[0].format;
-    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    attachments[1].format = m_heightAttachments[0].format;
-    attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[1].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; //VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-
-    attachments[2].format = m_normalAttachments[0].format;
-    attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[2].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    attachments[3].format = m_rmtAttachments[0].format;
-    attachments[3].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[3].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[3].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[3].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[3].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[3].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[3].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    std::array<VkAttachmentReference, 3> colorAttachmentRef{};
-    colorAttachmentRef[0] = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    colorAttachmentRef[1] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    colorAttachmentRef[2] = {3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-    VkAttachmentReference depthAttachmentRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRef.size());
-    subpassDescription.pColorAttachments = colorAttachmentRef.data();
-    subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
-
-    std::array<VkSubpassDependency, 2> dependencies;
-
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    ///Maybe I need dependency to read/write to depth buffer
-
-    dependencies[1].srcSubpass = 0;
-    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount  = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments     = attachments.data();
-    renderPassInfo.subpassCount     = 1;
-    renderPassInfo.pSubpasses       = &subpassDescription;
-    renderPassInfo.dependencyCount  = static_cast<uint32_t>(dependencies.size());
-    renderPassInfo.pDependencies    = dependencies.data();
-
-    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_deferredRenderPass) == VK_SUCCESS);
+    return (true);
 }
 
 bool SceneRenderer::createAmbientLightingRenderPass()
 {
-     std::array<VkAttachmentDescription, 1> attachments{};
+    m_ambientLightingPass = m_renderGraph.addRenderPass(0);
+    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    {
+        std::vector<VFramebufferAttachment> attachements = {m_hdrAttachements[i]};
+        m_renderGraph.setAttachments(m_ambientLightingPass, i, attachements);
+    }
 
-    attachments[0].format = m_hdrAttachements[0].format;
-    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    std::array<VkAttachmentReference, 1> colorAttachmentRef{};
-    colorAttachmentRef[0] = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRef.size());
-    subpassDescription.pColorAttachments = colorAttachmentRef.data();
-
-    std::array<VkSubpassDependency, 2> dependencies;
-
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    dependencies[1].srcSubpass = 0;
-    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount  = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments     = attachments.data();
-    renderPassInfo.subpassCount     = 1;
-    renderPassInfo.pSubpasses       = &subpassDescription;
-    renderPassInfo.dependencyCount  = static_cast<uint32_t>(dependencies.size());
-    renderPassInfo.pDependencies    = dependencies.data();
-
-    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_ambientLightingRenderPass) == VK_SUCCESS);
+    return (true);
 }
 
-bool SceneRenderer::createSemaphores()
+bool SceneRenderer::createToneMappingRenderPass()
 {
-    size_t framesCount = m_targetWindow->getSwapchainSize();
-    VkDevice device = VInstance::device();
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    m_deferredToAmbientLightingSemaphore.resize(framesCount);
-    m_ambientLightingToToneMappingSemaphore.resize(framesCount);
-
-    for(size_t i = 0 ; i < framesCount ; ++i)
+    m_toneMappingPass = m_renderGraph.addRenderPass(0);
+    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
-        if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_deferredToAmbientLightingSemaphore[i]) != VK_SUCCESS)
-            return (false);
-        if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_ambientLightingToToneMappingSemaphore[i]) != VK_SUCCESS)
-            return (false);
+        std::vector<VFramebufferAttachment> attachements = {m_targetWindow->getSwapchainAttachments()[i],
+                                                            m_targetWindow->getSwapchainDepthAttachments()[i]};
+        m_renderGraph.setAttachments(m_toneMappingPass, i, attachements);
     }
 
     return (true);
@@ -758,16 +379,13 @@ bool SceneRenderer::createDeferredPipeline()
     m_deferredPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
     m_deferredPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
-    //m_deferredPipeline.setBlendMode(BlendMode_Alpha);
 
     m_deferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
 
     m_deferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    //m_deferredPipeline.setWriteMask(VK_COLOR_COMPONENT_R_BIT, 1);
-
-    return m_deferredPipeline.init(m_deferredRenderPass, 0, 3);
+    return m_deferredPipeline.init(m_renderGraph.getVkRenderPass(m_deferredPass), 0, 3);
 }
 
 
@@ -784,7 +402,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
 
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
 
-    return m_ambientLightingPipeline.init(m_ambientLightingRenderPass, 0);
+    return m_ambientLightingPipeline.init(m_renderGraph.getVkRenderPass(m_ambientLightingPass), 0);
 }
 
 bool SceneRenderer::createToneMappingPipeline()
@@ -802,39 +420,7 @@ bool SceneRenderer::createToneMappingPipeline()
 
     m_toneMappingPipeline.attachDescriptorSetLayout(m_hdrDescriptorSetLayout);
 
-    return m_toneMappingPipeline.init(m_renderPass, 0);
-}
-
-bool SceneRenderer::createDeferredCmb()
-{
-    m_deferredCmb.resize(m_targetWindow->getFramesCount());
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool(COMMANDPOOL_SHORTLIVED);
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_deferredCmb.size());
-
-    return (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_deferredCmb.data()) == VK_SUCCESS);
-}
-
-bool SceneRenderer::createAmbientLightingCmb()
-{
-    m_ambientLightingCmb.resize(m_targetWindow->getSwapchainSize());
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_ambientLightingCmb.size());
-
-    if(vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_ambientLightingCmb.data()) != VK_SUCCESS)
-        return (false);
-
-    for(size_t i = 0 ; i < m_ambientLightingCmb.size() ; ++i)
-        this->recordAmbientLightingCmb(i);
-
-    return (true);
+    return m_toneMappingPipeline.init(m_renderGraph.getVkRenderPass(m_toneMappingPass), 0);
 }
 
 void SceneRenderer::cleanup()
@@ -865,25 +451,6 @@ void SceneRenderer::cleanup()
         VulkanHelpers::destroyAttachment(attachement);
     m_hdrAttachements.clear();
 
-    for(auto framebuffer : m_deferredFramebuffers)
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    m_deferredFramebuffers.clear();
-
-    for(auto framebuffer : m_ambientLightingFramebuffers)
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    m_deferredFramebuffers.clear();
-
-    for(auto semaphore : m_deferredToAmbientLightingSemaphore)
-        vkDestroySemaphore(device, semaphore, nullptr);
-    m_deferredToAmbientLightingSemaphore.clear();
-
-    for(auto semaphore : m_ambientLightingToToneMappingSemaphore)
-        vkDestroySemaphore(device, semaphore, nullptr);
-    m_ambientLightingToToneMappingSemaphore.clear();
-
-    vkDestroyRenderPass(device, m_deferredRenderPass, nullptr);
-    vkDestroyRenderPass(device, m_ambientLightingRenderPass, nullptr);
-
     vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
 
     vkDestroyDescriptorSetLayout(device, m_deferredDescriptorSetLayout, nullptr);
@@ -894,7 +461,6 @@ void SceneRenderer::cleanup()
     m_toneMappingPipeline.destroy();
 
     AbstractRenderer::cleanup();
-    //IsoSpriteEntity::cleanupRendering();
 }
 
 

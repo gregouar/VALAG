@@ -17,8 +17,8 @@ class VTexture
 
         bool generateTexture(unsigned char* pixels, int texWidth, int texHeight, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
-        size_t m_textureId;
-        size_t m_textureLayer;
+        uint32_t m_textureId;
+        uint32_t m_textureLayer;
 
         VkExtent2D m_extent;
 

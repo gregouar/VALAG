@@ -101,25 +101,25 @@ std::array<VkVertexInputAttributeDescription, 12> InstanciedIsoSpriteDatum::getA
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
-    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, albedo_texId);
     ++i;
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
-    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, height_texId);
     ++i;
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
-    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, normal_texId);
     ++i;
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
-    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(InstanciedIsoSpriteDatum, rmt_texId);
     ++i;
 

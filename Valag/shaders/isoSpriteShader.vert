@@ -17,19 +17,19 @@ layout(location = 4) in vec4 inColor;
 layout(location = 5) in vec3 inRmt;
 layout(location = 6) in vec2 inTexCoord;
 layout(location = 7) in vec2 inTexExtent;
-layout(location = 8) in vec2 inAlbedoTexId;
-layout(location = 9) in vec2 inHeightTexId;
-layout(location = 10) in vec2 inNormalTexId;
-layout(location = 11) in vec2 inRmtTexId;
+layout(location = 8) in uvec2 inAlbedoTexId;
+layout(location = 9) in uvec2 inHeightTexId;
+layout(location = 10) in uvec2 inNormalTexId;
+layout(location = 11) in uvec2 inRmtTexId;
 
-layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec3 fragRmt;
+layout(location = 0) flat out vec4 fragColor;
+layout(location = 1) flat out vec3 fragRmt;
 layout(location = 2) out vec2 fragTexCoord;
-layout(location = 3) out vec2 fragAlbedoTexId;
-layout(location = 4) out vec2 fragHeightTexId;
-layout(location = 5) out vec2 fragNormalTexId;
-layout(location = 6) out vec2 fragRmtTexId;
-layout(location = 7) out float heightFactor;
+layout(location = 3) flat out uvec2 fragAlbedoTexId;
+layout(location = 4) flat out uvec2 fragHeightTexId;
+layout(location = 5) flat out uvec2 fragNormalTexId;
+layout(location = 6) flat out uvec2 fragRmtTexId;
+layout(location = 7) flat out float heightFactor;
 
 
 vec2 vertPos[4] = vec2[](

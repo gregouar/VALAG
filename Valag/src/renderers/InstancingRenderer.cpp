@@ -136,66 +136,29 @@ bool InstancingRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     size_t spritesVertexBufferSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
 
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ;
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_defaultPass, imageIndex, m_curFrameIndex);
 
-    if (vkBeginCommandBuffer(m_primaryCmb[m_curFrameIndex], &beginInfo) != VK_SUCCESS)
-    {
-        Logger::error("Failed to begin recording command buffer");
-        return (false);
-    }
+        if(spritesVertexBufferSize != 0)
+        {
+            m_pipeline.bind(cmb);
 
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_framebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_targetWindow->getSwapchainExtent();
+            VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                                VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
-    std::array<VkClearValue, 2> clearValues = {};
-    if(m_order == Renderer_First || m_order == Renderer_Unique)
-    {
-        clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-        clearValues[1].depthStencil = {0.0f, 0};
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-    }
+            vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
-    vkCmdBeginRenderPass(m_primaryCmb[m_curFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE /*VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS*/);
+            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
+            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
 
-    if(spritesVertexBufferSize != 0)
-    {
-        //vkCmdBindPipeline(m_primaryCmb[m_curFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        m_pipeline.bind(m_primaryCmb[m_curFrameIndex]);
+            vkCmdDraw(cmb, 4, spritesVertexBufferSize, 0, 0);
+        }
 
-        VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
-
-        vkCmdBindDescriptorSets(m_primaryCmb[m_curFrameIndex],VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
-
-        VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
-        vkCmdBindVertexBuffers(m_primaryCmb[m_curFrameIndex], 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
-
-        vkCmdDraw(m_primaryCmb[m_curFrameIndex], 4, spritesVertexBufferSize, 0, 0);
-    }
-
-    vkCmdEndRenderPass(m_primaryCmb[m_curFrameIndex]);
-
-    if (vkEndCommandBuffer(m_primaryCmb[m_curFrameIndex]) != VK_SUCCESS)
-    {
-        Logger::error("Failed to record primary command buffer");
-        return (false);
-    }
-
-    return (true);
+    return m_renderGraph.endRecording(m_defaultPass);
 }
 
 bool InstancingRenderer::init()
 {
-    //m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
-      //                      m_targetWindow->getSwapchainExtent().height});
     m_renderView.setDepthFactor(DEPTH_SCALING_FACTOR);
     m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
 
@@ -233,7 +196,7 @@ bool InstancingRenderer::createGraphicsPipeline()
 
     m_pipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    return m_pipeline.init(m_renderPass, 0);
+    return m_pipeline.init(m_renderGraph.getVkRenderPass(m_defaultPass), 0);
 }
 
 bool InstancingRenderer::createDescriptorPool()
@@ -242,11 +205,6 @@ bool InstancingRenderer::createDescriptorPool()
 }
 
 bool InstancingRenderer::createDescriptorSets()
-{
-    return (true);
-}
-
-bool InstancingRenderer::createUBO()
 {
     return (true);
 }

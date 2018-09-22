@@ -57,24 +57,10 @@ void RenderView::update(size_t frameIndex)
 {
     if(m_needToUpdateBuffers[frameIndex])
     {
-        //ViewUBO viewUbo = {};
-        /**viewUbo.view = glm::translate(glm::mat4(1.0f), glm::vec3(-1,-1,.5));
-        viewUbo.view = glm::scale(viewUbo.view, glm::vec3(2.0f/m_extent.x,
-                                                          2.0f/m_extent.y,
-                                                          1.0f/m_depthFactor));
-        viewUbo.view = glm::translate(viewUbo.view, glm::vec3(m_position.x,m_position.y,0));**/
-
-        /*viewUbo.screenOffset = glm::vec2(-1,-1);
-        viewUbo.screenSizeFactor = glm::vec2(2.0f/m_extent.x, 2.0f/m_extent.y);
-        viewUbo.depthOffsetAndFactor = glm::vec2(.5, 1.0f/m_depthFactor);
-        viewUbo.view = glm::mat4(1.0f);*/
-
         VBuffersAllocator::writeBuffer(m_buffers[frameIndex],&m_viewUbo,sizeof(m_viewUbo));
-
         m_needToUpdateBuffers[frameIndex] = false;
     }
 }
-
 
 void RenderView::setDepthFactor(float depthFactor)
 {
@@ -117,27 +103,6 @@ void RenderView::setZoom(float zoom)
 
 }
 
-
-/**void RenderView::setDepthFactor(float depthFactor)
-{
-    if(m_depthFactor != depthFactor)
-        for(auto b : m_needToUpdateBuffers) b = true;
-    m_depthFactor = depthFactor;
-}
-
-void RenderView::setExtent(glm::vec2 extent)
-{
-    if(m_extent != extent)
-        for(auto b : m_needToUpdateBuffers) b = true;
-    m_extent = extent;
-}
-
-void RenderView::setPosition(glm::vec2 position)
-{
-    if(m_position != position)
-        for(auto b : m_needToUpdateBuffers) b = true;
-    m_position = position;
-}**/
 
 VkDescriptorSetLayout RenderView::getDescriptorSetLayout()
 {

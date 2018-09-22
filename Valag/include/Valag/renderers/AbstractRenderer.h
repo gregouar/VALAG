@@ -3,6 +3,7 @@
 
 #include "Valag/renderers/RenderWindow.h"
 #include "Valag/renderers/RenderView.h"
+#include "Valag/renderers/RenderGraph.h"
 
 namespace vlg
 {
@@ -14,27 +15,22 @@ class AbstractRenderer
         virtual ~AbstractRenderer();
 
         virtual void update(size_t frameIndex);
-        virtual void updateCmb(uint32_t imageIndex);
+        virtual void render(uint32_t imageIndex);
 
         virtual void setView(glm::mat4 view);
 
-        virtual VkCommandBuffer getCommandBuffer(size_t frameIndex, size_t imageIndex);
-        //VkSemaphore     getRenderFinishedSemaphore(size_t frameIndex);
-        virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);
+        virtual std::vector<FullRenderPass*> getFinalPasses();
 
         RendererName    getName();
 
     protected:
         virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts() = 0;
+        virtual bool    initRenderGraph();
         virtual bool    createGraphicsPipeline() = 0;
-        virtual bool    createFramebuffers();
         virtual bool    createRenderView();
-        virtual bool    createUBO() = 0;
         virtual bool    createDescriptorPool() = 0;
         virtual bool    createDescriptorSets() = 0;
-        virtual bool    createPrimaryCmb();
-        //virtual bool    createSemaphores();
 
         virtual bool    init();
         virtual void    cleanup();
@@ -43,23 +39,20 @@ class AbstractRenderer
 
 
     protected:
-        RenderWindow  *m_targetWindow;
-
-        VkRenderPass        m_renderPass;
+        RenderWindow   *m_targetWindow;
+        RenderView      m_renderView;
+        RenderGraph     m_renderGraph;
+        size_t          m_defaultPass;
 
         VkDescriptorPool                m_descriptorPool;
 
-        std::vector<VkFramebuffer>      m_framebuffers;
-
         size_t                          m_curFrameIndex;
-        std::vector<VkCommandBuffer>    m_primaryCmb;
-
-        RenderView  m_renderView;
-
-        RenderereOrder  m_order;
 
     private:
+        RenderereOrder  m_order;
         RendererName    m_name;
+
+        std::vector<FullRenderPass*> m_finalPasses;
 };
 
 }

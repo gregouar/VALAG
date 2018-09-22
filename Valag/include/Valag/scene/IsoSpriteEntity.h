@@ -30,10 +30,10 @@ struct InstanciedIsoSpriteDatum
     glm::vec3 rmt_color;
     glm::vec2 texPos;
     glm::vec2 texExtent;
-    glm::vec2 albedo_texId;
-    glm::vec2 height_texId;
-    glm::vec2 normal_texId;
-    glm::vec2 rmt_texId;
+    glm::uvec2 albedo_texId;
+    glm::uvec2 height_texId;
+    glm::uvec2 normal_texId;
+    glm::uvec2 rmt_texId;
 
     static VkVertexInputBindingDescription getBindingDescription();
     static std::array<VkVertexInputAttributeDescription, 12> getAttributeDescriptions();
@@ -75,8 +75,8 @@ class IsoSpriteEntity : public SceneEntity
     private:
         ///I'll need to rotate normal and depth accordingly (in shader ?)
         float m_rotation;
-        glm::vec3 m_rmt;
         glm::vec4 m_color;
+        glm::vec3 m_rmt;
 
         /*std::vector<bool>       m_needToAllocUBO;
         std::vector<bool>       m_needToUpdateUBO;

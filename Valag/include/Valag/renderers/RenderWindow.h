@@ -39,15 +39,13 @@ class RenderWindow
         VkFormat    getSwapchainImageFormat();
         const std::vector<VFramebufferAttachment> &getSwapchainAttachments();
         const std::vector<VFramebufferAttachment> &getSwapchainDepthAttachments();
-        /*const std::vector<VkImageView> &getSwapchainImageViews();
-        const std::vector<VkImageView> &getDepthStencilImageViews();*/
 
         AbstractRenderer* getRenderer(RendererName renderer);
 
     protected:
         uint32_t    acquireNextImage();
-    // void        submitToGraphicsQueue(VkCommandBuffer commandBuffer, VkSemaphore finishedRenderingSemaphore);
-        void        submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBuffers, std::vector<VkSemaphore> &waitSemaphores);
+        void        submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBuffers,
+                                          std::vector<VkSemaphore> &waitSemaphores);
         void        display();
 
         bool    checkVideoMode(size_t w, size_t h, GLFWmonitor *monitor);
@@ -58,8 +56,6 @@ class RenderWindow
         VkPresentModeKHR    chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
         VkExtent2D          chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
         bool                createSwapchain();
-        //bool                createDepthStencil();
-        //bool                createImageViews();
         bool                createSemaphoresAndFences();
 
         VkSurfaceKHR &getSurface();
@@ -72,24 +68,15 @@ class RenderWindow
 
         VkSwapchainKHR                       m_swapchain;
         std::vector<VFramebufferAttachment>  m_swapchainAttachments;
-        /*std::vector<VkImage>        m_swapchainImages;
-        std::vector<VkImageView>    m_swapchainImageViews;*/
-        /*VkFormat    m_swapchainImageFormat;
-        VkExtent2D  m_swapchainExtent;*/
-
-        ///Maybe I should turn this into FramebufferAttachment
-        std::vector<VFramebufferAttachment> m_depthStencilAttachments;
-        /*std::vector<VImage>         m_depthStencilImages;
-        std::vector<VkImageView>    m_depthStencilImagesViews;*/
+        std::vector<VFramebufferAttachment>  m_depthStencilAttachments;
 
 
         size_t      m_framesCount;
         uint32_t    m_curImageIndex;
         size_t      m_curFrameIndex;
-        std::vector<VkSemaphore>                 m_imageAvailableSemaphore;
-        //std::vector<std::vector<VkSemaphore>>    m_finishedRenderingSemaphores;
-        std::vector<VkSemaphore>                 m_finishedRenderingSemaphores;
-        std::vector<VkFence>                     m_inFlightFences;
+        std::vector<VkSemaphore>    m_imageAvailableSemaphore;
+        std::vector<VkSemaphore>    m_finishedRenderingSemaphores;
+        std::vector<VkFence>        m_inFlightFences;
 
         std::map<RendererName, AbstractRenderer*>  m_attachedRenderers;
 };

@@ -48,18 +48,6 @@ bool RenderWindow::init()
         return (false);
     }
 
-    /*if(!this->createDepthStencil())
-    {
-        Logger::error("Cannot create depth stencil");
-        return (false);
-    }
-
-    if(!this->createImageViews())
-    {
-        Logger::error("Cannot create image views");
-        return (false);
-    }*/
-
     if(!this->createSemaphoresAndFences())
     {
         Logger::error("Cannot create semaphores and fences");
@@ -128,11 +116,6 @@ const std::vector<VFramebufferAttachment> &RenderWindow::getSwapchainDepthAttach
     return m_depthStencilAttachments;
 }
 
-/*const std::vector<VkImageView> &RenderWindow::getDepthStencilImageViews()
-{
-    return m_depthStencilImagesViews;
-}*/
-
 AbstractRenderer *RenderWindow::getRenderer(RendererName renderer)
 {
     auto foundedRenderer = m_attachedRenderers.find(renderer);
@@ -156,8 +139,6 @@ uint32_t RenderWindow::acquireNextImage()
     vkAcquireNextImageKHR(device, m_swapchain, std::numeric_limits<uint64_t>::max(),
                           m_imageAvailableSemaphore[m_curFrameIndex], VK_NULL_HANDLE, &imageIndex);
 
-   // m_finishedRenderingSemaphores[m_curFrameIndex].clear();
-
     m_curImageIndex = imageIndex;
 
     for(auto renderer : m_attachedRenderers)
@@ -171,7 +152,6 @@ void RenderWindow::submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBu
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    //VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[m_curFrameIndex]};
     std::vector<VkPipelineStageFlags> waitStages(waitSemaphores.size(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     waitSemaphores.push_back(m_imageAvailableSemaphore[m_curFrameIndex]);
@@ -188,33 +168,33 @@ void RenderWindow::submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBu
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     VInstance::submitToGraphicsQueue(submitInfo, m_inFlightFences[m_curFrameIndex]);
-
-    //m_finishedRenderingSemaphores[m_curFrameIndex].push_back(finishedRenderingSemaphore);
 }
 
 void RenderWindow::display()
 {
    // Profiler::pushClock("Update buffers");
     for(auto renderer : m_attachedRenderers)
-        renderer.second->updateCmb(m_curImageIndex);
+        renderer.second->render(m_curImageIndex);
    // Profiler::popClock();
 
     //Profiler::pushClock("Submit to queue");
-    std::vector<VkCommandBuffer> cmb(m_attachedRenderers.size());
+    std::vector<VkCommandBuffer> cmb;
     std::vector<VkSemaphore> waitSemaphores;
-    size_t i = 0;
+
     for(auto renderer : m_attachedRenderers)
     {
-        VkSemaphore waitSemaphore = renderer.second->getFinalPassWaitSemaphore(m_curFrameIndex);
-        if(waitSemaphore != VK_NULL_HANDLE)
-            waitSemaphores.push_back(waitSemaphore);
-        cmb[i++] = renderer.second->getCommandBuffer(m_curFrameIndex, m_curImageIndex);
+        auto finalPasses = renderer.second->getFinalPasses();
+
+        for(auto pass : finalPasses)
+        {
+            ///Could add stages too
+            cmb.push_back(*pass->getPrimaryCmb(m_curImageIndex, m_curFrameIndex));
+            waitSemaphores.insert(waitSemaphores.end(),
+                                  pass->getWaitSemaphores(m_curFrameIndex).begin(),
+                                  pass->getWaitSemaphores(m_curFrameIndex).end());
+        }
     }
     this->submitToGraphicsQueue(cmb,waitSemaphores);
-
-   /* for(auto renderer m_attachedRenderers)
-        this->submitToGraphicsQueue(renderer.second->getCommandBuffer(m_curFrameIndex),
-                                    renderer.second->getRenderFinishedSemaphore(m_curFrameIndex));*/
    // Profiler::popClock();
 
     VkPresentInfoKHR presentInfo = {};
@@ -362,7 +342,7 @@ bool RenderWindow::createSwapchain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = swapchainExtent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /// Use VK_IMAGE_USAGE_TRANSFER_DST_BIT  for postfx
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /// Use VK_IMAGE_USAGE_TRANSFER_DST_BIT  for postfx ?
 
     QueueFamilyIndices queueFamilyIndices = VInstance::instance()->getQueueFamilyIndices();
     uint32_t queueFamilyIndicesArray[] = {(uint32_t) queueFamilyIndices.graphicsFamily,
@@ -406,47 +386,14 @@ bool RenderWindow::createSwapchain()
         m_swapchainAttachments[i].view =
                 VulkanHelpers::createImageView(m_swapchainAttachments[i].image.vkImage,surfaceFormat.format,
                                                VK_IMAGE_ASPECT_COLOR_BIT,1);
+        m_swapchainAttachments[i].layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VulkanHelpers::createAttachment(swapchainExtent.width, swapchainExtent.height, VK_FORMAT_D24_UNORM_S8_UINT,
                                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_depthStencilAttachments[i]);
     }
 
-    //m_swapchainImageFormat = surfaceFormat.format;
-
     return (true);
 }
-
-/*bool RenderWindow::createDepthStencil()
-{
-    m_depthStencilImages.resize(m_swapchainImages.size());
-    for (size_t i = 0; i < m_swapchainImages.size(); i++)
-        if(!VulkanHelpers::createImage(m_swapchainExtent.width, m_swapchainExtent.height, 1, VK_FORMAT_D24_UNORM_S8_UINT,
-                                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                    m_depthStencilImages[i]))
-            return (false);
-
-    return (true);
-}
-
-bool RenderWindow::createImageViews()
-{
-    m_swapchainImageViews.resize(m_swapchainImages.size());
-    m_depthStencilImagesViews.resize(m_swapchainImages.size());
-
-    for (size_t i = 0; i < m_swapchainImages.size(); ++i)
-    {
-        m_swapchainImageViews[i] =
-            VulkanHelpers::createImageView(m_swapchainImages[i],m_swapchainImageFormat,VK_IMAGE_ASPECT_COLOR_BIT,1);
-        m_depthStencilImagesViews[i] =
-            VulkanHelpers::createImageView(m_depthStencilImages[i].vkImage, VK_FORMAT_D24_UNORM_S8_UINT,
-                                           VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 1);
-
-        VulkanHelpers::transitionImageLayout(m_depthStencilImages[i].vkImage,0, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    }
-
-    return (true);
-}*/
 
 bool RenderWindow::createSemaphoresAndFences()
 {
@@ -493,14 +440,6 @@ void RenderWindow::destroy()
     for (auto semaphore : m_finishedRenderingSemaphores)
         vkDestroySemaphore(device, semaphore, nullptr);
     m_finishedRenderingSemaphores.clear();
-
-    /*for (auto imageView : m_depthStencilImagesViews)
-        vkDestroyImageView(device, imageView, nullptr);
-    m_depthStencilImagesViews.clear();
-
-    for(auto image : m_depthStencilImages)
-        VulkanHelpers::destroyImage(image);
-    m_depthStencilImages.clear();*/
 
     for(auto attachment : m_depthStencilAttachments)
         VulkanHelpers::destroyAttachment(attachment);

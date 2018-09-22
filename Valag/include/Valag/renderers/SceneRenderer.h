@@ -6,11 +6,14 @@
 #define SCENERENDERER_H
 
 #include "Valag/renderers/AbstractRenderer.h"
+#include "Valag/renderers/RenderGraph.h"
 
 #include "Valag/scene/Scene.h"
 #include "Valag/scene/IsoSpriteEntity.h"
 
 #include "Valag/vulkanImpl/DynamicVBO.h"
+
+#define NBR_ALPHA_LAYERS = 2
 
 namespace vlg
 {
@@ -21,16 +24,7 @@ class SceneRenderer : public AbstractRenderer
         SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
-        void update(size_t frameIndex);
-        virtual VkCommandBuffer getCommandBuffer(size_t frameIndex , size_t imageIndex);
-        virtual VkSemaphore     getFinalPassWaitSemaphore(size_t frameIndex);
-
-        //void draw(Scene* scene);
-        //void draw(IsoSpriteEntity* sprite);
-
         void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
-
-        virtual void updateCmb(uint32_t imageIndex);
 
     protected:
         virtual bool init();
@@ -39,38 +33,25 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts();
         virtual bool    createGraphicsPipeline();
-        virtual bool    createFramebuffers();
-        virtual bool    createUBO();
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
-        virtual bool    createPrimaryCmb();
 
         bool createAttachments();
 
-        bool createDeferredFramebuffers();
-        bool createAmbientLightingFramebuffers();
-
         bool createDeferredRenderPass();
         bool createAmbientLightingRenderPass();
+        bool createToneMappingRenderPass();
 
         bool createDeferredPipeline();
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
-        bool createDeferredCmb();
-        bool createAmbientLightingCmb();
-
-        bool createSemaphores();
-
-        virtual bool    recordPrimaryCmb(uint32_t imageIndex);
-        virtual bool    recordDefferedCmb(uint32_t imageIndex);
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex); ///Deferred
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
-
-        virtual void submitToGraphicsQueue(size_t imageIndex);
+        virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
     private:
         ///Should I do a pipeline for alpha and one for opacity or could I play with descriptors ?
-
 
         VkDescriptorSetLayout           m_deferredDescriptorSetLayout,
                                         m_hdrDescriptorSetLayout;
@@ -78,31 +59,21 @@ class SceneRenderer : public AbstractRenderer
         std::vector<VkDescriptorSet>    m_deferredDescriptorSets,
                                         m_hdrDescriptorSets;
 
-        std::vector<VkFramebuffer>  m_deferredFramebuffers,
-                                    m_ambientLightingFramebuffers;
-
-        VkRenderPass m_deferredRenderPass,
-                     m_ambientLightingRenderPass;
-
-        std::vector<VkSemaphore>    m_deferredToAmbientLightingSemaphore,
-                                    m_ambientLightingToToneMappingSemaphore;
-
         VGraphicsPipeline   m_deferredPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
-        std::vector<VkCommandBuffer>    m_deferredCmb, //Re-recordead each frame
-                                        m_ambientLightingCmb; //Recorded only once
-
         VkSampler m_attachmentsSampler;
-        std::vector<VFramebufferAttachment> m_albedoAttachments,
-                                            m_heightAttachments,
-                                            m_normalAttachments,
-                                            m_rmtAttachments,
-                                            m_hdrAttachements;
+        std::vector<VFramebufferAttachment> m_albedoAttachments[NBR_ALPHA_LAYERS],
+                                            m_heightAttachments[NBR_ALPHA_LAYERS],
+                                            m_normalAttachments[NBR_ALPHA_LAYERS],
+                                            m_rmtAttachments[NBR_ALPHA_LAYERS],
+                                            m_hdrAttachements[NBR_ALPHA_LAYERS];
+        size_t m_deferredPass;
+        size_t m_ambientLightingPass;
+        size_t m_toneMappingPass;
 
         std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >    m_spritesVbos;
-
 
         static const char *ISOSPRITE_VERTSHADERFILE;
         static const char *ISOSPRITE_FRAGSHADERFILE;

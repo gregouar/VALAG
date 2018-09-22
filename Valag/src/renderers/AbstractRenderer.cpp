@@ -10,7 +10,8 @@ namespace vlg
 
 AbstractRenderer::AbstractRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
     m_targetWindow(targetWindow),
-    m_renderPass(VK_NULL_HANDLE),
+    m_renderGraph(targetWindow->getSwapchainSize(),
+                  targetWindow->getFramesCount()),
     m_descriptorPool(VK_NULL_HANDLE),
     m_curFrameIndex(0),
     m_order(order),
@@ -28,10 +29,11 @@ void AbstractRenderer::update(size_t frameIndex)
     m_renderView.update(frameIndex);
 }
 
-void AbstractRenderer::updateCmb(uint32_t imageIndex)
+void AbstractRenderer::render(uint32_t imageIndex)
 {
     Profiler::pushClock("Record primary buffer");
     this->recordPrimaryCmb(imageIndex);
+    m_finalPasses = m_renderGraph.submitToGraphicsQueue(imageIndex, m_curFrameIndex);
     Profiler::popClock();
 
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
@@ -42,20 +44,10 @@ void AbstractRenderer::setView(glm::mat4 view)
     m_renderView.setView(view);
 }
 
-VkCommandBuffer AbstractRenderer::getCommandBuffer(size_t frameIndex , size_t imageIndex)
+std::vector<FullRenderPass*> AbstractRenderer::getFinalPasses()
 {
-    return m_primaryCmb[frameIndex];
+    return m_finalPasses;
 }
-
-VkSemaphore AbstractRenderer::getFinalPassWaitSemaphore(size_t frameIndex)
-{
-    return VK_NULL_HANDLE;
-}
-
-/*VkSemaphore AbstractRenderer::getRenderFinishedSemaphore(size_t frameIndex)
-{
-    return m_renderFinishedSemaphore[frameIndex];
-}*/
 
 RendererName AbstractRenderer::getName()
 {
@@ -64,138 +56,21 @@ RendererName AbstractRenderer::getName()
 
 bool AbstractRenderer::createRenderPass()
 {
-    VkDevice device = VInstance::device();
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = m_targetWindow->getSwapchainImageFormat();
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;//VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    if(m_order == Renderer_First || m_order == Renderer_Unique)
+    m_defaultPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else {
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    }
-
-    if(m_order == Renderer_Last || m_order == Renderer_Unique)
-    {
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    } else {
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    }
-
-    VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    return (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass) == VK_SUCCESS);
-}
-
-
-bool AbstractRenderer::createFramebuffers()
-{
-    if(m_renderPass == VK_NULL_HANDLE)
-        return (true);
-
-    /*auto swapchainImageViews = m_targetWindow->getSwapchainImageViews();
-    auto swapchainDepthImagesView = m_targetWindow->getDepthStencilImageViews();*/
-    auto swapchainAttachments = m_targetWindow->getSwapchainAttachments();
-    auto swapchainDepthAttachments = m_targetWindow->getSwapchainDepthAttachments();
-
-    m_framebuffers.resize(swapchainAttachments.size());
-    //m_swapchainExtents.resize(swapchainImageViews.size());
-
-    for (size_t i = 0; i < m_framebuffers.size(); ++i)
-    {
-        std::array<VkImageView, 2> attachments = {
-            swapchainAttachments[i].view,
-            swapchainDepthAttachments[i].view
-        };
-
-        //m_swapchainExtents[i] = m_targetWindow->getSwapchainExtent();
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = swapchainAttachments[i].extent.width;//m_swapchainExtents[i].width;
-        framebufferInfo.height = swapchainAttachments[i].extent.height;//m_swapchainExtents[i].height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
-            return (false);
-
+        std::vector<VFramebufferAttachment> attachements = {m_targetWindow->getSwapchainAttachments()[i],
+                                                            m_targetWindow->getSwapchainDepthAttachments()[i]};
+        m_renderGraph.setAttachments(m_defaultPass, i, attachements);
     }
 
     return (true);
 }
 
-bool AbstractRenderer::createPrimaryCmb()
+bool AbstractRenderer::initRenderGraph()
 {
-    m_primaryCmb.resize(m_targetWindow->getFramesCount());
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = VInstance::commandPool(/*COMMANDPOOL_DEFAULT*/COMMANDPOOL_SHORTLIVED);
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) m_primaryCmb.size();
-
-    if (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) != VK_SUCCESS)
-    {
-        Logger::error("Failed to allocate command buffers");
-        return (false);
-    }
-
-    return (true);
+    m_renderGraph.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    return m_renderGraph.init();
 }
 
 bool AbstractRenderer::createRenderView()
@@ -205,20 +80,6 @@ bool AbstractRenderer::createRenderView()
 
     return m_renderView.create(m_targetWindow->getFramesCount());
 }
-
-/*bool AbstractRenderer::createSemaphores()
-{
-    m_renderFinishedSemaphore.resize(VApp::MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    for(size_t i = 0 ; i < m_renderFinishedSemaphore.size() ; ++i)
-        if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS)
-            return (false);
-
-    return (true);
-}*/
 
 bool AbstractRenderer::init()
 {
@@ -240,22 +101,15 @@ bool AbstractRenderer::init()
         return (false);
     }
 
+    if(!this->initRenderGraph())
+    {
+        Logger::error("Cannot initialize render graph");
+        return (false);
+    }
+
     if(!this->createGraphicsPipeline())
     {
         Logger::error("Cannot create graphics pipeline");
-        return (false);
-    }
-
-    if(!this->createFramebuffers())
-    {
-        Logger::error("Cannot create framebuffers");
-        return (false);
-    }
-
-
-    if(!this->createUBO())
-    {
-        Logger::error("Cannot create UBOs");
         return (false);
     }
 
@@ -271,18 +125,6 @@ bool AbstractRenderer::init()
         return (false);
     }
 
-    if(!this->createPrimaryCmb())
-    {
-        Logger::error("Cannot create primary command buffers");
-        return (false);
-    }
-
-    /*if(!this->createSemaphores())
-    {
-        Logger::error("Cannot create default renderer semaphores");
-        return (false);
-    }*/
-
     return (true);
 }
 
@@ -296,23 +138,7 @@ void AbstractRenderer::cleanup()
         vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
     m_descriptorPool = VK_NULL_HANDLE;
 
-   // for (auto semaphore : m_renderFinishedSemaphore)
-      //  vkDestroySemaphore(device, semaphore, nullptr);
-
-    for (auto framebuffer : m_framebuffers)
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-
-    /*if(m_pipeline != VK_NULL_HANDLE)
-        vkDestroyPipeline(device, m_pipeline, nullptr);
-    m_pipeline = VK_NULL_HANDLE;
-
-    if(m_pipelineLayout != VK_NULL_HANDLE)
-        vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
-    m_pipelineLayout = VK_NULL_HANDLE;*/
-
-    if(m_renderPass != VK_NULL_HANDLE)
-        vkDestroyRenderPass(device, m_renderPass, nullptr);
-    m_renderPass = VK_NULL_HANDLE;
+    m_renderGraph.destroy();
 }
 
 

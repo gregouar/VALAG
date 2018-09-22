@@ -84,6 +84,7 @@
 		<Unit filename="../../Valag/include/Valag/gfx/SpritesBatch.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/AbstractRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/DefaultRenderer.h" />
+		<Unit filename="../../Valag/include/Valag/renderers/FullRenderPass.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/InstancingRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderGraph.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderView.h" />
@@ -145,6 +146,7 @@
 		<Unit filename="../../Valag/src/gfx/SpritesBatch.cpp" />
 		<Unit filename="../../Valag/src/renderers/AbstractRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/DefaultRenderer.cpp" />
+		<Unit filename="../../Valag/src/renderers/FullRenderPass.cpp" />
 		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderGraph.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderView.cpp" />

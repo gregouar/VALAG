@@ -25,6 +25,7 @@ struct VFramebufferAttachment
     VkImageView     view;
     VkFormat        format;
     VkExtent2D      extent;
+    VkImageLayout   layout;
 };
 
 class VulkanHelpers
@@ -50,10 +51,6 @@ public:
     static void transitionImageLayout(VkImage image, uint32_t layer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
                                       CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
-    /** could I remove this ? **/
-    static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
-                                   CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
-
     static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount);
 
     static bool createAttachment(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment);
@@ -61,7 +58,7 @@ public:
 
     static VkShaderModule createShaderModule(const std::vector<char>& code);
 
-
+    /// Need to add swizzle
     static void takeScreenshot(const VFramebufferAttachment &source, const std::string &filepath);
 
 };

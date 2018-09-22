@@ -28,14 +28,10 @@ class DefaultRenderer : public AbstractRenderer
         virtual bool init();
         virtual void cleanup();
 
-        //virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts();
         virtual bool    createGraphicsPipeline();
-        virtual bool    createUBO();
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
-
-       // void            updateViewUBO();
 
         virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 
@@ -47,14 +43,7 @@ class DefaultRenderer : public AbstractRenderer
     private:
         std::vector<VkCommandBuffer>    m_activeSecondaryCommandBuffers;
 
-        /*///I will probably switch all this to camera... and maybe have something similar to sprites (with dynamic ubo and so on ?)
-        std::vector<bool>               m_needToUpdateViewUBO;
-        std::vector<VBuffer>            m_viewBuffers; //Should be in a camera object for SceneRenderer
-        std::vector<VkDescriptorSet>    m_viewDescriptorSets;
-        VkDescriptorSetLayout           m_viewDescriptorSetLayout;*/
-
         VGraphicsPipeline m_pipeline;
-
 
         static const char *DEFAULT_VERTSHADERFILE;
         static const char *DEFAULT_FRAGSHADERFILE;

@@ -268,31 +268,6 @@ void VulkanHelpers::destroyImage(VImage image)
     VInstance::instance()->endSingleTimeCommands(commandBuffer);
 }
 
-void VulkanHelpers::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer,
-                                      CommandPoolName commandPoolName)
-{
-    VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = layer;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {
-        width,
-        height,
-        1
-    };
-
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-    VInstance::instance()->endSingleTimeCommands(commandBuffer);
-}
-
 VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount)
 {
     VkImageViewCreateInfo viewInfo = {};
@@ -354,6 +329,8 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
 
     VulkanHelpers::transitionImageLayout(attachment.image.vkImage, 0, format, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
+    attachment.layout = imageLayout;
+
     return (true);
 }
 
@@ -382,6 +359,8 @@ void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const s
 {
     int width = source.extent.width;
     int height = source.extent.height;
+
+    VkImageLayout oldLayout = source.layout;
 
     VImage dstImage;
     VulkanHelpers::createImage(width, height, 1, VK_FORMAT_R8G8B8A8_UNORM,
@@ -465,7 +444,7 @@ void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const s
     imageMemoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
     imageMemoryBarrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
-    imageMemoryBarrier.newLayout            = VK_IMAGE_LAYOUT_GENERAL; ///VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    imageMemoryBarrier.newLayout            = oldLayout; ///VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
     imageMemoryBarrier.dstAccessMask        = VK_ACCESS_MEMORY_READ_BIT;
     vkCmdPipelineBarrier(copyCmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,

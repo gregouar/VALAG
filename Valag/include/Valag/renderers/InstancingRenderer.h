@@ -43,10 +43,8 @@ class InstancingRenderer : public AbstractRenderer
         virtual bool init();
         virtual void cleanup();
 
-        //virtual bool    createRenderPass();
         virtual bool    createDescriptorSetLayouts();
         virtual bool    createGraphicsPipeline();
-        virtual bool    createUBO();
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
 
