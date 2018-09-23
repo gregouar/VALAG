@@ -10,7 +10,7 @@ layout(location = 2) flat in uvec2 fragAlbedoTexId;
 layout(location = 3) flat in uvec2 fragHeightTexId;
 layout(location = 4) flat in float depthFactor;
 
-layout(location = 0) out uint outAlpha;
+layout(location = 0) out float outAlpha;
 
 void main()
 {

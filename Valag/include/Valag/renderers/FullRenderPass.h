@@ -41,6 +41,7 @@ class FullRenderPass
         VkExtent2D      getExtent();
         VkRenderPass    getVkRenderPass();
         bool            isFinalPass();
+        size_t          getColorAttachmentsCount();
 
         const  std::vector<VkPipelineStageFlags> &getWaitSemaphoresStages();
         const  std::vector<VkSemaphore> &getWaitSemaphores(size_t frameIndex);
@@ -68,7 +69,7 @@ class FullRenderPass
         bool        m_isFinalPass;
         VkFlags     m_cmbUsage;
 
-        VkRenderPass m_renderPass;
+        VkRenderPass m_vkRenderPass;
         std::vector<VkClearValue>  m_clearValues;
         std::vector<VkFramebuffer> m_framebuffers;
 

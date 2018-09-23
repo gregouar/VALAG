@@ -54,21 +54,13 @@ RendererName AbstractRenderer::getName()
     return m_name;
 }
 
-bool AbstractRenderer::createRenderPass()
+void AbstractRenderer::prepareRenderPass()
 {
     m_defaultPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
-    {
-        std::vector<VFramebufferAttachment> attachements = {m_targetWindow->getSwapchainAttachments()[i],
-                                                            m_targetWindow->getSwapchainDepthAttachments()[i]};
-        m_renderGraph.setAttachments(m_defaultPass, i, attachements);
-    }*/
 
     ///Could add something to change loadOp/storeOp depending on RendererOrder
     m_renderGraph.addNewAttachments(m_defaultPass, m_targetWindow->getSwapchainAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
     m_renderGraph.addNewAttachments(m_defaultPass, m_targetWindow->getSwapchainDepthAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
-
-    return (true);
 }
 
 bool AbstractRenderer::initRenderGraph()
@@ -87,11 +79,7 @@ bool AbstractRenderer::createRenderView()
 
 bool AbstractRenderer::init()
 {
-    if(!this->createRenderPass())
-    {
-        Logger::error("Cannot create default render pass");
-        return (false);
-    }
+    this->prepareRenderPass();
 
     if(!this->createDescriptorSetLayouts())
     {

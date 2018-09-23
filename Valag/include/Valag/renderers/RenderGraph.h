@@ -44,6 +44,8 @@ class RenderGraph
         VkDescriptorSetLayout   getDescriptorLayout(size_t renderPassIndex);
         VkDescriptorSet         getDescriptorSet(size_t renderPassIndex, size_t imageIndex);
 
+        size_t getColorAttachmentsCount(size_t renderPassIndex);
+
         VkCommandBuffer startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex,
                                        VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
         bool            endRecording(size_t renderPassIndex);

@@ -10,7 +10,7 @@ FullRenderPass::FullRenderPass(size_t imagesCount, size_t framesCount) :
     m_cmbCount(0),
     m_extent{0,0},
     m_cmbUsage(0),
-    m_renderPass(VK_NULL_HANDLE),
+    m_vkRenderPass(VK_NULL_HANDLE),
     m_descriptorSetLayout(VK_NULL_HANDLE)
 {
     m_waitSemaphores.resize(framesCount);
@@ -51,9 +51,9 @@ void FullRenderPass::destroy()
 
     VkDevice device = VInstance::device();
 
-    if(m_renderPass != VK_NULL_HANDLE)
-        vkDestroyRenderPass(device, m_renderPass, nullptr);
-    m_renderPass = VK_NULL_HANDLE;
+    if(m_vkRenderPass != VK_NULL_HANDLE)
+        vkDestroyRenderPass(device, m_vkRenderPass, nullptr);
+    m_vkRenderPass = VK_NULL_HANDLE;
 
     if(m_descriptorSetLayout != VK_NULL_HANDLE)
         vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
@@ -97,7 +97,7 @@ VkCommandBuffer FullRenderPass::startRecording(size_t imageIndex, size_t frameIn
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass   = m_renderPass;
+    renderPassInfo.renderPass   = m_vkRenderPass;
     renderPassInfo.framebuffer  = m_framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_extent;
@@ -209,12 +209,24 @@ VkExtent2D FullRenderPass::getExtent()
 
 VkRenderPass FullRenderPass::getVkRenderPass()
 {
-    return m_renderPass;
+    return m_vkRenderPass;
 }
 
 bool FullRenderPass::isFinalPass()
 {
     return m_isFinalPass;
+}
+
+size_t FullRenderPass::getColorAttachmentsCount()
+{
+    size_t c = 0;
+
+    for(auto attachment : m_attachments)
+        if(attachment[0].layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        || attachment[0].layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            c++;
+
+    return c;
 }
 
 const  std::vector<VkPipelineStageFlags> &FullRenderPass::getWaitSemaphoresStages()
@@ -352,7 +364,7 @@ bool FullRenderPass::createRenderPass()
     renderPassInfo.dependencyCount  = static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies    = dependencies.data();
 
-    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_renderPass) == VK_SUCCESS);
+    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_vkRenderPass) == VK_SUCCESS);
 }
 
 bool FullRenderPass::createFramebuffers()
@@ -368,7 +380,7 @@ bool FullRenderPass::createFramebuffers()
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass      = m_renderPass;
+        framebufferInfo.renderPass      = m_vkRenderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments    = attachments.data();
         framebufferInfo.width           = m_extent.width;

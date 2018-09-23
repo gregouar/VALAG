@@ -458,9 +458,24 @@ void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const s
     vkGetImageSubresourceLayout(VInstance::device(), dstImage.vkImage, &subResource, &subResourceLayout);
 
     // Map image memory so we can start copying from it
-    const char* data;
+    char* data;
     vkMapMemory(VInstance::device(), dstImage.memory.vkMemory, dstImage.memory.offset, dstImage.memory.memRequirements.size, 0, (void**)&data);
     data += subResourceLayout.offset;
+
+    for(size_t i = 0 ; i < width*height ; ++i)
+    {
+        Color tempColor = { data[i*4+2],
+                            data[i*4+1],
+                            data[i*4],
+                            data[i*4+3]};
+
+
+        data[i*4] = tempColor.r;
+        data[i*4+1] = tempColor.g;
+        data[i*4+2] = tempColor.b;
+        data[i*4+3] = tempColor.a;
+    }
+
 
     std::cout<<filepath.c_str()<<std::endl;
     //stbi_write_png(filepath.c_str(), width, height, 4, data, 0);

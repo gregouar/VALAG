@@ -132,6 +132,11 @@ VkDescriptorSet RenderGraph::getDescriptorSet(size_t renderPassIndex, size_t ima
     return m_renderPasses[renderPassIndex]->getDescriptorSet(imageIndex);
 }
 
+size_t RenderGraph::getColorAttachmentsCount(size_t renderPassIndex)
+{
+    return m_renderPasses[renderPassIndex]->getColorAttachmentsCount();
+}
+
 VkCommandBuffer RenderGraph::startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
 {
     return m_renderPasses[renderPassIndex]->startRecording(imageIndex, frameIndex, contents);
@@ -265,20 +270,20 @@ bool RenderGraph::createDescriptorPool()
 bool RenderGraph::createSampler()
 {
     VkSamplerCreateInfo samplerInfo = {};
-    samplerInfo.sType       = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter   = VK_FILTER_NEAREST;
     samplerInfo.minFilter   = VK_FILTER_NEAREST;
-    samplerInfo.mipmapMode  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipmapMode  = VK_SAMPLER_MIPMAP_MODE_NEAREST;//VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = samplerInfo.addressModeU;
     samplerInfo.addressModeW = samplerInfo.addressModeU;
     samplerInfo.mipLodBias  = 0.0f;
     samplerInfo.maxAnisotropy = 1.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 1.0f;
+    samplerInfo.maxLod = 0.0f;//1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.unnormalizedCoordinates = VK_TRUE;//VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.anisotropyEnable = VK_FALSE;

@@ -30,18 +30,21 @@ class SceneRenderer : public AbstractRenderer
         virtual bool init();
         virtual void cleanup();
 
-        virtual bool    createRenderPass();
+        virtual void    prepareRenderPass();
+
         virtual bool    createGraphicsPipeline();
 
         bool createAttachments();
 
-        bool createDeferredRenderPass();
-        bool createAlphaDetectRenderPass();
-        bool createAmbientLightingRenderPass();
-        bool createToneMappingRenderPass();
+        void prepareDeferredRenderPass();
+        void prepareAlphaDetectRenderPass();
+        void prepareAlphaDeferredRenderPass();
+        void prepareAmbientLightingRenderPass();
+        void prepareToneMappingRenderPass();
 
         bool createDeferredPipeline();
         bool createAlphaDetectPipeline();
+        bool createAlphaDeferredPipeline();
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
@@ -54,6 +57,7 @@ class SceneRenderer : public AbstractRenderer
 
         VGraphicsPipeline   m_deferredPipeline,
                             m_alphaDetectPipeline,
+                            m_alphaDeferredPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
@@ -78,6 +82,8 @@ class SceneRenderer : public AbstractRenderer
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;
         static const char *ISOSPRITE_ALPHADETECT_VERTSHADERFILE;
         static const char *ISOSPRITE_ALPHADETECT_FRAGSHADERFILE;
+        static const char *ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE;
+        static const char *ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE;
         static const char *AMBIENTLIGHTING_VERTSHADERFILE;
         static const char *AMBIENTLIGHTING_FRAGSHADERFILE;
         static const char *TONEMAPPING_VERTSHADERFILE;

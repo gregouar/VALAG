@@ -24,11 +24,13 @@ class AbstractRenderer
         RendererName    getName();
 
     protected:
-        virtual bool    createRenderPass();
-        virtual bool    createDescriptorSetLayouts();
+        virtual void    prepareRenderPass();
+
         virtual bool    initRenderGraph();
         virtual bool    createGraphicsPipeline() = 0;
         virtual bool    createRenderView();
+
+        virtual bool    createDescriptorSetLayouts();
         virtual bool    createDescriptorPool();
         virtual bool    createDescriptorSets();
 
