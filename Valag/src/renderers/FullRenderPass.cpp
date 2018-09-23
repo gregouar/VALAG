@@ -10,10 +10,12 @@ FullRenderPass::FullRenderPass(size_t imagesCount, size_t framesCount) :
     m_cmbCount(0),
     m_extent{0,0},
     m_cmbUsage(0),
-    m_renderPass(VK_NULL_HANDLE)
+    m_renderPass(VK_NULL_HANDLE),
+    m_descriptorSetLayout(VK_NULL_HANDLE)
 {
-    m_attachments.resize(imagesCount);
     m_waitSemaphores.resize(framesCount);
+    m_signalSemaphores.resize(framesCount);
+    m_descriptorSets.resize(imagesCount);
     m_isFinalPass = false;
 }
 
@@ -22,13 +24,17 @@ FullRenderPass::~FullRenderPass()
     this->destroy();
 }
 
-bool FullRenderPass::init()
+bool FullRenderPass::init(VkDescriptorPool pool, VkSampler sampler)
 {
     if(!this->createRenderPass())
         return (false);
     if(!this->createFramebuffers())
         return (false);
     if(!this->createCmb())
+        return (false);
+    if(!this->createDescriptorSetLayout())
+        return (false);
+    if(!this->createDescriptorSets(pool, sampler))
         return (false);
 
     return (true);
@@ -49,12 +55,19 @@ void FullRenderPass::destroy()
         vkDestroyRenderPass(device, m_renderPass, nullptr);
     m_renderPass = VK_NULL_HANDLE;
 
+    if(m_descriptorSetLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
+    m_descriptorSetLayout = VK_NULL_HANDLE;
+
+    m_uniformAttachments.clear();
+
     for(auto framebuffer : m_framebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     m_framebuffers.clear();
 
-    for(auto attachments : m_attachments)
-        attachments.clear();
+    m_attachmentsLoadOp.clear();
+    m_attachmentsStoreOp.clear();
+    m_attachments.clear();
 
     m_primaryCmb.clear();
     m_waitSemaphoreStages.clear();
@@ -62,7 +75,10 @@ void FullRenderPass::destroy()
     for(size_t i = 0 ; i < m_waitSemaphores.size() ; ++i)
         m_waitSemaphores[i].clear();
 
-    m_signalSemaphores.clear();
+    for(size_t i = 0 ; i < m_signalSemaphores.size() ; ++i)
+        m_signalSemaphores[i].clear();
+
+    //m_signalSemaphores.clear();
 }
 
 VkCommandBuffer FullRenderPass::startRecording(size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
@@ -107,7 +123,7 @@ bool FullRenderPass::endRecording()
     return (true);
 }
 
-void FullRenderPass::addWaitSemaphores(const std::vector<VkSemaphore> &semaphores, VkPipelineStageFlags stage)
+/*void FullRenderPass::addWaitSemaphores(const std::vector<VkSemaphore> &semaphores, VkPipelineStageFlags stage)
 {
     for(size_t i = 0 ; i < semaphores.size() ; ++i)
         m_waitSemaphores[i].push_back(semaphores[i]);
@@ -115,11 +131,22 @@ void FullRenderPass::addWaitSemaphores(const std::vector<VkSemaphore> &semaphore
     m_waitSemaphoreStages.push_back(stage);
 }
 
-void FullRenderPass::setSignalSemaphores(size_t frameIndex, VkSemaphore *semaphore)
+void FullRenderPass::setSignalSemaphores(size_t frameIndex, VkSemaphore semaphore)
 {
     if(m_signalSemaphores.size() <= frameIndex)
-        m_signalSemaphores.resize(frameIndex + 1,nullptr);
-    m_signalSemaphores[frameIndex] = *semaphore;
+        m_signalSemaphores.resize(frameIndex + 1,VK_NULL_HANDLE);
+    m_signalSemaphores[frameIndex] = semaphore;
+}*/
+
+void FullRenderPass::addWaitSemaphore(size_t frameIndex, VkSemaphore semaphore, VkPipelineStageFlags stage)
+{
+    m_waitSemaphores[frameIndex].push_back(semaphore);
+    m_waitSemaphoreStages.push_back(stage);
+}
+
+void FullRenderPass::addSignalSemaphore(size_t frameIndex, VkSemaphore semaphore)
+{
+    m_signalSemaphores[frameIndex].push_back(semaphore);
 }
 
 void FullRenderPass::setExtent(VkExtent2D extent)
@@ -144,20 +171,31 @@ void FullRenderPass::setClearValues(size_t attachmentIndex, glm::vec4 color, glm
 
     m_clearValues[attachmentIndex].color        = {color.r, color.g, color.b, color.a};
     m_clearValues[attachmentIndex].depthStencil = {depth.x, static_cast<uint32_t>(depth.y)};
-
-    /*if(attachmentIndex >= m_clearColors.size())
-        m_clearColors.resize(attachmentIndex+1, {0,0,0,0});
-    m_clearColors[attachmentIndex] = color;
-
-    if(attachmentIndex >= m_clearDepths.size())
-        m_clearDepths.resize(attachmentIndex+1, {0,0});
-    m_clearDepths[attachmentIndex] = depth;*/
 }
 
-void FullRenderPass::setAttachments(size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
+/*void FullRenderPass::setAttachments(size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
 {
     m_attachments[bufferIndex] = attachments;
+}*/
+
+void FullRenderPass::addAttachments(const std::vector<VFramebufferAttachment> &attachments,
+                                    VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
+{
+    m_attachmentsLoadOp.push_back(loadOp);
+    m_attachmentsStoreOp.push_back({storeOp, false});
+    m_attachments.push_back(attachments);
 }
+
+void FullRenderPass::addUniforms(const std::vector<VFramebufferAttachment> &attachments)
+{
+    m_uniformAttachments.push_back(attachments);
+}
+
+void FullRenderPass::setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform)
+{
+    m_attachmentsStoreOp[attachmentIndex] = {storeOp, toUniform};
+}
+
 
 VkFlags FullRenderPass::getCmbUsage()
 {
@@ -189,12 +227,22 @@ const  std::vector<VkSemaphore> &FullRenderPass::getWaitSemaphores(size_t frameI
     return m_waitSemaphores[frameIndex];
 }
 
-VkSemaphore *FullRenderPass::getSignalSemaphore(size_t frameIndex)
+const  std::vector<VkSemaphore> &FullRenderPass::getSignalSemaphores(size_t frameIndex)
+{
+    return m_signalSemaphores[frameIndex];
+}
+
+const  std::vector<VFramebufferAttachment> &FullRenderPass::getAttachments(size_t attachmentsIndex)
+{
+    return m_attachments[attachmentsIndex];
+}
+
+/*VkSemaphore FullRenderPass::getSignalSemaphore(size_t frameIndex)
 {
     if(m_signalSemaphores.size() <= frameIndex)
-        return nullptr;
-    return &m_signalSemaphores[frameIndex];
-}
+        return VK_NULL_HANDLE;
+    return m_signalSemaphores[frameIndex];
+}*/
 
 const VkCommandBuffer *FullRenderPass::getPrimaryCmb(size_t imageIndex, size_t frameIndex)
 {
@@ -202,12 +250,22 @@ const VkCommandBuffer *FullRenderPass::getPrimaryCmb(size_t imageIndex, size_t f
     return &m_primaryCmb[cmbIndex];
 }
 
+VkDescriptorSetLayout FullRenderPass::getDescriptorLayout()
+{
+    return m_descriptorSetLayout;
+}
+
+VkDescriptorSet FullRenderPass::getDescriptorSet(size_t imageIndex)
+{
+    return m_descriptorSets[imageIndex];
+}
+
 
 /// Protected ///
 
 bool FullRenderPass::createRenderPass()
 {
-    std::vector<VkAttachmentDescription> attachments(m_attachments[0].size(), VkAttachmentDescription{});
+    std::vector<VkAttachmentDescription> attachments(m_attachments.size(), VkAttachmentDescription{});
 
 
     std::vector<VkAttachmentReference> colorAttachmentRef;
@@ -217,23 +275,32 @@ bool FullRenderPass::createRenderPass()
 
     for(size_t i = 0 ; i < attachments.size() ; ++i)
     {
-        VkImageLayout layout = m_attachments[0][i].layout;
+        VkImageLayout layout = m_attachments[i][0].layout;
 
         ///Could add verification here
-        attachments[i].format = m_attachments[0][i].format;
+        attachments[i].format = m_attachments[i][0].format;
 
         attachments[i].samples          = VK_SAMPLE_COUNT_1_BIT;
-        attachments[i].loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[i].storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[i].loadOp           = m_attachmentsLoadOp[i];
+        attachments[i].storeOp          = m_attachmentsStoreOp[i].first;//VK_ATTACHMENT_STORE_OP_STORE;
         attachments[i].stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachments[i].stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[i].initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+
+
+        ///Could change this to be smarter
+        if(m_attachmentsLoadOp[i] == VK_ATTACHMENT_LOAD_OP_LOAD)
+            //attachments[i].initialLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            attachments[i].initialLayout    = layout;
+        else
+            attachments[i].initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
 
         if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         {
             attachments[i].finalLayout      = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
             m_isFinalPass = true;
         }
+        else if(m_attachmentsStoreOp[i].first == VK_ATTACHMENT_STORE_OP_STORE && !m_attachmentsStoreOp[i].second)
+             attachments[i].finalLayout     = layout;
         else
             attachments[i].finalLayout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -294,10 +361,10 @@ bool FullRenderPass::createFramebuffers()
 
     for (size_t i = 0; i < m_imagesCount ; ++i)
     {
-        std::vector<VkImageView> attachments(m_attachments[i].size());
+        std::vector<VkImageView> attachments(m_attachments.size());
 
         for(size_t j = 0 ; j < attachments.size() ; ++j)
-            attachments[j] = m_attachments[i][j].view;
+            attachments[j] = m_attachments[j][i].view;
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -312,8 +379,8 @@ bool FullRenderPass::createFramebuffers()
             return (false);
     }
 
-    if(m_clearValues.size() < m_attachments[0].size())
-        m_clearValues.resize(m_attachments[0].size(), VkClearValue{});
+    if(m_clearValues.size() < m_attachments.size())
+        m_clearValues.resize(m_attachments.size(), VkClearValue{});
 
     return (true);
 }
@@ -330,6 +397,75 @@ bool FullRenderPass::createCmb()
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_primaryCmb.size());
 
     return (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) == VK_SUCCESS);
+}
+
+bool FullRenderPass::createDescriptorSetLayout()
+{
+    if(m_uniformAttachments.empty())
+        return (true);
+
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
+    layoutBindings.resize(m_uniformAttachments.size());
+    for(uint32_t i = 0 ; i < layoutBindings.size() ; ++i)
+    {
+        layoutBindings[i] = {};
+        layoutBindings[i].binding = i;
+        layoutBindings[i].descriptorCount = 1;
+        layoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    }
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+    layoutInfo.pBindings = layoutBindings.data();
+
+    return (vkCreateDescriptorSetLayout(VInstance::device(), &layoutInfo, nullptr, &m_descriptorSetLayout) == VK_SUCCESS);
+}
+
+bool FullRenderPass::createDescriptorSets(VkDescriptorPool pool, VkSampler sampler)
+{
+    if(m_uniformAttachments.empty())
+        return (true);
+
+    VkDevice device = VInstance::device();
+
+    std::vector<VkDescriptorSetLayout> layouts(m_descriptorSets.size(), m_descriptorSetLayout);
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = pool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(m_descriptorSets.size());
+    allocInfo.pSetLayouts = layouts.data();
+
+    if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets.data()) != VK_SUCCESS)
+        return (false);
+
+    for (size_t i = 0; i < m_descriptorSets.size() ; ++i)
+    {
+        std::vector<VkWriteDescriptorSet> descriptorWrites(m_uniformAttachments.size());
+        std::vector<VkDescriptorImageInfo> imageInfos(m_uniformAttachments.size());
+
+        for(size_t j = 0 ; j < m_uniformAttachments.size() ; ++j)
+        {
+            imageInfos[j].imageView     = m_uniformAttachments[j][i].view;
+            imageInfos[j].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfos[j].sampler       = sampler;
+
+            descriptorWrites[j] = {};
+            descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[j].dstArrayElement = 0;
+            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[j].descriptorCount = 1;
+            descriptorWrites[j].dstSet = m_descriptorSets[i];
+            descriptorWrites[j].dstBinding = j;
+            descriptorWrites[j].pImageInfo = &imageInfos[j];
+        }
+
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    }
+
+    return (true);
 }
 
 }

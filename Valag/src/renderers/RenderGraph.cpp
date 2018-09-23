@@ -7,7 +7,9 @@ namespace vlg
 
 RenderGraph::RenderGraph(size_t imagesCount, size_t framesCount) :
     m_imagesCount(imagesCount),
-    m_framesCount(framesCount)
+    m_framesCount(framesCount),
+    m_descriptorPool(VK_NULL_HANDLE),
+    m_sampler(VK_NULL_HANDLE)
 {
     //ctor
 }
@@ -20,6 +22,12 @@ RenderGraph::~RenderGraph()
 bool RenderGraph::init()
 {
     if(!this->createSemaphores())
+        return (false);
+
+    if(!this->createDescriptorPool())
+        return (false);
+
+    if(!this->createSampler())
         return (false);
 
     if(!this->initRenderPasses())
@@ -39,6 +47,15 @@ void RenderGraph::destroy()
     for(auto semaphore : m_semaphores)
         vkDestroySemaphore(VInstance::device(), semaphore, nullptr);
     m_semaphores.clear();
+
+    m_descriptorPoolSizes.clear();
+    if(m_descriptorPool != VK_NULL_HANDLE)
+        vkDestroyDescriptorPool(VInstance::device(), m_descriptorPool, nullptr);
+    m_descriptorPool = VK_NULL_HANDLE;
+
+    if(m_sampler != VK_NULL_HANDLE)
+        vkDestroySampler(VInstance::device(), m_sampler, nullptr);
+    m_sampler = VK_NULL_HANDLE;
 }
 
 void RenderGraph::setDefaultExtent(VkExtent2D extent)
@@ -63,14 +80,36 @@ void RenderGraph::connectRenderPasses(size_t src, size_t dst)
         Logger::error(errorReport);
         return;
     }
-
-    m_connexions.push_back({src, dst});
+    m_connexions.insert({src, dst});
 }
 
-
-void RenderGraph::setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
+/*void RenderGraph::setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
 {
     m_renderPasses[renderPassIndex]->setAttachments(bufferIndex, attachments);
+}*/
+
+void RenderGraph::addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
+                                 VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
+{
+   m_renderPasses[renderPassIndex]->addAttachments(attachments, storeOp, loadOp);
+}
+
+void RenderGraph::transferAttachmentsToAttachments(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex,
+                                                    VkAttachmentStoreOp storeOp)
+{
+    auto attachements = m_renderPasses[srcRenderPass]->getAttachments(attachmentsIndex);
+    m_renderPasses[srcRenderPass]->setAttachmentsStoreOp(attachmentsIndex, VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderPasses[dstRenderPass]->addAttachments(attachements,storeOp,VK_ATTACHMENT_LOAD_OP_LOAD);
+    this->connectRenderPasses(srcRenderPass, dstRenderPass);
+}
+
+void RenderGraph::transferAttachmentsToUniforms(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex)
+{
+    auto attachements = m_renderPasses[srcRenderPass]->getAttachments(attachmentsIndex);
+    m_renderPasses[srcRenderPass]->setAttachmentsStoreOp(attachmentsIndex, VK_ATTACHMENT_STORE_OP_STORE, true);
+    m_descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(m_imagesCount)});
+    m_renderPasses[dstRenderPass]->addUniforms(attachements);
+    this->connectRenderPasses(srcRenderPass, dstRenderPass);
 }
 
 void RenderGraph::setClearValue(size_t renderPassIndex, size_t attachmentIndex, glm::vec4 color, glm::vec2 depth)
@@ -81,6 +120,16 @@ void RenderGraph::setClearValue(size_t renderPassIndex, size_t attachmentIndex, 
 VkRenderPass RenderGraph::getVkRenderPass(size_t renderPassIndex)
 {
     return m_renderPasses[renderPassIndex]->getVkRenderPass();
+}
+
+VkDescriptorSetLayout RenderGraph::getDescriptorLayout(size_t renderPassIndex)
+{
+    return m_renderPasses[renderPassIndex]->getDescriptorLayout();
+}
+
+VkDescriptorSet RenderGraph::getDescriptorSet(size_t renderPassIndex, size_t imageIndex)
+{
+    return m_renderPasses[renderPassIndex]->getDescriptorSet(imageIndex);
 }
 
 VkCommandBuffer RenderGraph::startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
@@ -109,8 +158,17 @@ std::vector<FullRenderPass*> RenderGraph::submitToGraphicsQueue(size_t imageInde
             submitInfo.waitSemaphoreCount   = static_cast<uint32_t>(renderPass->getWaitSemaphores(frameIndex).size());
             submitInfo.pWaitDstStageMask    = renderPass->getWaitSemaphoresStages().data();
             submitInfo.pWaitSemaphores      = renderPass->getWaitSemaphores(frameIndex).data();
-            submitInfo.signalSemaphoreCount = 1; //static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size()));
-            submitInfo.pSignalSemaphores    = renderPass->getSignalSemaphore(frameIndex);//renderPass->getSignalSemaphores(frameIndex).data();
+
+            submitInfo.signalSemaphoreCount   = static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size());
+            submitInfo.pSignalSemaphores      = renderPass->getSignalSemaphores(frameIndex).data();
+
+            /*VkSemaphore signalSemaphore = renderPass->getSignalSemaphore(frameIndex);
+            if(signalSemaphore != VK_NULL_HANDLE)
+            {
+                submitInfo.signalSemaphoreCount = 1; //static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size()));
+                submitInfo.pSignalSemaphores    = &signalSemaphore;//renderPass->getSignalSemaphore(frameIndex);//renderPass->getSignalSemaphores(frameIndex).data();
+            }*/
+
             submitInfo.commandBufferCount   = 1;
             submitInfo.pCommandBuffers      = renderPass->getPrimaryCmb(imageIndex, frameIndex);
 
@@ -138,7 +196,7 @@ bool RenderGraph::initRenderPasses()
         if(renderPass->getExtent().width == 0)
             renderPass->setExtent(m_defaultExtent);
 
-        if(!renderPass->init())
+        if(!renderPass->init(m_descriptorPool, m_sampler))
             return (false);
     }
 
@@ -153,29 +211,79 @@ bool RenderGraph::createSemaphores()
 
     for(auto connexion : m_connexions)
     {
+        for(size_t i = 0 ; i < m_framesCount ; ++i)
+        {
+            VkSemaphore semaphore;
+            if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS)
+                return (false);
+            m_renderPasses[connexion.first]->addSignalSemaphore(i,semaphore);
+            m_renderPasses[connexion.second]->addWaitSemaphore(i,semaphore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+            m_semaphores.push_back(semaphore);
+        }
+    }
+    /*for(auto connexion : m_connexions)
+    {
         std::vector<VkSemaphore> waitSemaphores(m_framesCount, VkSemaphore{});
 
         for(size_t i = 0 ; i < m_framesCount ; ++i)
         {
-            //bug here
-            VkSemaphore *signalSem = m_renderPasses[connexion.first]->getSignalSemaphore(i);
+            VkSemaphore signalSem = m_renderPasses[connexion.first]->getSignalSemaphore(i);
 
-            if(signalSem == nullptr)
+            if(signalSem == VK_NULL_HANDLE)
             {
-                m_semaphores.push_back(VkSemaphore{});
-                if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &m_semaphores.back()) != VK_SUCCESS)
+                if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &signalSem) != VK_SUCCESS)
                     return (false);
-                m_renderPasses[connexion.first]->setSignalSemaphores(i,&m_semaphores.back());
-                signalSem = &m_semaphores.back();
+                m_renderPasses[connexion.first]->setSignalSemaphores(i,signalSem);
+                m_semaphores.push_back(signalSem);
             }
-            waitSemaphores[i] = *signalSem;
+
+            waitSemaphores[i] = signalSem;
         }
         m_renderPasses[connexion.second]->addWaitSemaphores(waitSemaphores, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-    }
+    }*/
+
+
 
     return (true);
 }
 
+bool RenderGraph::createDescriptorPool()
+{
+    if(m_descriptorPoolSizes.empty())
+        return (true);
 
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(m_descriptorPoolSizes.size());
+    poolInfo.pPoolSizes = m_descriptorPoolSizes.data();
+
+    poolInfo.maxSets = m_imagesCount * m_descriptorPoolSizes.size();
+
+    return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
+}
+
+bool RenderGraph::createSampler()
+{
+    VkSamplerCreateInfo samplerInfo = {};
+    samplerInfo.sType       = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter   = VK_FILTER_NEAREST;
+    samplerInfo.minFilter   = VK_FILTER_NEAREST;
+    samplerInfo.mipmapMode  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = samplerInfo.addressModeU;
+    samplerInfo.addressModeW = samplerInfo.addressModeU;
+    samplerInfo.mipLodBias  = 0.0f;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+
+    return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_sampler) == VK_SUCCESS);
+}
 
 }

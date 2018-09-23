@@ -17,7 +17,7 @@ class AbstractRenderer
         virtual void update(size_t frameIndex);
         virtual void render(uint32_t imageIndex);
 
-        virtual void setView(glm::mat4 view);
+        virtual void setView(glm::mat4 view, glm::mat4 viewInv);
 
         virtual std::vector<FullRenderPass*> getFinalPasses();
 
@@ -25,12 +25,12 @@ class AbstractRenderer
 
     protected:
         virtual bool    createRenderPass();
-        virtual bool    createDescriptorSetLayouts() = 0;
+        virtual bool    createDescriptorSetLayouts();
         virtual bool    initRenderGraph();
         virtual bool    createGraphicsPipeline() = 0;
         virtual bool    createRenderView();
-        virtual bool    createDescriptorPool() = 0;
-        virtual bool    createDescriptorSets() = 0;
+        virtual bool    createDescriptorPool();
+        virtual bool    createDescriptorSets();
 
         virtual bool    init();
         virtual void    cleanup();

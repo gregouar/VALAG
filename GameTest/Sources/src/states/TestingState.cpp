@@ -20,6 +20,7 @@ TestingState::TestingState() :
     m_scene(nullptr),
     m_testingSpritesBatch(true)
 {
+    m_nbrFps = 0;
 }
 
 TestingState::~TestingState()
@@ -102,7 +103,7 @@ void TestingState::init()
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
 
-    m_treeEntity.setColor({0.0,1.0,0.0,1.0});
+    m_treeEntity.setColor({0.0,1.0,0.0,0.5});
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
 
     m_camera = m_scene->createCamera();

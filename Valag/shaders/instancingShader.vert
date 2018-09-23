@@ -3,6 +3,7 @@
 
 layout(binding = 0, set = 0) uniform ViewUBO {
     mat4 view;
+    mat4 viewInv;
     vec2 screenOffset;
     vec2 screenSizeFactor;
     vec2 depthOffsetAndFactor;

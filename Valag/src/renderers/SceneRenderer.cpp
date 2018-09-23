@@ -9,8 +9,10 @@
 namespace vlg
 {
 
-const char *SceneRenderer::ISOSPRITE_VERTSHADERFILE = "isoSpriteShader.vert.spv";
-const char *SceneRenderer::ISOSPRITE_FRAGSHADERFILE = "isoSpriteShader.frag.spv";
+const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
+const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "isoSpriteShader.frag.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADETECT_VERTSHADERFILE = "isoSpriteAlphaDetection.vert.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADETECT_FRAGSHADERFILE = "isoSpriteAlphaDetection.frag.spv";
 const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "ambientLighting.vert.spv";
 const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "ambientLighting.frag.spv";
 const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
@@ -38,8 +40,11 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_toneMappingPass, imageIndex, m_curFrameIndex);
 
         m_toneMappingPipeline.bind(cmb);
+        //vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
+          //                      0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_toneMappingPass,imageIndex)};
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_toneMappingPipeline.getLayout(),
-                                0, 1, &m_hdrDescriptorSets[imageIndex], 0, NULL);
+                                0, 1, descSets, 0, NULL);
         vkCmdDraw(cmb, 3, 1, 0, 0);
 
     return m_renderGraph.endRecording(m_toneMappingPass);
@@ -49,25 +54,47 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     size_t spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
+    VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
+
+    VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                        VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_deferredPass, imageIndex, m_curFrameIndex);
 
-        m_deferredPipeline.bind(cmb);
-
-        VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
         if(spritesVboSize != 0)
         {
-            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
             vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+
+            m_deferredPipeline.bind(cmb);
+
             vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
 
-    return m_renderGraph.endRecording(m_deferredPass);
+    if(!m_renderGraph.endRecording(m_deferredPass))
+        return (false);
+
+    cmb = m_renderGraph.startRecording(m_alphaDetectPass, imageIndex, m_curFrameIndex);
+
+        vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_alphaDetectPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+        if(spritesVboSize != 0)
+        {
+            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+
+            m_alphaDetectPipeline.bind(cmb);
+
+            vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
+        }
+
+    if(!m_renderGraph.endRecording(m_alphaDetectPass))
+        return (false);
+
+    return (true);
 }
 
 
@@ -76,8 +103,12 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_ambientLightingPass, imageIndex, m_curFrameIndex);
 
         m_ambientLightingPipeline.bind(cmb);
+        //vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
+          //                      0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
+
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex)};
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
-                                0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
+                                0, 1, descSets, 0, NULL);
         vkCmdDraw(cmb, 3, 1, 0, 0);
 
     return m_renderGraph.endRecording(m_ambientLightingPass);
@@ -110,18 +141,21 @@ bool SceneRenderer::createRenderPass()
 {
     if(!this->createDeferredRenderPass())
         return (false);
+    if(!this->createAlphaDetectRenderPass())
+        return (false);
     if(!this->createAmbientLightingRenderPass())
         return (false);
     if(!this->createToneMappingRenderPass())
         return (false);
 
     m_renderGraph.connectRenderPasses(m_deferredPass, m_ambientLightingPass);
+    m_renderGraph.connectRenderPasses(m_deferredPass, m_alphaDetectPass);
     m_renderGraph.connectRenderPasses(m_ambientLightingPass, m_toneMappingPass);
 
     return (true);
 }
 
-bool SceneRenderer::createDescriptorSetLayouts()
+/*bool SceneRenderer::createDescriptorSetLayouts()
 {
     VkDevice device = VInstance::device();
 
@@ -161,11 +195,13 @@ bool SceneRenderer::createDescriptorSetLayouts()
         return (false);
 
     return (true);
-}
+}*/
 
 bool SceneRenderer::createGraphicsPipeline()
 {
     if(!this->createDeferredPipeline())
+        return (false);
+    if(!this->createAlphaDetectPipeline())
         return (false);
     if(!this->createAmbientLightingPipeline())
         return (false);
@@ -175,7 +211,7 @@ bool SceneRenderer::createGraphicsPipeline()
     return (true);
 }
 
-bool SceneRenderer::createDescriptorPool()
+/*bool SceneRenderer::createDescriptorPool()
 {
     uint32_t imagesCount = static_cast<uint32_t>(m_targetWindow->getSwapchainSize());
 
@@ -230,10 +266,10 @@ bool SceneRenderer::createDescriptorSets()
 
         std::array<VkDescriptorImageInfo,4> deferredImageInfos{};
 
-        deferredImageInfos[0].imageView = m_albedoAttachments[i].view;
-        deferredImageInfos[1].imageView = m_heightAttachments[i].view;
-        deferredImageInfos[2].imageView = m_normalAttachments[i].view;
-        deferredImageInfos[3].imageView = m_rmtAttachments[i].view;
+        deferredImageInfos[0].imageView = m_albedoAttachments[0][i].view;
+        deferredImageInfos[1].imageView = m_positionAttachments[0][i].view;
+        deferredImageInfos[2].imageView = m_normalAttachments[0][i].view;
+        deferredImageInfos[3].imageView = m_rmtAttachments[0][i].view;
 
         for(size_t j = 0 ; j < deferredImageInfos.size() ; ++j)
         {
@@ -248,7 +284,7 @@ bool SceneRenderer::createDescriptorSets()
         VkDescriptorImageInfo hdrImageInfo = {};
         hdrImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         hdrImageInfo.sampler     = m_attachmentsSampler;
-        hdrImageInfo.imageView   = m_hdrAttachements[i].view;
+        hdrImageInfo.imageView   = m_hdrAttachements[0][i].view;
 
         descriptorWrites[4].dstSet = m_hdrDescriptorSets[i];
         descriptorWrites[4].dstBinding = 0;
@@ -258,49 +294,58 @@ bool SceneRenderer::createDescriptorSets()
     }
 
     return (true);
-}
+}*/
 
 bool SceneRenderer::createAttachments()
 {
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
-    m_albedoAttachments.resize(imagesCount);
-    m_heightAttachments.resize(imagesCount);
-    m_normalAttachments.resize(imagesCount);
-    m_rmtAttachments.resize(imagesCount);
-    m_hdrAttachements.resize(imagesCount);
+    size_t imagesCount  = m_targetWindow->getSwapchainSize();
+    uint32_t width      = m_targetWindow->getSwapchainExtent().width;
+    uint32_t height     = m_targetWindow->getSwapchainExtent().height;
 
-    uint32_t width = m_targetWindow->getSwapchainExtent().width;
-    uint32_t height = m_targetWindow->getSwapchainExtent().height;
+    m_deferredDepthAttachments.resize(imagesCount);
+    m_alphaDetectAttachments.resize(imagesCount);
 
-    for(size_t i = 0 ; i < imagesCount ; ++i)
+    for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
     {
-        if(!
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, m_albedoAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT,
-                                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_heightAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[i]) &
-            VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[i])
-        )
-            return (false);
+        m_albedoAttachments[a].resize(imagesCount);
+        m_positionAttachments[a].resize(imagesCount);
+        m_normalAttachments[a].resize(imagesCount);
+        m_rmtAttachments[a].resize(imagesCount);
+        m_hdrAttachements[a].resize(imagesCount);
 
-        /*VulkanHelpers::transitionImageLayout(m_albedoAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        VulkanHelpers::transitionImageLayout(m_heightAttachments[i].image.vkImage, 0, VK_FORMAT_D32_SFLOAT,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        VulkanHelpers::transitionImageLayout(m_normalAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        VulkanHelpers::transitionImageLayout(m_rmtAttachments[i].image.vkImage, 0, VK_FORMAT_R8G8B8A8_UNORM,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        VulkanHelpers::transitionImageLayout(m_hdrAttachements[i].image.vkImage, 0, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);*/
+        for(size_t i = 0 ; i < imagesCount ; ++i)
+        {
+            if(a == 0)
+            {
+                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT,
+                                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_deferredDepthAttachments[i]))
+                    return (false);
+
+                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8_UINT,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_alphaDetectAttachments[i]))
+                    return (false);
+            }
+
+            if(!
+                VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_albedoAttachments[a][i]) &
+                VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_positionAttachments[a][i]) &
+                VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[a][i]) &
+                VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[a][i]) &
+                VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[a][i])
+            )
+            return (false);
+        }
     }
 
-    VkSamplerCreateInfo samplerInfo = {};
+    return (true);
+
+
+    /*VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType       = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter   = VK_FILTER_NEAREST;
     samplerInfo.minFilter   = VK_FILTER_NEAREST;
@@ -319,20 +364,44 @@ bool SceneRenderer::createAttachments()
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.anisotropyEnable = VK_FALSE;
 
-    return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_attachmentsSampler) == VK_SUCCESS);
+    return (vkCreateSampler(VInstance::device(), &samplerInfo, nullptr, &m_attachmentsSampler) == VK_SUCCESS);*/
 }
 
 bool SceneRenderer::createDeferredRenderPass()
 {
     m_deferredPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
-        std::vector<VFramebufferAttachment> attachements = {m_albedoAttachments[i],
-                                                            m_heightAttachments[i],
-                                                            m_normalAttachments[i],
-                                                            m_rmtAttachments[i]};
+        std::vector<VFramebufferAttachment> attachements = {m_albedoAttachments[0][i],
+                                                            m_positionAttachments[0][i],
+                                                            m_normalAttachments[0][i],
+                                                            m_rmtAttachments[0][i],
+                                                            m_deferredDepthAttachments[i]};
         m_renderGraph.setAttachments(m_deferredPass, i, attachements);
-    }
+    }*/
+
+    m_renderGraph.addNewAttachments(m_deferredPass, m_albedoAttachments[0]);
+    m_renderGraph.addNewAttachments(m_deferredPass, m_positionAttachments[0]);
+    m_renderGraph.addNewAttachments(m_deferredPass, m_normalAttachments[0]);
+    m_renderGraph.addNewAttachments(m_deferredPass, m_rmtAttachments[0]);
+    m_renderGraph.addNewAttachments(m_deferredPass, m_deferredDepthAttachments);
+
+    return (true);
+}
+
+bool SceneRenderer::createAlphaDetectRenderPass()
+{
+    m_alphaDetectPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    {
+        std::vector<VFramebufferAttachment> attachements = {m_alphaDetectAttachments[i],
+                                                            m_deferredDepthAttachments[i]};
+        m_renderGraph.setAttachments(m_alphaDetectPass, i, attachements);
+    }*/
+
+    m_renderGraph.addNewAttachments(m_alphaDetectPass, m_alphaDetectAttachments, VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDetectPass, 4);
+    //m_renderGraph.addNewAttachments(m_alphaDetectPass, m_deferredDepthAttachments, VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_LOAD);
 
     return (true);
 }
@@ -340,11 +409,16 @@ bool SceneRenderer::createDeferredRenderPass()
 bool SceneRenderer::createAmbientLightingRenderPass()
 {
     m_ambientLightingPass = m_renderGraph.addRenderPass(0);
-    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
-        std::vector<VFramebufferAttachment> attachements = {m_hdrAttachements[i]};
+        std::vector<VFramebufferAttachment> attachements = {m_hdrAttachements[0][i]};
         m_renderGraph.setAttachments(m_ambientLightingPass, i, attachements);
-    }
+    }*/
+    m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[0]);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 2);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 3);
 
     return (true);
 }
@@ -352,12 +426,15 @@ bool SceneRenderer::createAmbientLightingRenderPass()
 bool SceneRenderer::createToneMappingRenderPass()
 {
     m_toneMappingPass = m_renderGraph.addRenderPass(0);
-    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
         std::vector<VFramebufferAttachment> attachements = {m_targetWindow->getSwapchainAttachments()[i],
                                                             m_targetWindow->getSwapchainDepthAttachments()[i]};
         m_renderGraph.setAttachments(m_toneMappingPass, i, attachements);
-    }
+    }*/
+    m_renderGraph.addNewAttachments(m_toneMappingPass, m_targetWindow->getSwapchainAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderGraph.addNewAttachments(m_toneMappingPass, m_targetWindow->getSwapchainDepthAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderGraph.transferAttachmentsToUniforms(m_ambientLightingPass, m_toneMappingPass, 0);
 
     return (true);
 }
@@ -365,8 +442,8 @@ bool SceneRenderer::createToneMappingRenderPass()
 bool SceneRenderer::createDeferredPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
-    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_VERTSHADERFILE;
-    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_FRAGSHADERFILE;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_DEFERRED_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_DEFERRED_FRAGSHADERFILE;
 
     m_deferredPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_deferredPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -385,7 +462,33 @@ bool SceneRenderer::createDeferredPipeline()
 
     m_deferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    return m_deferredPipeline.init(m_renderGraph.getVkRenderPass(m_deferredPass), 0, 3);
+    return m_deferredPipeline.init(m_renderGraph.getVkRenderPass(m_deferredPass), 0, 4);
+}
+
+bool SceneRenderer::createAlphaDetectPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_ALPHADETECT_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_ALPHADETECT_FRAGSHADERFILE;
+
+    m_alphaDetectPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_alphaDetectPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    auto bindingDescription = InstanciedIsoSpriteDatum::getBindingDescription();
+    auto attributeDescriptions = InstanciedIsoSpriteDatum::getAttributeDescriptions();
+    m_alphaDetectPipeline.setVertexInput(1, &bindingDescription,
+                                    attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_alphaDetectPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
+
+    m_alphaDetectPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+    m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+
+    m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
+
+    return m_alphaDetectPipeline.init(m_renderGraph.getVkRenderPass(m_alphaDetectPass), 0, 1);
 }
 
 
@@ -400,7 +503,8 @@ bool SceneRenderer::createAmbientLightingPipeline()
 
     m_ambientLightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
-    m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
+    //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
+    m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
 
     return m_ambientLightingPipeline.init(m_renderGraph.getVkRenderPass(m_ambientLightingPass), 0);
 }
@@ -418,43 +522,48 @@ bool SceneRenderer::createToneMappingPipeline()
 
     m_toneMappingPipeline.setBlendMode(BlendMode_None);
 
-    m_toneMappingPipeline.attachDescriptorSetLayout(m_hdrDescriptorSetLayout);
+    //m_toneMappingPipeline.attachDescriptorSetLayout(m_hdrDescriptorSetLayout);
+    m_toneMappingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_toneMappingPass));
 
     return m_toneMappingPipeline.init(m_renderGraph.getVkRenderPass(m_toneMappingPass), 0);
 }
 
 void SceneRenderer::cleanup()
 {
-    VkDevice device = VInstance::device();
-
     m_spritesVbos.clear();
 
-    vkDestroySampler(device, m_attachmentsSampler, nullptr);
+    //vkDestroySampler(device, m_attachmentsSampler, nullptr);
 
-    for(auto attachement : m_albedoAttachments)
+    for(auto attachement : m_deferredDepthAttachments)
         VulkanHelpers::destroyAttachment(attachement);
-    m_albedoAttachments.clear();
+    m_deferredDepthAttachments.clear();
 
-    for(auto attachement : m_heightAttachments)
+    for(auto attachement : m_alphaDetectAttachments)
         VulkanHelpers::destroyAttachment(attachement);
-    m_heightAttachments.clear();
+    m_alphaDetectAttachments.clear();
 
-    for(auto attachement : m_normalAttachments)
-        VulkanHelpers::destroyAttachment(attachement);
-    m_normalAttachments.clear();
+    for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
+    {
+        for(auto attachement : m_albedoAttachments[a])
+            VulkanHelpers::destroyAttachment(attachement);
+        m_albedoAttachments[a].clear();
 
-    for(auto attachement : m_rmtAttachments)
-        VulkanHelpers::destroyAttachment(attachement);
-    m_rmtAttachments.clear();
+        for(auto attachement : m_positionAttachments[a])
+            VulkanHelpers::destroyAttachment(attachement);
+        m_positionAttachments[a].clear();
 
-    for(auto attachement : m_hdrAttachements)
-        VulkanHelpers::destroyAttachment(attachement);
-    m_hdrAttachements.clear();
+        for(auto attachement : m_normalAttachments[a])
+            VulkanHelpers::destroyAttachment(attachement);
+        m_normalAttachments[a].clear();
 
-    vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
+        for(auto attachement : m_rmtAttachments[a])
+            VulkanHelpers::destroyAttachment(attachement);
+        m_rmtAttachments[a].clear();
 
-    vkDestroyDescriptorSetLayout(device, m_deferredDescriptorSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(device, m_hdrDescriptorSetLayout, nullptr);
+        for(auto attachement : m_hdrAttachements[a])
+            VulkanHelpers::destroyAttachment(attachement);
+        m_hdrAttachements[a].clear();
+    }
 
     m_deferredPipeline.destroy();
     m_ambientLightingPipeline.destroy();

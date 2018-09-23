@@ -125,6 +125,10 @@
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/shaders/instancingShader.frag" />
 		<Unit filename="../../Valag/shaders/instancingShader.vert" />
+		<Unit filename="../../Valag/shaders/isoSpriteAlphaDetection.frag" />
+		<Unit filename="../../Valag/shaders/isoSpriteAlphaDetection.vert" />
+		<Unit filename="../../Valag/shaders/isoSpriteAlphaShader.frag" />
+		<Unit filename="../../Valag/shaders/isoSpriteAlphaShader.vert" />
 		<Unit filename="../../Valag/shaders/isoSpriteShader.frag" />
 		<Unit filename="../../Valag/shaders/isoSpriteShader.vert" />
 		<Unit filename="../../Valag/shaders/toneMapping.frag" />

@@ -3,12 +3,12 @@
 
 layout(binding = 0, set = 0) uniform ViewUBO {
     mat4 view;
+    mat4 viewInv;
     vec2 screenOffset;
     vec2 screenSizeFactor;
     vec2 depthOffsetAndFactor;
 } viewUbo;
 
-//layout(location = 0) in mat4 inModel;
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in float inRotation;
 layout(location = 2) in vec3 inSize;
@@ -29,7 +29,8 @@ layout(location = 3) flat out uvec2 fragAlbedoTexId;
 layout(location = 4) flat out uvec2 fragHeightTexId;
 layout(location = 5) flat out uvec2 fragNormalTexId;
 layout(location = 6) flat out uvec2 fragRmtTexId;
-layout(location = 7) flat out float heightFactor;
+layout(location = 7) flat out float depthFactor;
+layout(location = 8) out vec4 screenPosAndHeight;
 
 
 vec2 vertPos[4] = vec2[](
@@ -54,6 +55,9 @@ void main()
     float s = sin(inRotation);
 
     gl_Position = vec4(spriteViewCenter.xyz + vec3( mat2(c,s,-s,c) * (vertPos[gl_VertexIndex] * inSize.xy - inCenter), 0.0), 1.0);
+
+    screenPosAndHeight = vec4(gl_Position.xyz, inSize.z);
+
     gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
                         + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);
 
@@ -64,7 +68,7 @@ void main()
     fragHeightTexId    = inHeightTexId;
     fragNormalTexId    = inNormalTexId;
     fragRmtTexId       = inRmtTexId;
-    heightFactor       = inSize.z * viewUbo.depthOffsetAndFactor.y;
+    depthFactor        = inSize.z * viewUbo.depthOffsetAndFactor.y;
 }
 
 

@@ -218,12 +218,13 @@ void Scene::render(SceneRenderer *renderer)
     {
         glm::vec3 camPos = m_currentCamera->getParentNode()->getGlobalPosition();
        // camPos.z = 0;
-        glm::mat4 view = glm::translate(glm::mat4(1.0), -camPos);
+        glm::mat4 camTranslate = glm::translate(glm::mat4(1.0), -camPos);
+        glm::mat4 camTranslateInv = glm::translate(glm::mat4(1.0), camPos);
         /*glm::mat4 view(1,0,0,-m_currentCamera->getParentNode()->getGlobalPosition().x,
                        0,1,0,-m_currentCamera->getParentNode()->getGlobalPosition().y,
                        0,0,1,-m_currentCamera->getParentNode()->getGlobalPosition().z,
                        0,0,0,1);*/
-        renderer->setView(m_viewAngle*view);
+        renderer->setView(m_viewAngle*camTranslate, camTranslateInv*m_viewAngleInv);
         m_rootNode.render(renderer);
     }
 }

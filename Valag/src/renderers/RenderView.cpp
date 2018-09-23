@@ -16,6 +16,7 @@ RenderView::RenderView() :
     m_viewUbo.screenOffset          = glm::vec2(0.0f, 0.0f);
     m_viewUbo.screenSizeFactor      = glm::vec2(1.0f, 1.0f);
     m_viewUbo.view                  = glm::mat4(1.0f);
+    m_viewUbo.viewInv               = glm::mat4(1.0f);
 }
 
 RenderView::~RenderView()
@@ -90,12 +91,14 @@ void RenderView::setLookAt(glm::vec3 position, glm::vec3 lookAt)
 {
     for(auto b : m_needToUpdateBuffers) b = true;
     m_viewUbo.view = glm::lookAt(position, lookAt, glm::vec3(0.0,0.0,1.0));
+    m_viewUbo.viewInv = glm::inverse(m_viewUbo.view); ///Could maybe be optimize
 }
 
-void RenderView::setView(glm::mat4 view)
+void RenderView::setView(glm::mat4 view, glm::mat4 viewInv)
 {
     for(auto b : m_needToUpdateBuffers) b = true;
-    m_viewUbo.view = view;
+    m_viewUbo.view      = view;
+    m_viewUbo.viewInv   = viewInv;
 }
 
 void RenderView::setZoom(float zoom)
@@ -141,7 +144,7 @@ bool RenderView::createDescriptorSetLayout()
     layoutBinding.binding = 0;
     layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     layoutBinding.descriptorCount = 1;
-    layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //| VK_SHADER_STAGE_FRAGMENT_BIT; ///I could need to update to frag stage also
+    layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; ///I could need to update to frag stage also
     layoutBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};

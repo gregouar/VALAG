@@ -39,9 +39,9 @@ void AbstractRenderer::render(uint32_t imageIndex)
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
 }
 
-void AbstractRenderer::setView(glm::mat4 view)
+void AbstractRenderer::setView(glm::mat4 view, glm::mat4 viewInv)
 {
-    m_renderView.setView(view);
+    m_renderView.setView(view, viewInv);
 }
 
 std::vector<FullRenderPass*> AbstractRenderer::getFinalPasses()
@@ -57,12 +57,16 @@ RendererName AbstractRenderer::getName()
 bool AbstractRenderer::createRenderPass()
 {
     m_defaultPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
+    /*for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
         std::vector<VFramebufferAttachment> attachements = {m_targetWindow->getSwapchainAttachments()[i],
                                                             m_targetWindow->getSwapchainDepthAttachments()[i]};
         m_renderGraph.setAttachments(m_defaultPass, i, attachements);
-    }
+    }*/
+
+    ///Could add something to change loadOp/storeOp depending on RendererOrder
+    m_renderGraph.addNewAttachments(m_defaultPass, m_targetWindow->getSwapchainAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderGraph.addNewAttachments(m_defaultPass, m_targetWindow->getSwapchainDepthAttachments(), VK_ATTACHMENT_STORE_OP_STORE);
 
     return (true);
 }
@@ -140,6 +144,23 @@ void AbstractRenderer::cleanup()
 
     m_renderGraph.destroy();
 }
+
+
+bool AbstractRenderer::createDescriptorSetLayouts()
+{
+    return (true);
+}
+
+bool AbstractRenderer::createDescriptorPool()
+{
+    return (true);
+}
+
+bool AbstractRenderer::createDescriptorSets()
+{
+    return (true);
+}
+
 
 
 }

@@ -8,6 +8,7 @@ namespace vlg
 
 struct ViewUBO {
     glm::mat4 view;
+    glm::mat4 viewInv;
     glm::vec2 screenOffset;
     glm::vec2 screenSizeFactor;
     glm::vec2 depthOffsetAndFactor;
@@ -30,7 +31,7 @@ class RenderView
         void setScreenOffset(glm::vec3 offset);
 
         void setLookAt(glm::vec3 position, glm::vec3 lookAt);
-        void setView(glm::mat4 view);
+        void setView(glm::mat4 view, glm::mat4 viewInv);
         void setZoom(float zoom);
 
         VkDescriptorSetLayout   getDescriptorSetLayout();

@@ -1,6 +1,8 @@
 #ifndef RENDERGRAPH_H
 #define RENDERGRAPH_H
 
+#include <set>
+
 #include "Valag/renderers/FullRenderPass.h"
 
 namespace vlg
@@ -24,13 +26,23 @@ class RenderGraph
         size_t  addRenderPass(VkFlags usage = 0);
         void    connectRenderPasses(size_t src, size_t dst);
 
+        ///Will automatically connect both renderPasses
+        void    transferAttachmentsToAttachments(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex,
+                                    VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE);
+        void    transferAttachmentsToUniforms(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex);
+
         ///If an attachment is of type VK_IMAGE_LAYOUT_PRESENT_SRC_KHR then the cmb will be returned by submitToGraphicsQueue in order to be
         ///rendered by RenderWindow
-        void    setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
+       // void    setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
+        void    addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
+                               VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
+
+
         void    setClearValue(size_t renderPassIndex, size_t attachmentIndex ,glm::vec4 color, glm::vec2 depth);
 
-        VkRenderPass getVkRenderPass(size_t renderPassIndex);
-
+        VkRenderPass            getVkRenderPass(size_t renderPassIndex);
+        VkDescriptorSetLayout   getDescriptorLayout(size_t renderPassIndex);
+        VkDescriptorSet         getDescriptorSet(size_t renderPassIndex, size_t imageIndex);
 
         VkCommandBuffer startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex,
                                        VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
@@ -41,16 +53,23 @@ class RenderGraph
 
     protected:
         bool createSemaphores();
+        bool createDescriptorPool();
+        bool createSampler();
         bool initRenderPasses();
 
     protected:
         VkExtent2D  m_defaultExtent;
         size_t      m_imagesCount, m_framesCount;
 
-        std::list<std::pair<size_t, size_t> > m_connexions; //Second one is waiting for first one
+        std::set<std::pair<size_t, size_t> > m_connexions; //Second one is waiting for first one
 
         std::vector<FullRenderPass*> m_renderPasses;
         std::list<VkSemaphore> m_semaphores;
+
+
+        std::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
+        VkDescriptorPool    m_descriptorPool;
+        VkSampler           m_sampler;
 
     private:
 
