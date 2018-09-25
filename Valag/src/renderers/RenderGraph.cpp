@@ -100,7 +100,7 @@ void RenderGraph::transferAttachmentsToAttachments(size_t srcRenderPass, size_t 
     auto attachements = m_renderPasses[srcRenderPass]->getAttachments(attachmentsIndex);
     m_renderPasses[srcRenderPass]->setAttachmentsStoreOp(attachmentsIndex, VK_ATTACHMENT_STORE_OP_STORE);
     m_renderPasses[dstRenderPass]->addAttachments(attachements,storeOp,VK_ATTACHMENT_LOAD_OP_LOAD);
-    this->connectRenderPasses(srcRenderPass, dstRenderPass);
+    //this->connectRenderPasses(srcRenderPass, dstRenderPass);
 }
 
 void RenderGraph::transferAttachmentsToUniforms(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex)
@@ -109,7 +109,7 @@ void RenderGraph::transferAttachmentsToUniforms(size_t srcRenderPass, size_t dst
     m_renderPasses[srcRenderPass]->setAttachmentsStoreOp(attachmentsIndex, VK_ATTACHMENT_STORE_OP_STORE, true);
     m_descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(m_imagesCount)});
     m_renderPasses[dstRenderPass]->addUniforms(attachements);
-    this->connectRenderPasses(srcRenderPass, dstRenderPass);
+    //this->connectRenderPasses(srcRenderPass, dstRenderPass);
 }
 
 void RenderGraph::setClearValue(size_t renderPassIndex, size_t attachmentIndex, glm::vec4 color, glm::vec2 depth)
@@ -160,11 +160,11 @@ std::vector<FullRenderPass*> RenderGraph::submitToGraphicsQueue(size_t imageInde
         } else {
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.waitSemaphoreCount   = static_cast<uint32_t>(renderPass->getWaitSemaphores(frameIndex).size());
+            submitInfo.waitSemaphoreCount   = /*0;//*/static_cast<uint32_t>(renderPass->getWaitSemaphores(frameIndex).size());
             submitInfo.pWaitDstStageMask    = renderPass->getWaitSemaphoresStages().data();
             submitInfo.pWaitSemaphores      = renderPass->getWaitSemaphores(frameIndex).data();
 
-            submitInfo.signalSemaphoreCount   = static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size());
+            submitInfo.signalSemaphoreCount   = /*0;//*/static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size());
             submitInfo.pSignalSemaphores      = renderPass->getSignalSemaphores(frameIndex).data();
 
             /*VkSemaphore signalSemaphore = renderPass->getSignalSemaphore(frameIndex);
@@ -214,7 +214,7 @@ bool RenderGraph::createSemaphores()
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 
-    for(auto connexion : m_connexions)
+    for(auto &connexion : m_connexions)
     {
         for(size_t i = 0 ; i < m_framesCount ; ++i)
         {

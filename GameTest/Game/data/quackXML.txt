@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<mesh>
+	<name>Quack</name>
+	<scale>1</scale>
+	<model>quack.obj</model>
+	<material>quackMaterial.txt</material>
+</mesh>

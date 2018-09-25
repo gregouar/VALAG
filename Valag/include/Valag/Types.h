@@ -22,6 +22,7 @@ class ShadowCaster;**/
 template<class AssetType> class AssetHandler;
 class TextureAsset;
 class MaterialAsset;
+class MeshAsset;
 
 enum RendererName
 {
@@ -127,6 +128,7 @@ typedef MapIterator<NodeTypeID, SceneNode*> SceneNodeIterator;**/
 
 typedef AssetHandler<TextureAsset>  TexturesHandler;
 typedef AssetHandler<MaterialAsset> MaterialsHandler;
+typedef AssetHandler<MeshAsset>     MeshesHandler;
 
 const std::string emptyString;
 ///const sf::Texture emptyTexture;

@@ -4,6 +4,8 @@ namespace vlg
 {
 
 DynamicUBODescriptor::DynamicUBODescriptor(size_t objectSize, size_t chunkSize) :
+    m_descriptorSetLayout(VK_NULL_HANDLE),
+    m_descriptorPool(VK_NULL_HANDLE),
     m_objectSize(objectSize),
     m_chunkSize(chunkSize)
 {
@@ -48,13 +50,17 @@ void DynamicUBODescriptor::cleanup()
 {
     auto device = VInstance::device();
 
-    vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
+    if(m_descriptorPool != VK_NULL_HANDLE)
+        vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
+    m_descriptorPool = VK_NULL_HANDLE;
 
     for(auto buffer : m_buffers)
         delete buffer;
     m_buffers.clear();
 
-    vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
+    if(m_descriptorSetLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
+    m_descriptorPool = VK_NULL_HANDLE;
 }
 
 bool DynamicUBODescriptor::createDescriptorSetLayouts()

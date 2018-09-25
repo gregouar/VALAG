@@ -179,7 +179,7 @@ glm::vec3 IsoSpriteEntity::getRmt()
     return m_rmt;
 }
 
-///I'll need to improve modelMatrix
+///I'll need to improve modelMatrix (update only when necessary)
 InstanciedIsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
 {
     InstanciedIsoSpriteDatum datum;

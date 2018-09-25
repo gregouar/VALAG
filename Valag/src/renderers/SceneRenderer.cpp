@@ -1,7 +1,9 @@
 #include "Valag/renderers/SceneRenderer.h"
 
 #include "Valag/core/VApp.h"
+#include "Valag/assets/MeshAsset.h"
 #include "Valag/scene/IsoSpriteEntity.h"
+#include "Valag/scene/MeshEntity.h"
 #include "Valag/utils/Logger.h"
 
 #include <sstream>
@@ -11,6 +13,8 @@ namespace vlg
 
 const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
 const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "isoSpriteShader.frag.spv";
+const char *SceneRenderer::MESH_DEFERRED_VERTSHADERFILE = "meshShader.vert.spv";
+const char *SceneRenderer::MESH_DEFERRED_FRAGSHADERFILE = "meshShader.frag.spv";
 const char *SceneRenderer::ISOSPRITE_ALPHADETECT_VERTSHADERFILE = "isoSpriteAlphaDetection.vert.spv";
 const char *SceneRenderer::ISOSPRITE_ALPHADETECT_FRAGSHADERFILE = "isoSpriteAlphaDetection.frag.spv";
 const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
@@ -37,6 +41,15 @@ void SceneRenderer::addToSpritesVbo(const InstanciedIsoSpriteDatum &datum)
     m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
+void SceneRenderer::addToMeshVbo(MeshAsset* mesh, const MeshDatum &datum)
+{
+    auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
+    if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
+        foundedVbo = m_meshesVbos[m_curFrameIndex].insert(foundedVbo, {mesh, DynamicVBO<MeshDatum>(4)});
+    foundedVbo->second.push_back(datum);
+    //m_spritesVbos[m_curFrameIndex].push_back(datum);
+}
+
 bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 {
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_toneMappingPass, imageIndex, m_curFrameIndex);
@@ -55,8 +68,21 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
-    size_t spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
-    VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
+    size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
+    VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
+
+    std::vector<size_t>     meshesVboSize(m_meshesVbos[m_curFrameIndex].size());
+    std::vector<VBuffer>    meshesInstanceVB(m_meshesVbos[m_curFrameIndex].size());
+
+    ///I could put this in recording to save time
+    size_t i = 0;
+    for(auto &mesh : m_meshesVbos[m_curFrameIndex])
+    {
+        meshesVboSize[i]    = mesh.second.uploadVBO();
+        meshesInstanceVB[i] = mesh.second.getBuffer();
+        i++;
+
+    }
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                         VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
@@ -65,13 +91,40 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_deferredPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+                                m_deferredSpritesPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+
+        m_deferredMeshesPipeline.bind(cmb);
+
+        size_t j = 0;
+        for(auto &mesh : m_meshesVbos[m_curFrameIndex])
+        {
+            if(meshesVboSize[j] != 0)
+            {
+                VBuffer vertexBuffer = mesh.first->getVertexBuffer();
+                VBuffer indexBuffer = mesh.first->getIndexBuffer();
+
+                //Mesh vertex buffer
+                vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer,
+                                                  &vertexBuffer.offset);
+                //Instance vertex buffer
+                vkCmdBindVertexBuffers(cmb, 1, 1, &meshesInstanceVB[j].buffer,
+                                                  &meshesInstanceVB[j].offset);
+
+                vkCmdBindIndexBuffer(cmb, indexBuffer.buffer,
+                                          indexBuffer.offset, VK_INDEX_TYPE_UINT16);
+
+                vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), meshesVboSize[j], 0, 0, 0);
+            }
+
+            j++;
+        }
 
         if(spritesVboSize != 0)
         {
-            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdBindVertexBuffers(cmb, 0, 1, &spritesInstancesVB.buffer, &spritesInstancesVB.offset);
 
-            m_deferredPipeline.bind(cmb);
+            m_deferredSpritesPipeline.bind(cmb);
 
             vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
@@ -86,7 +139,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
         if(spritesVboSize != 0)
         {
-            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdBindVertexBuffers(cmb, 0, 1, &spritesInstancesVB.buffer, &spritesInstancesVB.offset);
 
             m_alphaDetectPipeline.bind(cmb);
 
@@ -108,7 +161,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
         if(spritesVboSize != 0)
         {
-            vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
+            vkCmdBindVertexBuffers(cmb, 0, 1, &spritesInstancesVB.buffer, &spritesInstancesVB.offset);
 
             m_alphaDeferredPipeline.bind(cmb);
 
@@ -145,6 +198,7 @@ bool SceneRenderer::init()
 
     m_spritesVbos.resize(m_targetWindow->getFramesCount(),
                          DynamicVBO<InstanciedIsoSpriteDatum>(1024));
+    m_meshesVbos.resize(m_targetWindow->getFramesCount());
 
     if(!this->createAttachments())
         return (false);
@@ -171,12 +225,16 @@ void SceneRenderer::prepareRenderPass()
 
     /*m_renderGraph.connectRenderPasses(m_deferredPass, m_ambientLightingPass);
     m_renderGraph.connectRenderPasses(m_deferredPass, m_alphaDetectPass);
+    m_renderGraph.connectRenderPasses(m_alphaDetectPass, m_alphaDeferredPass);
+    m_renderGraph.connectRenderPasses(m_alphaDeferredPass, m_ambientLightingPass);
     m_renderGraph.connectRenderPasses(m_ambientLightingPass, m_toneMappingPass);*/
 }
 
 bool SceneRenderer::createGraphicsPipeline()
 {
-    if(!this->createDeferredPipeline())
+    if(!this->createDeferredSpritesPipeline())
+        return (false);
+    if(!this->createDeferredMeshesPipeline())
         return (false);
     if(!this->createAlphaDetectPipeline())
         return (false);
@@ -299,31 +357,75 @@ void SceneRenderer::prepareToneMappingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_ambientLightingPass, m_toneMappingPass, 1);
 }
 
-bool SceneRenderer::createDeferredPipeline()
+bool SceneRenderer::createDeferredSpritesPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
     vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_DEFERRED_VERTSHADERFILE;
     fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_DEFERRED_FRAGSHADERFILE;
 
-    m_deferredPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
-    m_deferredPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+    m_deferredSpritesPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_deferredSpritesPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
     auto bindingDescription = InstanciedIsoSpriteDatum::getBindingDescription();
     auto attributeDescriptions = InstanciedIsoSpriteDatum::getAttributeDescriptions();
-    m_deferredPipeline.setVertexInput(1, &bindingDescription,
+    m_deferredSpritesPipeline.setVertexInput(1, &bindingDescription,
                                     attributeDescriptions.size(), attributeDescriptions.data());
 
-    m_deferredPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
+    m_deferredSpritesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_deferredPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_deferredSpritesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
-    m_deferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_deferredPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_deferredSpritesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
 
-    m_deferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+    m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    return m_deferredPipeline.init( m_renderGraph.getVkRenderPass(m_deferredPass), 0,
-                                    m_renderGraph.getColorAttachmentsCount(m_deferredPass));
+    return m_deferredSpritesPipeline.init(  m_renderGraph.getVkRenderPass(m_deferredPass), 0,
+                                            m_renderGraph.getColorAttachmentsCount(m_deferredPass));
+}
+
+bool SceneRenderer::createDeferredMeshesPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << MESH_DEFERRED_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << MESH_DEFERRED_FRAGSHADERFILE;
+
+    m_deferredMeshesPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_deferredMeshesPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    std::vector<VkVertexInputBindingDescription> bindingDescriptions =
+                {  MeshVertex::getBindingDescription(),
+                    MeshDatum::getBindingDescription() };
+
+    auto vertexAttributeDescriptions = MeshVertex::getAttributeDescriptions();
+    auto instanceAttributeDescriptions = MeshDatum::getAttributeDescriptions();
+
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    attributeDescriptions.insert(attributeDescriptions.end(),
+                                 vertexAttributeDescriptions.begin(),
+                                 vertexAttributeDescriptions.end());
+
+    attributeDescriptions.insert(attributeDescriptions.end(),
+                                 instanceAttributeDescriptions.begin(),
+                                 instanceAttributeDescriptions.end());
+
+    m_deferredMeshesPipeline.setVertexInput(bindingDescriptions.size(), bindingDescriptions.data(),
+                                            attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_deferredMeshesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
+
+    m_deferredMeshesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+    m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+
+    m_deferredMeshesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    m_deferredMeshesPipeline.setCullMode(VK_CULL_MODE_BACK_BIT);
+
+    return m_deferredMeshesPipeline.init(   m_renderGraph.getVkRenderPass(m_deferredPass), 0,
+                                            m_renderGraph.getColorAttachmentsCount(m_deferredPass));
 }
 
 bool SceneRenderer::createAlphaDetectPipeline()
@@ -422,6 +524,7 @@ bool SceneRenderer::createToneMappingPipeline()
 void SceneRenderer::cleanup()
 {
     m_spritesVbos.clear();
+    m_meshesVbos.clear();
 
     //vkDestroySampler(device, m_attachmentsSampler, nullptr);
 
@@ -456,7 +559,10 @@ void SceneRenderer::cleanup()
         m_hdrAttachements[a].clear();
     }
 
-    m_deferredPipeline.destroy();
+    m_deferredSpritesPipeline.destroy();
+    m_deferredMeshesPipeline.destroy();
+    m_alphaDetectPipeline.destroy();
+    m_alphaDeferredPipeline.destroy();
     m_ambientLightingPipeline.destroy();
     m_toneMappingPipeline.destroy();
 

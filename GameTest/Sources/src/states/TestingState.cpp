@@ -7,6 +7,7 @@
 #include "Valag/assets/AssetHandler.h"
 #include "Valag/assets/TextureAsset.h"
 #include "Valag/assets/MaterialAsset.h"
+#include "Valag/assets/MeshAsset.h"
 #include "Valag/renderers/DefaultRenderer.h"
 #include "Valag/renderers/InstancingRenderer.h"
 #include "Valag/renderers/SceneRenderer.h"
@@ -112,6 +113,14 @@ void TestingState::init()
     m_scene->setCurrentCamera(m_camera);
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
                           glm::pi<float>()/6.0f); //30
+
+    m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt");
+
+    m_quackEntities.push_back(vlg::MeshEntity());
+    m_quackEntities.back().setMesh(m_quackMesh);
+    m_quackNode = m_scene->getRootNode()->createChildNode();
+    m_quackNode->attachObject(&m_quackEntities.back());
+    m_quackNode->scale(5.0f);
 }
 
 void TestingState::entered()
@@ -166,6 +175,22 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_camVelocity.x = 100.0;
         //m_treeNode->move(0,0,5);
 
+
+    if(eventsManager->keyPressed(GLFW_KEY_SPACE))
+    {
+        glm::vec3 oldPos = m_quackNode->getPosition();
+        glm::vec3 oldRot = m_quackNode->getEulerRotation();
+
+        m_quackEntities.push_back(vlg::MeshEntity());
+        m_quackEntities.back().setMesh(m_quackMesh);
+        m_quackNode = m_scene->getRootNode()->createChildNode();
+        m_quackNode->attachObject(&m_quackEntities.back());
+        m_quackNode->scale(5.0f);
+
+        m_quackNode->setPosition(oldPos);
+        m_quackNode->setRotation(oldRot);
+    }
+
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
         (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
@@ -175,7 +200,8 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_RIGHT))
     {
-        m_abbeyNode->setPosition(eventsManager->mousePosition());
+        //m_abbeyNode->setPosition(eventsManager->mousePosition());
+        m_quackNode->setPosition(worldMousePos);
     }
 
     if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
@@ -208,6 +234,9 @@ void TestingState::update(const vlg::Time &elapsedTime)
         std::cout<<"FPS : "<<m_nbrFps<<std::endl;
         m_nbrFps = 0;
     }
+
+
+    m_quackNode->rotate(elapsedTime.count(), {0,0,1});
 
    // m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }

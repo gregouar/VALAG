@@ -62,9 +62,19 @@ class SceneNode : public NotificationSender, public NotificationListener
         void setPosition(glm::vec2 );
         void setPosition(glm::vec3 );
 
+        void scale(float scale);
+        void scale(glm::vec3 scale);
+        void setScale(float scale);
+        void setScale(glm::vec3 scale);
+        void rotate(float value, glm::vec3 axis);
+        void setRotation(glm::vec3 rotation);
+
         /**setRotation and co**/
 
         glm::vec3 getGlobalPosition();
+        glm::vec3 getScale();
+        glm::vec3 getEulerRotation();
+
         glm::vec3 getPosition();
 
         /**sf::FloatRect getGlobalBounds();
@@ -96,8 +106,12 @@ class SceneNode : public NotificationSender, public NotificationListener
         void setID(const NodeTypeID );
         NodeTypeID generateID();
 
-        glm::vec3 m_position;
+        ///Probably should add model matrix or something
         glm::vec3 m_globalPosition;
+
+        glm::vec3 m_position;
+        glm::vec3 m_eulerRotations;
+        glm::vec3 m_scale;
 
         Scene* m_scene;
 

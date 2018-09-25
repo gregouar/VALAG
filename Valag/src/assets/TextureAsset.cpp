@@ -11,24 +11,14 @@
 namespace vlg
 {
 
-TextureAsset::TextureAsset()
+TextureAsset::TextureAsset() : TextureAsset(-1)
 {
-    m_createdTexture = true;
-
-    m_allowLoadFromFile = true;
-    m_allowLoadFromMemory = true;
-    ///m_allowLoadFromStream = true;
-
-    ///m_texture->setRepeated(true);
-    ///m_texture->setSmooth(true);
 }
 
 TextureAsset::TextureAsset(const AssetTypeID id) : Asset(id)
 {
-    m_createdTexture = true;
-
     m_allowLoadFromFile = true;
-    m_allowLoadFromMemory = true;
+    m_allowLoadFromMemory = false;
     ///m_allowLoadFromStream = true;
 
    /// m_texture->setRepeated(true);

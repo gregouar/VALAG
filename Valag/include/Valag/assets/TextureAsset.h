@@ -40,9 +40,6 @@ class TextureAsset : public Asset
         VTexture m_vtexture;
 
         glm::vec2 m_size;
-
-    private:
-        bool m_createdTexture;
 };
 
 }

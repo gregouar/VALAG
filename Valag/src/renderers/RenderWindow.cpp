@@ -157,8 +157,8 @@ void RenderWindow::submitToGraphicsQueue(std::vector<VkCommandBuffer> &commandBu
     waitSemaphores.push_back(m_imageAvailableSemaphore[m_curFrameIndex]);
     waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-    submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
-    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    submitInfo.waitSemaphoreCount = /*1;// */ static_cast<uint32_t>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = /*&waitSemaphores.back();// */ waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
     submitInfo.pCommandBuffers = commandBuffers.data();

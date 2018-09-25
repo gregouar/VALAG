@@ -11,18 +11,8 @@
 namespace vlg
 {
 
-MaterialAsset::MaterialAsset()
+MaterialAsset::MaterialAsset() : MaterialAsset(-1)
 {
-    m_allowLoadFromFile     = true;
-    m_allowLoadFromMemory   = false;
-
-    m_heightFactor  = 1;
-    m_rmtFactor     = glm::vec3(0.0,0.0,0.0);
-
-    m_albedoMap = nullptr;
-    m_normalMap = nullptr;
-    m_heightMap = nullptr;
-    m_rmtMap    = nullptr;
 }
 
 MaterialAsset::MaterialAsset(const AssetTypeID id) : Asset(id)

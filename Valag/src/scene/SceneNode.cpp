@@ -13,8 +13,10 @@ SceneNode::SceneNode(const NodeTypeID id) : SceneNode(id, nullptr)
 }
 
 SceneNode::SceneNode(const NodeTypeID id, SceneNode *p) :
+    m_globalPosition(0.0,0.0,0.0),
     m_position(0.0,0.0,0.0),
-    m_globalPosition(0.0,0.0,0.0)
+    m_eulerRotations(0.0,0.0,0.0),
+    m_scale(1.0,1.0,1.0)
 {
     m_scene = nullptr;
     m_parent = p;
@@ -349,6 +351,43 @@ void SceneNode::setPosition(glm::vec3 pos)
     this->sendNotification(Notification_SceneNodeMoved);
 }
 
+void SceneNode::scale(float scale)
+{
+    this->scale({scale, scale, scale});
+}
+
+void SceneNode::scale(glm::vec3 scale)
+{
+    this->setScale(m_scale*scale);
+}
+
+void SceneNode::setScale(float scale)
+{
+    this->setScale({scale, scale, scale});
+}
+
+void SceneNode::setScale(glm::vec3 scale)
+{
+    m_scale = scale;
+
+    /**Update childs global pos**/
+
+    this->sendNotification(Notification_SceneNodeMoved);
+}
+
+void SceneNode::rotate(float value, glm::vec3 axis)
+{
+    this->setRotation(m_eulerRotations+value*axis);
+}
+
+void SceneNode::setRotation(glm::vec3 rotation)
+{
+    m_eulerRotations = rotation;
+    /**Update childs global pos**/
+
+    this->sendNotification(Notification_SceneNodeMoved);
+}
+
 glm::vec3 SceneNode::getPosition()
 {
     return m_position;
@@ -359,6 +398,15 @@ glm::vec3 SceneNode::getGlobalPosition()
     return m_globalPosition;
 }
 
+glm::vec3 SceneNode::getScale()
+{
+    return m_scale;
+}
+
+glm::vec3 SceneNode::getEulerRotation()
+{
+    return m_eulerRotations;
+}
 
 NodeTypeID SceneNode::getID()
 {

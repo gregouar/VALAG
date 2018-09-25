@@ -71,6 +71,7 @@
 		<Unit filename="../../Valag/include/Valag/assets/Asset.h" />
 		<Unit filename="../../Valag/include/Valag/assets/AssetHandler.h" />
 		<Unit filename="../../Valag/include/Valag/assets/MaterialAsset.h" />
+		<Unit filename="../../Valag/include/Valag/assets/MeshAsset.h" />
 		<Unit filename="../../Valag/include/Valag/assets/TextureAsset.h" />
 		<Unit filename="../../Valag/include/Valag/core/Config.h" />
 		<Unit filename="../../Valag/include/Valag/core/EventsManager.h" />
@@ -93,6 +94,7 @@
 		<Unit filename="../../Valag/include/Valag/scene/CameraObject.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteModel.h" />
+		<Unit filename="../../Valag/include/Valag/scene/MeshEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/Scene.h" />
 		<Unit filename="../../Valag/include/Valag/scene/SceneEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/SceneNode.h" />
@@ -130,11 +132,14 @@
 		<Unit filename="../../Valag/shaders/isoSpriteAlphaShader.frag" />
 		<Unit filename="../../Valag/shaders/isoSpriteShader.frag" />
 		<Unit filename="../../Valag/shaders/isoSpriteShader.vert" />
+		<Unit filename="../../Valag/shaders/meshShader.frag" />
+		<Unit filename="../../Valag/shaders/meshShader.vert" />
 		<Unit filename="../../Valag/shaders/toneMapping.frag" />
 		<Unit filename="../../Valag/shaders/toneMapping.vert" />
 		<Unit filename="../../Valag/src/assets/Asset.cpp" />
 		<Unit filename="../../Valag/src/assets/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/assets/MaterialAsset.cpp" />
+		<Unit filename="../../Valag/src/assets/MeshAsset.cpp" />
 		<Unit filename="../../Valag/src/assets/TextureAsset.cpp" />
 		<Unit filename="../../Valag/src/core/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/core/Config.cpp" />
@@ -158,6 +163,7 @@
 		<Unit filename="../../Valag/src/scene/CameraObject.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteModel.cpp" />
+		<Unit filename="../../Valag/src/scene/MeshEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/Scene.cpp" />
 		<Unit filename="../../Valag/src/scene/SceneEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/SceneNode.cpp" />

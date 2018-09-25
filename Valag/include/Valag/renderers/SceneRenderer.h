@@ -10,6 +10,7 @@
 
 #include "Valag/scene/Scene.h"
 #include "Valag/scene/IsoSpriteEntity.h"
+#include "Valag/scene/MeshEntity.h"
 
 #include "Valag/vulkanImpl/DynamicVBO.h"
 
@@ -25,6 +26,7 @@ class SceneRenderer : public AbstractRenderer
         virtual ~SceneRenderer();
 
         void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
+        void addToMeshVbo(MeshAsset *mesh, const MeshDatum &datum);
 
     protected:
         virtual bool init();
@@ -42,7 +44,8 @@ class SceneRenderer : public AbstractRenderer
         void prepareAmbientLightingRenderPass();
         void prepareToneMappingRenderPass();
 
-        bool createDeferredPipeline();
+        bool createDeferredSpritesPipeline();
+        bool createDeferredMeshesPipeline();
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
         bool createAmbientLightingPipeline();
@@ -55,7 +58,8 @@ class SceneRenderer : public AbstractRenderer
     private:
         ///Should I do a pipeline for alpha and one for opacity or could I play with descriptors ?
 
-        VGraphicsPipeline   m_deferredPipeline,
+        VGraphicsPipeline   m_deferredSpritesPipeline,
+                            m_deferredMeshesPipeline,
                             m_alphaDetectPipeline,
                             m_alphaDeferredPipeline,
                             m_ambientLightingPipeline,
@@ -78,8 +82,12 @@ class SceneRenderer : public AbstractRenderer
 
         std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >    m_spritesVbos;
 
+        std::vector<std::map<MeshAsset* ,DynamicVBO<MeshDatum> > > m_meshesVbos;
+
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;
+        static const char *MESH_DEFERRED_VERTSHADERFILE;
+        static const char *MESH_DEFERRED_FRAGSHADERFILE;
         static const char *ISOSPRITE_ALPHADETECT_VERTSHADERFILE;
         static const char *ISOSPRITE_ALPHADETECT_FRAGSHADERFILE;
         static const char *ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE;

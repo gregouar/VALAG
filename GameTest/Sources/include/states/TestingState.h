@@ -7,6 +7,7 @@
 #include "Valag/gfx/Sprite.h"
 #include "Valag/gfx/SpritesBatch.h"
 #include "Valag/scene/IsoSpriteEntity.h"
+#include "Valag/scene/MeshEntity.h"
 
 class TestingState : public vlg::GameState, public Singleton<TestingState>
 {
@@ -43,7 +44,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
 
         vlg::IsoSpriteModel  m_treeModel, m_abbeyModel;
         vlg::IsoSpriteEntity m_treeEntity, m_abbeyEntity;
-        vlg::SceneNode  *m_treeNode, *m_abbeyNode;
+        vlg::MeshAsset      *m_quackMesh;
+        std::list<vlg::MeshEntity>  m_quackEntities;
+        vlg::SceneNode      *m_treeNode, *m_abbeyNode, *m_quackNode;
 
         vlg::CameraObject   *m_camera;
         vlg::SceneNode      *m_cameraNode;

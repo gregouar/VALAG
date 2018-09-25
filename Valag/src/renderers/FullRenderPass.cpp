@@ -221,7 +221,7 @@ size_t FullRenderPass::getColorAttachmentsCount()
 {
     size_t c = 0;
 
-    for(auto attachment : m_attachments)
+    for(auto &attachment : m_attachments)
         if(attachment[0].layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
         || attachment[0].layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             c++;
@@ -335,7 +335,7 @@ bool FullRenderPass::createRenderPass()
     if(hasDepthAttachment)
         subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::array<VkSubpassDependency, 2> dependencies;
+    std::array<VkSubpassDependency, 4> dependencies;
 
     dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[0].dstSubpass = 0;
@@ -344,6 +344,14 @@ bool FullRenderPass::createRenderPass()
     dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[0].dstAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    dependencies[2].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[2].dstSubpass = 0;
+    dependencies[2].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[2].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependencies[2].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[2].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT  | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     ///Maybe I need dependency to read/write to depth buffer
 
@@ -354,6 +362,14 @@ bool FullRenderPass::createRenderPass()
     dependencies[1].srcAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    dependencies[3].srcSubpass = 0;
+    dependencies[3].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[3].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    dependencies[3].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[3].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT  | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependencies[3].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[3].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     VkRenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
