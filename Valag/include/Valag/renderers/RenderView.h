@@ -34,6 +34,8 @@ class RenderView
         void setView(glm::mat4 view, glm::mat4 viewInv);
         void setZoom(float zoom);
 
+        glm::vec3 getTranslate();
+
         VkDescriptorSetLayout   getDescriptorSetLayout();
         VkDescriptorSet         getDescriptorSet(size_t frameIndex);
 

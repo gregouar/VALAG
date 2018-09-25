@@ -87,6 +87,7 @@
 		<Unit filename="../../Valag/include/Valag/renderers/DefaultRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/FullRenderPass.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/InstancingRenderer.h" />
+		<Unit filename="../../Valag/include/Valag/renderers/PBRToolbox.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderGraph.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderView.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderWindow.h" />
@@ -156,6 +157,7 @@
 		<Unit filename="../../Valag/src/renderers/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/FullRenderPass.cpp" />
 		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
+		<Unit filename="../../Valag/src/renderers/PBRToolbox.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderGraph.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderView.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderWindow.cpp" />

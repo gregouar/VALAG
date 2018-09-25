@@ -185,8 +185,11 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerC
 
 void VulkanHelpers::destroyImage(VImage image)
 {
-    vkDestroyImage(VInstance::device(), image.vkImage, nullptr);
-    VMemoryAllocator::freeMemory(image.memory);
+    if(image.vkImage != VK_NULL_HANDLE)
+    {
+        vkDestroyImage(VInstance::device(), image.vkImage, nullptr);
+        VMemoryAllocator::freeMemory(image.memory);
+    }
 }
 
 
@@ -337,7 +340,8 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
 void VulkanHelpers::destroyAttachment(VFramebufferAttachment attachment)
 {
     VulkanHelpers::destroyImage(attachment.image);
-    vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
+    if(attachment.view != VK_NULL_HANDLE)
+        vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
 }
 
 

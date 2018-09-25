@@ -143,7 +143,7 @@ bool InstancingRenderer::recordPrimaryCmb(uint32_t imageIndex)
             m_pipeline.bind(cmb);
 
             VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                                VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
+                                                VTexturesManager::descriptorSet(m_curFrameIndex) };
 
             vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
@@ -192,7 +192,7 @@ bool InstancingRenderer::createGraphicsPipeline()
     m_pipeline.setBlendMode(BlendMode_Alpha);
 
     m_pipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_pipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_pipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_pipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 

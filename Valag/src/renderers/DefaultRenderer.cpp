@@ -81,7 +81,7 @@ void DefaultRenderer::bindPipeline(VkCommandBuffer &commandBuffer, size_t frameI
     m_pipeline.bind(commandBuffer);
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(frameIndex),
-                                        VTexturesManager::instance()->getDescriptorSet(frameIndex) };
+                                        VTexturesManager::descriptorSet(frameIndex) };
 
     vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
@@ -126,7 +126,7 @@ bool DefaultRenderer::createGraphicsPipeline()
     m_pipeline.setBlendMode(BlendMode_Alpha);
 
     m_pipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_pipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_pipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     m_pipeline.attachDescriptorSetLayout(Sprite::getModelDescriptorSetLayout());
 
     m_pipeline.attachPushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(int)*2);

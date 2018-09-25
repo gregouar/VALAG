@@ -141,7 +141,19 @@ bool AbstractRenderer::createDescriptorSetLayouts()
 
 bool AbstractRenderer::createDescriptorPool()
 {
-    return (true);
+    if(m_descriptorPoolSizes.empty())
+        return (true);
+
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(m_descriptorPoolSizes.size());
+    poolInfo.pPoolSizes = m_descriptorPoolSizes.data();
+
+    //poolInfo.maxSets = m_targetWindow->get * m_descriptorPoolSizes.size();
+    for(auto poolSize : m_descriptorPoolSizes)
+        poolInfo.maxSets += poolSize.descriptorCount;
+
+    return (vkCreateDescriptorPool(VInstance::device(), &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
 }
 
 bool AbstractRenderer::createDescriptorSets()

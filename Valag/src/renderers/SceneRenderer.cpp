@@ -2,6 +2,7 @@
 
 #include "Valag/core/VApp.h"
 #include "Valag/assets/MeshAsset.h"
+#include "Valag/renderers/PBRToolbox.h"
 #include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/scene/MeshEntity.h"
 #include "Valag/utils/Logger.h"
@@ -27,6 +28,8 @@ const char *SceneRenderer::TONEMAPPING_FRAGSHADERFILE = "toneMapping.frag.spv";
 
 SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
     AbstractRenderer(targetWindow, name, order)
+    //m_sampler(VK_NULL_HANDLE),
+    //m_ambientLightingDescriptorLayout(VK_NULL_HANDLE)
 {
     this->init();
 }
@@ -50,6 +53,11 @@ void SceneRenderer::addToMeshVbo(MeshAsset* mesh, const MeshDatum &datum)
     //m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
+void SceneRenderer::setAmbientLightingData(const AmbientLightingData &data)
+{
+    m_ambientLightingData = data;
+}
+
 bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 {
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_toneMappingPass, imageIndex, m_curFrameIndex);
@@ -68,6 +76,11 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
+
+    ///Probably it should be put elsewhere...
+    this->updateUbos(imageIndex);
+
+
     size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
     VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
 
@@ -85,7 +98,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     }
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                        VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex) };
+                                        VTexturesManager::descriptorSet(m_curFrameIndex) };
 
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_deferredPass, imageIndex, m_curFrameIndex);
 
@@ -151,7 +164,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
 
     VkDescriptorSet descriptorSetsBis[] = { m_renderView.getDescriptorSet(m_curFrameIndex),
-                                            VTexturesManager::instance()->getDescriptorSet(m_curFrameIndex),
+                                            VTexturesManager::descriptorSet(m_curFrameIndex),
                                             m_renderGraph.getDescriptorSet(m_alphaDeferredPass, imageIndex) };
 
     cmb = m_renderGraph.startRecording(m_alphaDeferredPass, imageIndex, m_curFrameIndex);
@@ -180,15 +193,28 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_ambientLightingPass, imageIndex, m_curFrameIndex);
 
         m_ambientLightingPipeline.bind(cmb);
-        //vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
-          //                      0, 1, &m_deferredDescriptorSets[imageIndex], 0, NULL);
 
-        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex)};
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex)/*,
+                                      m_ambientLightingDescriptorSet*/};
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
                                 0, 1, descSets, 0, NULL);
         vkCmdDraw(cmb, 3, 1, 0, 0);
 
     return m_renderGraph.endRecording(m_ambientLightingPass);
+}
+
+bool SceneRenderer::updateUbos(uint32_t imageIndex)
+{
+    /*m_ambientLightingUbo[imageIndex].viewPos = glm::vec4(m_renderView.getTranslate(),0.0);
+
+    std::cout<<m_ambientLightingUbo[imageIndex].viewPos.x<<" "
+            <<m_ambientLightingUbo[imageIndex].viewPos.y<<" "
+            <<m_ambientLightingUbo[imageIndex].viewPos.z<<std::endl;*/
+
+    VBuffersAllocator::writeBuffer(m_ambientLightingUbo[imageIndex],
+                                  &m_ambientLightingData,
+                                   sizeof(AmbientLightingData));
+    return (true);
 }
 
 bool SceneRenderer::init()
@@ -199,6 +225,9 @@ bool SceneRenderer::init()
     m_spritesVbos.resize(m_targetWindow->getFramesCount(),
                          DynamicVBO<InstanciedIsoSpriteDatum>(1024));
     m_meshesVbos.resize(m_targetWindow->getFramesCount());
+
+    //if(!this->createSampler())
+       // return (false);
 
     if(!this->createAttachments())
         return (false);
@@ -297,6 +326,76 @@ bool SceneRenderer::createAttachments()
     return (true);
 }
 
+
+/*bool SceneRenderer::createDescriptorSetLayouts()
+{
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
+    layoutBindings.resize(2);
+
+    size_t i = 0;
+    for(auto &layoutBinding : layoutBindings)
+    {
+        layoutBinding = {};
+        layoutBinding.binding       = i++;
+        layoutBinding.stageFlags    = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+
+    layoutBindings[0].descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBindings[1].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+    layoutInfo.pBindings    = layoutBindings.data();
+
+    if(vkCreateDescriptorSetLayout(VInstance::device(), &layoutInfo, nullptr, &m_ambientLightingDescriptorLayout) != VK_SUCCESS)
+        return (false);
+
+    return (true);
+}
+
+bool SceneRenderer::createDescriptorPool()
+{
+    m_descriptorPoolSizes.push_back(
+                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,m_targetWindow->getSwapchainSize()});
+
+    return AbstractRenderer::createDescriptorPool();
+}
+
+bool SceneRenderer::createDescriptorSets()
+{
+    VkDevice device = VInstance::device();
+
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.sType                 = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool        = m_descriptorPool;
+    allocInfo.descriptorSetCount    = 1;
+    allocInfo.pSetLayouts           = &m_ambientLightingDescriptorLayout;
+
+    if (vkAllocateDescriptorSets(device, &allocInfo,&m_ambientLightingDescriptorSet) != VK_SUCCESS)
+        return (false);
+
+    VkDescriptorImageInfo imageInfo;
+    imageInfo.imageView     = PBRToolbox::getBrdflut().view;
+    imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.sampler       = VTexturesManager::sampler();
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.dstSet          = m_ambientLightingDescriptorSet;
+    descriptorWrite.dstBinding      = 0;
+    descriptorWrite.pImageInfo      = &imageInfo;
+
+    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+
+    return (true);
+}*/
+
+
 void SceneRenderer::prepareDeferredRenderPass()
 {
     m_deferredPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -345,6 +444,20 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 3);
+
+
+    size_t imagesCount = m_targetWindow->getSwapchainSize();
+    m_ambientLightingUbo.resize(imagesCount);
+    for(auto &buffer : m_ambientLightingUbo)
+    {
+        VBuffersAllocator::allocBuffer(sizeof(AmbientLightingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                       buffer);
+    }
+    m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
+
+    std::vector<VkImageView> brdflut(imagesCount, PBRToolbox::getBrdflut().view);
+    m_renderGraph.addNewUniforms(m_ambientLightingPass, brdflut);
 }
 
 void SceneRenderer::prepareToneMappingRenderPass()
@@ -376,7 +489,7 @@ bool SceneRenderer::createDeferredSpritesPipeline()
     m_deferredSpritesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
     m_deferredSpritesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
@@ -418,7 +531,7 @@ bool SceneRenderer::createDeferredMeshesPipeline()
     m_deferredMeshesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
     m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_deferredMeshesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
@@ -447,7 +560,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
     m_alphaDetectPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
 
@@ -474,7 +587,7 @@ bool SceneRenderer::createAlphaDeferredPipeline()
     m_alphaDeferredPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_alphaDeferredPipeline.attachDescriptorSetLayout(VTexturesManager::instance()->getDescriptorSetLayout());
+    m_alphaDeferredPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaDeferredPass));
 
     m_alphaDeferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -496,6 +609,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
 
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
+    //m_ambientLightingPipeline.attachDescriptorSetLayout(m_ambientLightingDescriptorLayout);
 
     return m_ambientLightingPipeline.init(m_renderGraph.getVkRenderPass(m_ambientLightingPass), 0,
                                           m_renderGraph.getColorAttachmentsCount(m_ambientLightingPass));
@@ -526,7 +640,13 @@ void SceneRenderer::cleanup()
     m_spritesVbos.clear();
     m_meshesVbos.clear();
 
-    //vkDestroySampler(device, m_attachmentsSampler, nullptr);
+    /*if(m_sampler != VK_NULL_HANDLE)
+        vkDestroySampler(device, m_attachmentsSampler, nullptr);
+    m_sampler = VK_NULL_HANDLE;*/
+
+/*    if(m_ambientLightingDescriptorLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(VInstance::device(), m_ambientLightingDescriptorLayout, nullptr);
+    m_ambientLightingDescriptorLayout = VK_NULL_HANDLE;*/
 
     for(auto attachement : m_deferredDepthAttachments)
         VulkanHelpers::destroyAttachment(attachement);

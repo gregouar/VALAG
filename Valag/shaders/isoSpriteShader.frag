@@ -52,8 +52,12 @@ void main()
         fragWorldPos = viewUbo.viewInv * vec4(fragWorldPos.xy,0.0,1.0) +
                         vec4(0.0,0.0, screenPosAndHeight.z + height * screenPosAndHeight.w, 0.0);
 
+        vec3 normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
+        normal = 2.0*normal - vec3(1.0);
+        normal = vec4(vec4(normal,1.0)*viewUbo.view).xyz;
+
         outPosition     = vec4(fragWorldPos.xyz, 0.0);
-        outNormal       = vec4(texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz, 1.0);
+        outNormal       = vec4(0.5*normal + vec3(0.5), 1.0);
         outRmt          = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
     //}
 

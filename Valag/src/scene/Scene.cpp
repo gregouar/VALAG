@@ -19,7 +19,9 @@ Scene::Scene() :
     ///m_last_target = nullptr;
     ///m_currentCamera = nullptr;
 
-    ///m_ambientLight = sf::Color::White;
+    m_ambientLightingData.viewPos        = glm::vec4(0.0);
+    m_ambientLightingData.ambientLight   = glm::vec4(1.0,1.0,1.0,0.1);
+
     ///m_shadowCastingOption = NoShadow;
     ///m_enableSRGB = false;
 
@@ -224,6 +226,10 @@ void Scene::render(SceneRenderer *renderer)
                        0,1,0,-m_currentCamera->getParentNode()->getGlobalPosition().y,
                        0,0,1,-m_currentCamera->getParentNode()->getGlobalPosition().z,
                        0,0,0,1);*/
+
+        m_ambientLightingData.viewPos = glm::vec4(camPos, 1.0);
+
+        renderer->setAmbientLightingData(m_ambientLightingData);
         renderer->setView(m_viewAngle*camTranslate, camTranslateInv*m_viewAngleInv);
         m_rootNode.render(renderer);
     }
@@ -393,12 +399,21 @@ void Scene::generateViewAngle()
                                 0     , 0     , 0     , 0,
                                 0     , 0     , 0     , 1);**/
 
-    m_viewAngle = glm::mat4(cos(m_zAngle) ,  sin(m_zAngle) * sin(m_xyAngle), 0, 0,
-                               -sin(m_zAngle) , cos(m_zAngle)*sin(m_xyAngle), 0     , 0 ,
-                                0     , -cos(m_xyAngle)     , 0     , 0,
-                                0     , 0     , 0     , 1);
+   /* m_viewAngle = glm::mat4(cos(m_zAngle) , sin(m_zAngle)*sin(m_xyAngle), 0       , 0,
+                             -sin(m_zAngle) , cos(m_zAngle)*sin(m_xyAngle), 0       , 0 ,
+                                0           ,-cos(m_xyAngle)              , 0       , 0,
+                                0           , 0                           , 0       , 1);*/
 
-     m_viewAngleInv = glm::mat4(cos(m_zAngle) , -sin(m_zAngle), 0, 0,
+    m_viewAngle = glm::mat4(cos(m_zAngle)       , sin(m_zAngle)*sin(m_xyAngle)      , sin(m_zAngle)*cos(m_xyAngle)    , 0,
+                               -sin(m_zAngle)   , cos(m_zAngle)*sin(m_xyAngle)      , cos(m_zAngle)*cos(m_xyAngle)    , 0 ,
+                                0               ,-cos(m_xyAngle)                    , sin(m_xyAngle)                  , 0,
+                                0               , 0                                 , 0                               , 1);
+
+     /*m_normalProjMat = Mat3x3 (cosXY ,  sinZ * sinXY , cosZ * sinXY,
+                              -sinXY ,  sinZ * cosXY , cosZ * cosXY,
+                               0     , -cosZ         , sinZ);*/
+
+    m_viewAngleInv = glm::mat4(cos(m_zAngle) , -sin(m_zAngle), 0, 0,
                                sin(m_zAngle)/sin(m_xyAngle) , cos(m_zAngle)/sin(m_xyAngle), 0     , 0 ,
                                 0     , 0     , 0     , 0,
                                 0     , 0     , 0     , 1);
@@ -411,13 +426,12 @@ void Scene::setViewAngle(float zAngle, float xyAngle)
     this->generateViewAngle();
 }
 
-/**void Scene::SetAmbientLight(sf::Color light)
+void Scene::setAmbientLight(Color light)
 {
-    m_ambientLight = light;
-    //m_ambientLight.a = 255;
+    m_ambientLightingData.ambientLight = light;
 }
 
-void Scene::SetShadowCasting(ShadowCastingType type)
+/*void Scene::SetShadowCasting(ShadowCastingType type)
 {
     m_shadowCastingOption = type;
 }

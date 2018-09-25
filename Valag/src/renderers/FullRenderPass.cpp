@@ -11,6 +11,7 @@ FullRenderPass::FullRenderPass(size_t imagesCount, size_t framesCount) :
     m_extent{0,0},
     m_cmbUsage(0),
     m_vkRenderPass(VK_NULL_HANDLE),
+    m_curUniformBinding(0),
     m_descriptorSetLayout(VK_NULL_HANDLE)
 {
     m_waitSemaphores.resize(framesCount);
@@ -59,7 +60,10 @@ void FullRenderPass::destroy()
         vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
     m_descriptorSetLayout = VK_NULL_HANDLE;
 
+    m_curUniformBinding = 0;
     m_uniformAttachments.clear();
+    m_uniformBuffers.clear();
+    m_uniformViews.clear();
 
     for(auto framebuffer : m_framebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -188,7 +192,17 @@ void FullRenderPass::addAttachments(const std::vector<VFramebufferAttachment> &a
 
 void FullRenderPass::addUniforms(const std::vector<VFramebufferAttachment> &attachments)
 {
-    m_uniformAttachments.push_back(attachments);
+    m_uniformAttachments.push_back({m_curUniformBinding++, attachments});
+}
+
+void FullRenderPass::addUniforms(const std::vector<VBuffer> &buffers)
+{
+    m_uniformBuffers.push_back({m_curUniformBinding++, buffers});
+}
+
+void FullRenderPass::addUniforms(const std::vector<VkImageView> &views)
+{
+    m_uniformViews.push_back({m_curUniformBinding++, views});
 }
 
 void FullRenderPass::setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform)
@@ -429,65 +443,116 @@ bool FullRenderPass::createCmb()
 
 bool FullRenderPass::createDescriptorSetLayout()
 {
-    if(m_uniformAttachments.empty())
+    if(m_curUniformBinding == 0)
         return (true);
 
     std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
-    layoutBindings.resize(m_uniformAttachments.size());
-    for(uint32_t i = 0 ; i < layoutBindings.size() ; ++i)
+    layoutBindings.resize(m_curUniformBinding, {});
+
+    size_t i = 0;
+    for(auto uniform : m_uniformAttachments)
     {
-        layoutBindings[i] = {};
-        layoutBindings[i].binding = i;
-        layoutBindings[i].descriptorCount = 1;
-        layoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBindings[i].binding           = uniform.first;
+        layoutBindings[i].descriptorCount   = 1;
+        layoutBindings[i].stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[i].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        i++;
+    }
+
+    for(auto uniform : m_uniformBuffers)
+    {
+        layoutBindings[i].binding           = uniform.first;
+        layoutBindings[i].descriptorCount   = 1;
+        layoutBindings[i].stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[i].descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        i++;
+    }
+
+    for(auto uniform : m_uniformViews)
+    {
+        layoutBindings[i].binding           = uniform.first;
+        layoutBindings[i].descriptorCount   = 1;
+        layoutBindings[i].stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[i].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        i++;
     }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-    layoutInfo.pBindings = layoutBindings.data();
+    layoutInfo.pBindings    = layoutBindings.data();
 
     return (vkCreateDescriptorSetLayout(VInstance::device(), &layoutInfo, nullptr, &m_descriptorSetLayout) == VK_SUCCESS);
 }
 
 bool FullRenderPass::createDescriptorSets(VkDescriptorPool pool, VkSampler sampler)
 {
-    if(m_uniformAttachments.empty())
+    if(m_curUniformBinding == 0)
         return (true);
 
     VkDevice device = VInstance::device();
 
     std::vector<VkDescriptorSetLayout> layouts(m_descriptorSets.size(), m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(m_descriptorSets.size());
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.sType                 = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool        = pool;
+    allocInfo.descriptorSetCount    = static_cast<uint32_t>(m_descriptorSets.size());
+    allocInfo.pSetLayouts           = layouts.data();
 
     if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets.data()) != VK_SUCCESS)
         return (false);
 
     for (size_t i = 0; i < m_descriptorSets.size() ; ++i)
     {
-        std::vector<VkWriteDescriptorSet> descriptorWrites(m_uniformAttachments.size());
-        std::vector<VkDescriptorImageInfo> imageInfos(m_uniformAttachments.size());
+        std::vector<VkWriteDescriptorSet>    descriptorWrites(m_curUniformBinding);
+        std::vector<VkDescriptorImageInfo>   imageInfos(m_curUniformBinding);
+        std::vector<VkDescriptorBufferInfo>  bufferInfos(m_curUniformBinding);
 
-        for(size_t j = 0 ; j < m_uniformAttachments.size() ; ++j)
+        for(size_t j = 0 ; j < m_curUniformBinding ; ++j)
         {
-            imageInfos[j].imageView     = m_uniformAttachments[j][i].view;
-            imageInfos[j].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfos[j].sampler       = sampler;
-
             descriptorWrites[j] = {};
             descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[j].dstArrayElement = 0;
-            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[j].descriptorCount = 1;
-            descriptorWrites[j].dstSet = m_descriptorSets[i];
-            descriptorWrites[j].dstBinding = j;
-            descriptorWrites[j].pImageInfo = &imageInfos[j];
+            descriptorWrites[j].pImageInfo      = &imageInfos[j];
+            descriptorWrites[j].pBufferInfo     = &bufferInfos[j];
+            descriptorWrites[j].dstSet          = m_descriptorSets[i];
+
+            imageInfos[j] = {};
+            bufferInfos[j] = {};
+        }
+
+        size_t j = 0;
+        for(auto uniform : m_uniformAttachments)
+        {
+            imageInfos[j].imageView     = uniform.second[i].view;
+            imageInfos[j].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfos[j].sampler       = sampler;
+
+            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[j].dstBinding      = uniform.first;
+            j++;
+        }
+        for(auto uniform : m_uniformBuffers)
+        {
+            bufferInfos[j].buffer = uniform.second[i].buffer;
+            bufferInfos[j].offset = uniform.second[i].offset;
+            bufferInfos[j].range  = uniform.second[i].alignedSize;
+
+            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[j].dstBinding      = uniform.first;
+            j++;
+        }
+        for(auto uniform : m_uniformViews)
+        {
+            imageInfos[j].imageView     = uniform.second[i];
+            imageInfos[j].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfos[j].sampler       = sampler;
+
+            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[j].dstBinding      = uniform.first;
+            j++;
         }
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

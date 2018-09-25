@@ -46,7 +46,8 @@ class AbstractRenderer
         RenderGraph     m_renderGraph;
         size_t          m_defaultPass;
 
-        VkDescriptorPool                m_descriptorPool;
+        std::vector<VkDescriptorPoolSize>   m_descriptorPoolSizes;
+        VkDescriptorPool                    m_descriptorPool;
 
         size_t                          m_curFrameIndex;
 

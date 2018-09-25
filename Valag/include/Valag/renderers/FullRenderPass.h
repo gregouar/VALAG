@@ -34,6 +34,8 @@ class FullRenderPass
         void addAttachments(const std::vector<VFramebufferAttachment> &attachments,
                             VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp);
         void addUniforms(const std::vector<VFramebufferAttachment> &attachments);
+        void addUniforms(const std::vector<VBuffer> &buffers);
+        void addUniforms(const std::vector<VkImageView> &views);
 
         void setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform = false);
 
@@ -83,7 +85,10 @@ class FullRenderPass
         std::vector<std::vector<VkSemaphore> > m_waitSemaphores;
         std::vector<std::vector<VkSemaphore> > m_signalSemaphores;
 
-        std::vector<std::vector<VFramebufferAttachment> > m_uniformAttachments;
+        size_t m_curUniformBinding;
+        std::vector<std::pair<size_t, std::vector<VFramebufferAttachment> > >  m_uniformAttachments;
+        std::vector<std::pair<size_t, std::vector<VBuffer> > >                 m_uniformBuffers;
+        std::vector<std::pair<size_t, std::vector<VkImageView> > >             m_uniformViews;
         VkDescriptorSetLayout           m_descriptorSetLayout;
         std::vector<VkDescriptorSet>    m_descriptorSets;
 

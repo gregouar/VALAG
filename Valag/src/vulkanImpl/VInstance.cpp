@@ -313,6 +313,8 @@ int VInstance::isDeviceSuitable(const VkPhysicalDevice &device,VkSurfaceKHR &sur
     if(!deviceFeatures.samplerAnisotropy)
         return 0;
 
+    //std::cout<<deviceProperties.limits.maxBoundDescriptorSets<<std::endl;
+
     /** This could be a serious problem... 200 on intel chipset is really low**/
     //std::cout<<deviceProperties.limits.maxPerStageDescriptorSampledImages<<std::endl;
     //std::cout<<deviceProperties.limits.maxImageArrayLayers<<std::endl;
@@ -558,9 +560,9 @@ VkCommandBuffer VInstance::beginSingleTimeCommands(CommandPoolName commandPoolNa
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(m_singleTimeCmb[commandPoolName], &beginInfo);
+    vkBeginCommandBuffer(instance()->m_singleTimeCmb[commandPoolName], &beginInfo);
 
-    return m_singleTimeCmb[commandPoolName];
+    return instance()->m_singleTimeCmb[commandPoolName];
 }
 
 
@@ -573,17 +575,17 @@ void VInstance::endSingleTimeCommands(VkCommandBuffer commandBuffer/*, CommandPo
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    m_graphicsQueueAccessMutex.lock();
+    instance()->m_graphicsQueueAccessMutex.lock();
 
-    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-    vkResetFences(m_device, 1, &m_graphicsQueueAccessFence);
+    vkWaitForFences(device(), 1, &instance()->m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkResetFences(device(), 1, &instance()->m_graphicsQueueAccessFence);
 
-        vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_graphicsQueueAccessFence);
+        vkQueueSubmit(instance()->m_graphicsQueue, 1, &submitInfo, instance()->m_graphicsQueueAccessFence);
 
 
-    vkWaitForFences(m_device, 1, &m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkWaitForFences(device(), 1, &instance()->m_graphicsQueueAccessFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
    // vkFreeCommandBuffers(m_device, this->getCommandPool(commandPoolName), 1, &commandBuffer);
-    m_graphicsQueueAccessMutex.unlock();
+    instance()->m_graphicsQueueAccessMutex.unlock();
 
     //vkQueueWaitIdle(m_graphicsQueue);
 

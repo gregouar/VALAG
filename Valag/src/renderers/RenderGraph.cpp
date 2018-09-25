@@ -94,6 +94,16 @@ void RenderGraph::addNewAttachments(size_t renderPassIndex, const std::vector<VF
    m_renderPasses[renderPassIndex]->addAttachments(attachments, storeOp, loadOp);
 }
 
+void RenderGraph::addNewUniforms(size_t renderPassIndex, const std::vector<VBuffer> &buffers)
+{
+     m_renderPasses[renderPassIndex]->addUniforms(buffers);
+}
+
+void RenderGraph::addNewUniforms(size_t renderPassIndex, const std::vector<VkImageView> &views)
+{
+     m_renderPasses[renderPassIndex]->addUniforms(views);
+}
+
 void RenderGraph::transferAttachmentsToAttachments(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex,
                                                     VkAttachmentStoreOp storeOp)
 {

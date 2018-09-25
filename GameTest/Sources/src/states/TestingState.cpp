@@ -82,6 +82,12 @@ void TestingState::init()
         m_testingSpritesBatch.addSprite(&(*it));
     }
 
+    /// SCENE
+
+    //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
+    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
+  //  m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
+
     vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
     vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
 

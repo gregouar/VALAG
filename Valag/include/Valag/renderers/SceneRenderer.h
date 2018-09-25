@@ -18,7 +18,6 @@
 
 namespace vlg
 {
-
 class SceneRenderer : public AbstractRenderer
 {
     public:
@@ -28,6 +27,8 @@ class SceneRenderer : public AbstractRenderer
         void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
         void addToMeshVbo(MeshAsset *mesh, const MeshDatum &datum);
 
+        void setAmbientLightingData(const AmbientLightingData &);
+
     protected:
         virtual bool init();
         virtual void cleanup();
@@ -35,6 +36,10 @@ class SceneRenderer : public AbstractRenderer
         virtual void    prepareRenderPass();
 
         virtual bool    createGraphicsPipeline();
+
+        //virtual bool    createDescriptorSetLayouts();
+        //virtual bool    createDescriptorPool();
+       // virtual bool    createDescriptorSets();
 
         bool createAttachments();
 
@@ -55,8 +60,15 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
+        virtual bool    updateUbos(uint32_t imageIndex);
+
     private:
-        ///Should I do a pipeline for alpha and one for opacity or could I play with descriptors ?
+        ///You know that this should be part of RenderGraph right ?
+        /*VkDescriptorSetLayout m_ambientLightingDescriptorLayout;
+        VkDescriptorSet       m_ambientLightingDescriptorSet;*/
+
+        AmbientLightingData     m_ambientLightingData;
+        std::vector<VBuffer>    m_ambientLightingUbo;
 
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,

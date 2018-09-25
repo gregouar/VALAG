@@ -107,6 +107,11 @@ void RenderView::setZoom(float zoom)
 }
 
 
+glm::vec3 RenderView::getTranslate()
+{
+    return {m_viewUbo.view[3][0], m_viewUbo.view[3][1], m_viewUbo.view[3][2]};
+}
+
 VkDescriptorSetLayout RenderView::getDescriptorSetLayout()
 {
     return m_descriptorSetLayout;
@@ -116,6 +121,9 @@ VkDescriptorSet RenderView::getDescriptorSet(size_t frameIndex)
 {
     return m_descriptorSets[frameIndex];
 }
+
+
+/// Protected ///
 
 bool RenderView::createBuffers(size_t framesCount)
 {

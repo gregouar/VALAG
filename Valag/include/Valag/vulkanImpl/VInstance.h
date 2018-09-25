@@ -36,8 +36,8 @@ class VInstance : public Singleton<VInstance>
 {
     friend class VApp;
     friend class RenderWindow;
-    friend class VBuffersAllocator;
-    friend class VulkanHelpers;
+    /*friend class VBuffersAllocator;
+    friend class VulkanHelpers;*/
 
     friend class Singleton<VInstance>;
 
@@ -45,6 +45,8 @@ class VInstance : public Singleton<VInstance>
         static VkDevice device();
         static VkPhysicalDevice physicalDevice();
         static VkCommandPool commandPool(CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT);
+
+        void init(VkSurfaceKHR &surface);
 
         static void submitToGraphicsQueue(VkSubmitInfo &infos, VkFence fence = VK_NULL_HANDLE);
         static void submitToGraphicsQueue(std::vector<VkSubmitInfo> &infos, VkFence fence = VK_NULL_HANDLE);
@@ -56,6 +58,10 @@ class VInstance : public Singleton<VInstance>
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType,
                                                             uint64_t obj, size_t location, int32_t code,
                                                             const char* layerPrefix, const char* msg, void* userData);
+
+
+        static VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+        static void            endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
     protected:
         VInstance();
@@ -78,7 +84,6 @@ class VInstance : public Singleton<VInstance>
         bool    createSingleTimeCmbs();
         bool    createSemaphoresAndFences();
 
-        void init(VkSurfaceKHR &surface);
         void cleanup();
 
         VkDevice            getDevice();
@@ -88,8 +93,6 @@ class VInstance : public Singleton<VInstance>
         QueueFamilyIndices  getQueueFamilyIndices();
         VkInstance          getVulkanInstance();
 
-        VkCommandBuffer beginSingleTimeCommands(CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
-        void            endSingleTimeCommands(VkCommandBuffer commandBuffer/*, CommandPoolName commandPoolName = COMMANDPOOL_DEFAULT*/);
 
     private:
         std::string m_name;

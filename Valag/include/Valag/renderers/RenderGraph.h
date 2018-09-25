@@ -36,7 +36,8 @@ class RenderGraph
        // void    setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
         void    addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
                                VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
-
+        void    addNewUniforms(size_t renderPassIndex, const std::vector<VBuffer> &buffers);
+        void    addNewUniforms(size_t renderPassIndex, const std::vector<VkImageView> &views);
 
         void    setClearValue(size_t renderPassIndex, size_t attachmentIndex ,glm::vec4 color, glm::vec2 depth);
 
@@ -66,8 +67,7 @@ class RenderGraph
         std::set<std::pair<size_t, size_t> > m_connexions; //Second one is waiting for first one
 
         std::vector<FullRenderPass*> m_renderPasses;
-        std::list<VkSemaphore> m_semaphores;
-
+        std::list<VkSemaphore>       m_semaphores;
 
         std::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
         VkDescriptorPool    m_descriptorPool;

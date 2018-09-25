@@ -128,6 +128,26 @@ void VTexturesManager::freeTextureImpl(VTexture &texture)
 }
 
 
+VkSampler VTexturesManager::sampler()
+{
+    return VTexturesManager::instance()->m_sampler;
+}
+
+VkDescriptorSetLayout VTexturesManager::descriptorSetLayout()
+{
+    return VTexturesManager::instance()->getDescriptorSetLayout();
+}
+
+VkDescriptorSet VTexturesManager::descriptorSet(size_t frameIndex)
+{
+    return VTexturesManager::instance()->getDescriptorSet(frameIndex);
+}
+
+size_t VTexturesManager::descriptorSetVersion(size_t frameIndex)
+{
+    return VTexturesManager::instance()->getDescriptorSetVersion(frameIndex);
+}
+
 VkDescriptorSetLayout VTexturesManager::getDescriptorSetLayout()
 {
     return m_descriptorSetLayout;
@@ -138,10 +158,6 @@ VkDescriptorSet VTexturesManager::getDescriptorSet(size_t frameIndex)
     return m_descriptorSets[frameIndex];
 }
 
-size_t VTexturesManager::descriptorSetVersion(size_t frameIndex)
-{
-    return VTexturesManager::instance()->getDescriptorSetVersion(frameIndex);
-}
 
 size_t VTexturesManager::getDescriptorSetVersion(size_t frameIndex)
 {

@@ -21,7 +21,7 @@ MaterialAsset::MaterialAsset(const AssetTypeID id) : Asset(id)
     m_allowLoadFromMemory   = false;
 
     m_heightFactor  = 1;
-    m_rmtFactor     = glm::vec3(0.0,0.0,0.0);
+    m_rmtFactor     = glm::vec3(1.0,1.0,1.0);
 
     m_albedoMap = nullptr;
     m_normalMap = nullptr;

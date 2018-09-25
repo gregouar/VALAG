@@ -32,16 +32,17 @@ class VTexturesManager : public Singleton<VTexturesManager>
         friend class Singleton<VTexturesManager>;
         friend class VApp;
 
-        VkDescriptorSetLayout   getDescriptorSetLayout();
-        VkDescriptorSet         getDescriptorSet(size_t frameIndex);
-        size_t                  getDescriptorSetVersion(size_t frameIndex);
 
         void checkUpdateDescriptorSets(size_t frameIndex);
 
         static bool allocTexture(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         static void freeTexture(VTexture &texture);
 
-        static size_t descriptorSetVersion(size_t frameIndex);
+
+        static VkSampler                sampler();
+        static VkDescriptorSetLayout    descriptorSetLayout();
+        static VkDescriptorSet          descriptorSet(size_t frameIndex);
+        static size_t                   descriptorSetVersion(size_t frameIndex);
 
     protected:
         VTexturesManager();
@@ -62,6 +63,10 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         bool    init(size_t framesCount);
         void    cleanup();
+
+        VkDescriptorSetLayout   getDescriptorSetLayout();
+        VkDescriptorSet         getDescriptorSet(size_t frameIndex);
+        size_t                  getDescriptorSetVersion(size_t frameIndex);
 
     private:
         std::multimap<std::pair<uint32_t,uint32_t>, size_t> m_extentToArray;

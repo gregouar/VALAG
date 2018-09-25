@@ -8,6 +8,12 @@
 namespace vlg
 {
 
+struct AmbientLightingData
+{
+    glm::vec4 viewPos;
+    glm::vec4 ambientLight;
+};
+
 class Scene
 {
     public:
@@ -46,9 +52,9 @@ class Scene
 
         virtual glm::vec2 convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam = nullptr);
 
-        /**virtual void setAmbientLight(sf::Color);
+        virtual void setAmbientLight(Color color);
 
-        virtual void setShadowCasting(ShadowCastingType);
+        /**virtual void setShadowCasting(ShadowCastingType);
         virtual void enableGammaCorrection();
         virtual void disableGammaCorrection();**/
 
@@ -85,6 +91,8 @@ class Scene
         ObjectTypeID m_curNewId;
 
         bool m_needToUpdateRenderQueue;
+
+        AmbientLightingData m_ambientLightingData;
 
         ///static const sf::Vector2u DEFAULT_SHADOWMAP_SIZE;
 };

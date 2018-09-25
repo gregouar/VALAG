@@ -22,9 +22,9 @@ VkVertexInputBindingDescription MeshVertex::getBindingDescription()
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 8> MeshVertex::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 9> MeshVertex::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 8> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 9> attributeDescriptions = {};
 
     uint32_t i = 0;
     uint32_t b = 0;
@@ -38,6 +38,12 @@ std::array<VkVertexInputAttributeDescription, 8> MeshVertex::getAttributeDescrip
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(MeshVertex, uv);
+    ++i;
+
+    attributeDescriptions[i].binding = b;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(MeshVertex, normal);
     ++i;
 
     attributeDescriptions[i].binding = b;
@@ -167,7 +173,8 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
 
     std::vector<glm::vec3> vertexList;
     std::vector<glm::vec2> uvList;
-    std::vector<glm::vec2> indexList;
+    std::vector<glm::vec3> normalList;
+    std::vector<glm::vec3> indexList;
 
     if(file)
     {
@@ -187,42 +194,48 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
                 uvList.push_back({});
                 file>>uvList.back().x>>uvList.back().y;
                 uvList.back().y = 1.0-uvList.back().y;
+            } else if(buf == "vn") {
+                normalList.push_back({});
+                file>>normalList.back().x>>normalList.back().y>>normalList.back().z;
             } else if(buf == "f") {
                 //f.push_back(std::vector<sf::Vector2i> ());
                 std::string line;
                 std::getline(file, line);
 
-                std::vector<glm::vec2> indices;
+                std::vector<glm::vec3> indices;
 
                 std::istringstream iss(line);
                 std::string word;
                 while(iss >> word)
                 {
-                    indices.push_back({-1,-1});
+                    indices.push_back({-1,-1,-1});
 
                     std::istringstream issBis(word);
                     char c;
                     issBis >> indices.back().x;
                     if(!issBis.eof())
                         issBis >> c >> indices.back().y;
+                    if(!issBis.eof())
+                        issBis >> c >> indices.back().z;
 
                     indices.back().x -= 1;
                     indices.back().y -= 1;
+                    indices.back().z -= 1;
                 }
 
-                indexList.push_back({indices[0].x, indices[0].y});
-                indexList.push_back({indices[1].x, indices[1].y});
-                indexList.push_back({indices[2].x, indices[2].y});
+                indexList.push_back({indices[0].x, indices[0].y, indices[0].z});
+                indexList.push_back({indices[1].x, indices[1].y, indices[1].z});
+                indexList.push_back({indices[2].x, indices[2].y, indices[2].z});
 
                 if(indices.size() == 4) //If quad we need to put 2 triangles
                 {
-                    indexList.push_back({indices[2].x, indices[2].y});
-                    indexList.push_back({indices[3].x, indices[3].y});
-                    indexList.push_back({indices[0].x, indices[0].y});
+                    indexList.push_back({indices[2].x, indices[2].y, indices[2].z});
+                    indexList.push_back({indices[3].x, indices[3].y, indices[3].z});
+                    indexList.push_back({indices[0].x, indices[0].y, indices[0].z});
                 }
             }
         }
-        this->generateModel(vertexList, uvList, indexList);
+        this->generateModel(vertexList, uvList, normalList, indexList);
         file.close();
     }
     else
@@ -238,9 +251,10 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
 
 bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
                             const std::vector<glm::vec2> &uvList,
-                            const std::vector<glm::vec2> &indexList)
+                            const std::vector<glm::vec3> &normalList,
+                            const std::vector<glm::vec3> &indexList)
 {
-    std::vector<std::pair<glm::vec3, glm::vec2> > trueVertexList;
+    std::vector<std::tuple<glm::vec3, glm::vec2, glm::vec3> > trueVertexList;
     std::vector<uint16_t> trueIndexList;
 
    ///Omg this will be so inefficient, why am I doing this
@@ -248,15 +262,21 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
     {
         glm::vec3 vertex = vertexList[index.x];
         glm::vec2 uv{0,0};
+        glm::vec3 normal{0,0,1.0};
+
         if(index.y != -1)
             uv = uvList[index.y];
+
+        if(index.z != -1)
+            normal = normalList[index.z];
 
         size_t foundedVertex = 0;
 
         while(foundedVertex < trueVertexList.size())
         {
-            if(trueVertexList[foundedVertex].first == vertex
-            && trueVertexList[foundedVertex].second == uv)
+            if(std::get<0>(trueVertexList[foundedVertex]) == vertex
+            && std::get<1>(trueVertexList[foundedVertex]) == uv
+            && std::get<2>(trueVertexList[foundedVertex]) == normal)
                 break;
             else
                 foundedVertex++;
@@ -265,7 +285,7 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
         trueIndexList.push_back(foundedVertex);
 
         if(foundedVertex == trueVertexList.size())
-            trueVertexList.push_back({vertex, uv});
+            trueVertexList.push_back({vertex, uv, normal});
     }
 
     std::vector<MeshVertex> meshVertexList;
@@ -273,8 +293,9 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
     for(auto &vertex : trueVertexList)
     {
         meshVertexList.push_back({});
-        meshVertexList.back().pos = vertex.first;
-        meshVertexList.back().uv = vertex.second;
+        meshVertexList.back().pos = std::get<0>(vertex);
+        meshVertexList.back().uv = std::get<1>(vertex);
+        meshVertexList.back().normal = std::get<2>(vertex);
 
         meshVertexList.back().albedo_color = glm::vec4(1.0,1.0,1.0,1.0);
 

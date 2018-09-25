@@ -15,6 +15,7 @@ struct MeshVertex
 {
     glm::vec3 pos;
     glm::vec2 uv;
+    glm::vec3 normal;
 
     glm::vec4 albedo_color;
     glm::vec3 rmt_color;
@@ -27,7 +28,7 @@ struct MeshVertex
     //Will probably need more informations about materials tough
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 8> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 9> getAttributeDescriptions();
 };
 
 class MeshAsset : public Asset, public NotificationListener
@@ -51,7 +52,8 @@ class MeshAsset : public Asset, public NotificationListener
         //Cannot generate until textures are loaded
         bool generateModel(const std::vector<glm::vec3> &vertexList,
                            const std::vector<glm::vec2> &uvList,
-                           const std::vector<glm::vec2> &indexList);
+                           const std::vector<glm::vec3> &normalList,
+                           const std::vector<glm::vec3> &indexList);
 
         VBuffer getVertexBuffer();
         VBuffer getIndexBuffer();
