@@ -34,20 +34,16 @@ void main()
     if(outAlbedo.a < .99f)
         discard;
 
-    //vec4 heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp), vec3(fragTexCoord,fragHeightTexId.y));
-    //float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
-
     gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragWorldPos.z*viewUbo.depthOffsetAndFactor.y;
 
-
-    outPosition     = vec4(fragWorldPos.xyz, 0.0);
+    outPosition     = vec4(fragWorldPos.xyz, 1.0);
 
     //I need to compute normal in tangent space
     /*outNormal       = vec4(texture(sampler2DArray(textures[fragNormalTexId.x], samp),
                             vec3(fragUV,fragNormalTexId.y)).xyz, 1.0);*/
-    outNormal = vec4(0.5*normalize(fragNormal)+0.5,1.0);
-    outRmt          = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp),
-                            vec3(fragUV,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
+    outNormal = vec4(fragNormal,1.0);
+    outRmt    = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp),
+                             vec3(fragUV,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
 
 }
 

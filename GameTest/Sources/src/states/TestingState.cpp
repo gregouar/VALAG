@@ -85,8 +85,8 @@ void TestingState::init()
     /// SCENE
 
     //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
-    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
-  //  m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
+    //m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
+    m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
 
     vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
     vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
@@ -170,15 +170,21 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     if(eventsManager->keyPressed(GLFW_KEY_Z))
         m_treeEntity.setRotation(m_treeEntity.getRotation()-0.1f);
 
+
+    if(eventsManager->keyPressed(GLFW_KEY_Q))
+        m_abbeyNode->move(0,0,10);
+    if(eventsManager->keyPressed(GLFW_KEY_S))
+        m_abbeyNode->move(0,0,-10);
+
     if(eventsManager->keyIsPressed(GLFW_KEY_DOWN))
-        m_camVelocity.y = 100.0;
+        m_camVelocity.y = 200.0;
         //m_treeNode->move(0,0,-5);
     if(eventsManager->keyIsPressed(GLFW_KEY_UP))
-        m_camVelocity.y = -100.0;
+        m_camVelocity.y = -200.0;
     if(eventsManager->keyIsPressed(GLFW_KEY_LEFT))
-        m_camVelocity.x = -100.0;
+        m_camVelocity.x = -200.0;
     if(eventsManager->keyIsPressed(GLFW_KEY_RIGHT))
-        m_camVelocity.x = 100.0;
+        m_camVelocity.x = 200.0;
         //m_treeNode->move(0,0,5);
 
 

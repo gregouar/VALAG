@@ -55,7 +55,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3
     //if(enable_map_environmental == true)
     //    reflectionColor = texture2DLod(map_environmental, uv, materialPixel.r*8.0).rgb;
 
-    vec2 envBRDF  = texture(samplerBrdflut, vec2(max(dot(fragNormal, viewDirection), 0.0), 1.0-fragRmt.r)).rg;
+    vec2 envBRDF  = texture(samplerBrdflut, vec2(max(dot(fragNormal, viewDirection), 0.0), /*1.0-*/fragRmt.r)).rg;
     vec3 specularAmbient = reflectionColor* (FAmbient * envBRDF.x + envBRDF.y);
 
     return vec4(fragAlbedo.rgb * irradianceAmbient + specularAmbient, fragAlbedo.a);
@@ -65,14 +65,14 @@ void main()
 {
     vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy);
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
-    vec3 fragNormal = normalize(2.0*texture(samplerNormal, gl_FragCoord.xy).xyz-1.0);
+    vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
     outColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
 
 
     fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
     fragPos    = texture(samplerAlphaPosition, gl_FragCoord.xy).xyz;
-    fragNormal = normalize(2.0*texture(samplerAlphaNormal, gl_FragCoord.xy).xyz-1.0);
+    fragNormal = normalize(texture(samplerAlphaNormal, gl_FragCoord.xy).xyz);
     fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
 
     outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);

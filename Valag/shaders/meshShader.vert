@@ -49,7 +49,7 @@ void main()
     gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, 0.0 /*1.0*/ /*viewUbo.depthOffsetAndFactor.y*/)
                         + vec3(viewUbo.screenOffset, 0.0 /*viewUbo.depthOffsetAndFactor.x*/);
 
-    fragWorldPos = vec4(fragWorldPos.xyz/fragWorldPos.w, 1.0);
+    fragWorldPos = vec4(fragWorldPos.xyz/*/fragWorldPos.w*/, 1.0);
 
     fragUV      = inUV;
     fragColor   = inColor * inInstanceColor;

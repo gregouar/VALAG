@@ -84,7 +84,8 @@ class Scene
         float m_zAngle;
         float m_xyAngle;
         glm::mat4   m_viewAngle,    //World to screen transformation matrix
-                    m_viewAngleInv; //Screen to world transformation matrix
+                    m_viewAngleInv;//, //Screen to world transformation matrix
+                   // m_viewProjInv;  //Mouse screen to world matrix
 
     private:
         std::map<ObjectTypeID, SceneObject*> m_createdObjects;

@@ -142,7 +142,6 @@
 		<Unit filename="../../Valag/src/assets/MaterialAsset.cpp" />
 		<Unit filename="../../Valag/src/assets/MeshAsset.cpp" />
 		<Unit filename="../../Valag/src/assets/TextureAsset.cpp" />
-		<Unit filename="../../Valag/src/core/AssetHandler.inc" />
 		<Unit filename="../../Valag/src/core/Config.cpp" />
 		<Unit filename="../../Valag/src/core/EventsManager.cpp" />
 		<Unit filename="../../Valag/src/core/GameState.cpp" />

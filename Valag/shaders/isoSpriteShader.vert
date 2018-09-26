@@ -29,8 +29,8 @@ layout(location = 3) flat out uvec2 fragAlbedoTexId;
 layout(location = 4) flat out uvec2 fragHeightTexId;
 layout(location = 5) flat out uvec2 fragNormalTexId;
 layout(location = 6) flat out uvec2 fragRmtTexId;
-layout(location = 7) flat out float depthFactor;
-layout(location = 8) out vec4 screenPosAndHeight;
+//layout(location = 7) flat out float depthFactor;
+layout(location = 7) out vec4 screenPosAndHeight;
 
 
 vec2 vertPos[4] = vec2[](
@@ -48,7 +48,7 @@ out gl_PerVertex
 void main()
 {
     vec4 spriteViewCenter = viewUbo.view*vec4(inPos,1.0);
-    spriteViewCenter = vec4(spriteViewCenter.xyz/spriteViewCenter.w,1.0);
+    //spriteViewCenter = vec4(spriteViewCenter.xyz/spriteViewCenter.w,1.0);
     spriteViewCenter.z = inPos.z;
 
     float c = cos(inRotation);
@@ -68,7 +68,6 @@ void main()
     fragHeightTexId    = inHeightTexId;
     fragNormalTexId    = inNormalTexId;
     fragRmtTexId       = inRmtTexId;
-    depthFactor        = inSize.z * viewUbo.depthOffsetAndFactor.y;
 }
 
 

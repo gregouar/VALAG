@@ -360,12 +360,18 @@ glm::vec2 Scene::convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam)
     if(cam != nullptr)
         camPos = cam->getParentNode()->getGlobalPosition();
 
-    p.y +=  glm::vec4(m_viewAngle*glm::vec4(0,0,camPos.z,1.0)).y;
-    camPos.z = 0;
+    //p.y +=  glm::vec4(m_viewAngle*glm::vec4(0,0,camPos.z,1.0)).y;
+    //camPos.z = 0;
+    //glm::vec4 worldPos = m_viewAngleInv*glm::vec4(p,0.0,1.0) + glm::vec4(camPos, 0.0);
 
-    glm::vec4 worldPos = m_viewAngleInv*glm::vec4(p,0.0,1.0) + glm::vec4(camPos, 0.0);
+    glm::vec3 pos(p,0.0);
+    //pos.y +=  glm::vec4(m_viewAngle*glm::vec4(0,0,camPos.z,1.0)).y;
+    pos.y += camPos.z * m_viewAngle[2][1];
 
-    return {worldPos.x/worldPos.w, worldPos.y/worldPos.w};
+    glm::vec4 worldPos = m_viewAngleInv*glm::vec4(pos,1.0);
+    worldPos += glm::vec4(camPos,0.0);
+
+    return {worldPos.x, worldPos.y};
 }
 
 
@@ -413,10 +419,26 @@ void Scene::generateViewAngle()
                               -sinXY ,  sinZ * cosXY , cosZ * cosXY,
                                0     , -cosZ         , sinZ);*/
 
-    m_viewAngleInv = glm::mat4(cos(m_zAngle) , -sin(m_zAngle), 0, 0,
-                               sin(m_zAngle)/sin(m_xyAngle) , cos(m_zAngle)/sin(m_xyAngle), 0     , 0 ,
-                                0     , 0     , 0     , 0,
-                                0     , 0     , 0     , 1);
+    /*m_viewAngleInv = glm::mat4(cos(m_zAngle)                , -sin(m_zAngle)                , 0     , 0,
+                               sin(m_zAngle)/sin(m_xyAngle) , cos(m_zAngle)/sin(m_xyAngle)  , 0     , 0 ,
+                                0                           , 0                             , 0     , 0,
+                                0                           , 0                             , 0     , 1);*/
+
+    m_viewAngleInv = glm::mat4( cos(m_zAngle)                , -sin(m_zAngle)                , 0                , 0,
+                                sin(m_zAngle)/sin(m_xyAngle) , cos(m_zAngle)/sin(m_xyAngle)  , 0                , 0,
+                                0                            , 0                             , 0                , 0,
+                                0                            , 0                             , 0                , 1);
+
+    /*m_viewAngleInv = glm::mat4( cos(m_zAngle)                , -sin(m_zAngle)                , 0                , 0,
+                                sin(m_zAngle)*sin(m_xyAngle) , cos(m_zAngle)*sin(m_xyAngle)  ,-cos(m_xyAngle)   , 0,
+                                sin(m_zAngle)*cos(m_xyAngle) , cos(m_zAngle)*cos(m_xyAngle)  , sin(m_xyAngle)   , 0,
+                                0                            , 0                             , 0                , 1);*/
+
+
+     /**m_normalProjMatInv = Mat3x3(   cosXY        , -sinXY        , 0,
+                                    sinXY*sinZ   ,  cosXY*sinZ   , -cosZ,
+                                    sinXY * cosZ ,  cosXY*cosZ   , sinZ);**/
+
 }
 
 void Scene::setViewAngle(float zAngle, float xyAngle)
