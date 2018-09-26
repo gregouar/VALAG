@@ -243,7 +243,7 @@ SceneNode *Scene::getRootNode()
 /**RectEntity* Scene::CreateRectEntity(sf::Vector2f rectSize)
 {
     RectEntity *e = new RectEntity(rectSize);
-    AddCreatedObject(GenerateObjectID(), e);
+    AddCreatedObject(GenerateObjectId(), e);
     return e;
 }
 
@@ -255,7 +255,7 @@ SpriteEntity* Scene::CreateSpriteEntity(sf::Vector2i spriteSize)
 SpriteEntity* Scene::CreateSpriteEntity(sf::IntRect textureRect)
 {
     SpriteEntity *e = new SpriteEntity(textureRect);
-    AddCreatedObject(GenerateObjectID(), e);
+    AddCreatedObject(GenerateObjectId(), e);
     return e;
 }
 
@@ -266,26 +266,26 @@ Light* Scene::CreateLight(LightType type, sf::Vector3f direction, sf::Color colo
     light->SetDirection(direction);
     light->SetDiffuseColor(color);
     light->SetShadowMapSize(DEFAULT_SHADOWMAP_SIZE);
-    AddCreatedObject(GenerateObjectID(), light);
+    AddCreatedObject(GenerateObjectId(), light);
     return light;
 }**/
 
 CameraObject* Scene::createCamera()
 {
     CameraObject* camera = new CameraObject();
-    this->addCreatedObject(this->generateObjectID(), camera);
+    this->addCreatedObject(this->generateObjectId(), camera);
     return camera;
 }
 
 
-void Scene::addCreatedObject(const ObjectTypeID id, SceneObject* obj)
+void Scene::addCreatedObject(const ObjectTypeId id, SceneObject* obj)
 {
     auto entityIt = m_createdObjects.find(id);
 
     if(entityIt != m_createdObjects.end())
     {
         std::ostringstream warn_report;
-        warn_report << "Adding scene object of same id as another one (ID="<<id<<")";
+        warn_report << "Adding scene object of same id as another one (Id="<<id<<")";
         Logger::warning(warn_report);
     }
 
@@ -293,14 +293,14 @@ void Scene::addCreatedObject(const ObjectTypeID id, SceneObject* obj)
 }
 
 
-void Scene::destroyCreatedObject(const ObjectTypeID id)
+void Scene::destroyCreatedObject(const ObjectTypeId id)
 {
     auto objIt = m_createdObjects.find(id);
 
     if(objIt == m_createdObjects.end())
     {
         std::ostringstream error_report;
-        error_report << "Cannot destroy scene object (ID="<<id<<")";
+        error_report << "Cannot destroy scene object (Id="<<id<<")";
         Logger::error(error_report);
     } else {
         if(objIt->second != nullptr)
@@ -471,7 +471,7 @@ void Scene::DisableGammaCorrection()
 
 **/
 
-ObjectTypeID Scene::generateObjectID()
+ObjectTypeId Scene::generateObjectId()
 {
     return m_curNewId++;
 }

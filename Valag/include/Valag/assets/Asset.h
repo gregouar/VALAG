@@ -13,7 +13,7 @@ class Asset : public NotificationSender
 {
     public:
         Asset();
-        Asset(const AssetTypeID );
+        Asset(const AssetTypeId );
         virtual ~Asset();
 
         virtual bool loadFromFile(const std::string &);
@@ -28,11 +28,14 @@ class Asset : public NotificationSender
         bool isLoaded();
         const std::string& getFilePath();
 
-        AssetTypeID getID();
+        AssetTypeId getId();
         AssetLoadType getLoadType();
         AssetLoadSource getLoadSource();
 
         void forceLoadType(AssetLoadType);
+
+    protected:
+        void forceLoaded(bool loaded = true);
 
     protected:
 
@@ -55,7 +58,7 @@ class Asset : public NotificationSender
         std::string m_name;
 
     private:
-        AssetTypeID m_id;
+        AssetTypeId m_id;
 
 };
 

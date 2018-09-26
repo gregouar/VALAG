@@ -72,14 +72,14 @@ void Sprite::setColor(glm::vec4 color)
     }
 }
 
-void Sprite::setTexture(AssetTypeID textureID)
+void Sprite::setTexture(AssetTypeId textureId)
 {
-    if(textureID != m_texture)
+    if(textureId != m_texture)
     {
         sendNotification(Notification_TextureIsAboutToChange);
 
-        m_texture = textureID;
-        if(textureID != 0 && !TexturesHandler::instance()->getAsset(textureID)->isLoaded())
+        m_texture = textureId;
+        if(textureId != 0 && !TexturesHandler::instance()->getAsset(textureId)->isLoaded())
             for(auto b : m_needToCheckLoading) b = true;
 
 
@@ -102,7 +102,7 @@ SpriteModelUBO Sprite::getModelUBO()
     return m_modelUBO;
 }
 
-AssetTypeID Sprite::getTexture()
+AssetTypeId Sprite::getTexture()
 {
     return m_texture;
 }

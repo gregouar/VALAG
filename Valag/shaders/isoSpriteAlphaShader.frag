@@ -40,8 +40,13 @@ void main()
 
     ///Replace this by comparaison of alpha
     uint existingTrulyTransparentPixel = uint(texture(samplerTransparent, gl_FragCoord.xy /* *viewUbo.screenSizeFactor.xy*0.5 */).r);
+    //float existingTrulyTransparentPixel = texture(samplerTransparent, gl_FragCoord.xy).r;
+
+    //if(fragColor.a < .99f)
+      //  heightPixel.a = 1.0f;
 
     if(existingTrulyTransparentPixel != 0 && fragColor.a > .99f && heightPixel.a < 1.0f)
+    //if(heightPixel.a < existingTrulyTransparentPixel)
         discard;
 
     float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;

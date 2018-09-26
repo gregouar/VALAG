@@ -36,10 +36,10 @@ class Sprite : public NotificationSender, public Drawable
         void setPosition(glm::vec2 position);
         void setPosition(glm::vec3 position);
         void setColor(Color color);
-        void setTexture(AssetTypeID textureID);
+        void setTexture(AssetTypeId textureId);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
 
-        AssetTypeID getTexture();
+        AssetTypeId getTexture();
         SpriteModelUBO getModelUBO();
 
         ///Specifying framebuffer may induce better performances
@@ -71,7 +71,7 @@ class Sprite : public NotificationSender, public Drawable
         SpriteModelUBO m_modelUBO;
 
         /// I could (should ?) switch to pointer to textureAsset for more efficiency...
-        AssetTypeID m_texture;
+        AssetTypeId m_texture;
         std::vector<bool>   m_needToCheckLoading;
 
         glm::vec2 m_texturePosition;

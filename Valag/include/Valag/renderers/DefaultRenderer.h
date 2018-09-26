@@ -36,7 +36,7 @@ class DefaultRenderer : public AbstractRenderer
         virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 
         void    bindPipeline(VkCommandBuffer &commandBuffer, size_t frameIndex);
-        bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex);
+        bool    bindTexture(VkCommandBuffer &commandBuffer, AssetTypeId textureId, size_t frameIndex);
         void    bindModelDescriptorSet(size_t frameIndex, VkCommandBuffer &commandBuffer, DynamicUBODescriptor &descSet, size_t index = 0);
 
 

@@ -91,10 +91,11 @@ MeshAsset::MeshAsset() : MeshAsset(-1)
 {
 }
 
-MeshAsset::MeshAsset(const AssetTypeID id) : Asset(id)
+MeshAsset::MeshAsset(const AssetTypeId id) : Asset(id)
 {
-    m_allowLoadFromFile = true;
-    m_material          = nullptr;
+    m_allowLoadFromFile     = true;
+    //m_allowLoadFromMemory   = true;
+    m_material              = nullptr;
 
     m_scale = 1.0f;
 }
@@ -248,6 +249,14 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
 }
 
 
+void MeshAsset::setMaterial(AssetTypeId material)
+{
+    if(m_material != nullptr)
+        m_material->stopListeningTo(this);
+
+    m_material = MaterialsHandler::instance()->getAsset(material);
+    m_material->askForAllNotifications(this);
+}
 
 bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
                             const std::vector<glm::vec2> &uvList,
@@ -288,9 +297,16 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
             trueVertexList.push_back({vertex, uv, normal});
     }
 
+    return this->generateModel(trueVertexList, trueIndexList);
+}
+
+
+bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::vec3> > &vertexList,
+                              std::vector<uint16_t> &indexList)
+{
     std::vector<MeshVertex> meshVertexList;
 
-    for(auto &vertex : trueVertexList)
+    for(auto &vertex : vertexList)
     {
         meshVertexList.push_back({});
         meshVertexList.back().pos = std::get<0>(vertex);
@@ -319,7 +335,7 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
     }
 
     VkDeviceSize vertexBufferSize   = sizeof(MeshVertex) * meshVertexList.size();
-    VkDeviceSize indexBufferSize    = sizeof(uint16_t) * trueIndexList.size();
+    VkDeviceSize indexBufferSize    = sizeof(uint16_t) * indexList.size();
 
     VBuffer vertexStaging,
             indexStaging;
@@ -334,7 +350,7 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                    indexStaging);
 
-    VBuffersAllocator::writeBuffer(indexStaging, trueIndexList.data(), indexBufferSize);
+    VBuffersAllocator::writeBuffer(indexStaging, indexList.data(), indexBufferSize);
 
     VBuffersAllocator::allocBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -351,7 +367,7 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
     VBuffersAllocator::freeBuffer(vertexStaging);
     VBuffersAllocator::freeBuffer(indexStaging);
 
-    m_indexCount = trueIndexList.size();
+    m_indexCount = indexList.size();
 
     return (true);
 }

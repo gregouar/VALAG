@@ -25,7 +25,7 @@ class IsoSpriteModel
 
         //void setSize(glm::vec2 size);
 
-        void setMaterial(AssetTypeID textureID);
+        void setMaterial(AssetTypeId textureId);
         void setSize(glm::vec2 size);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
         void setTextureCenter(glm::vec2 pos);
@@ -33,7 +33,7 @@ class IsoSpriteModel
         void setColor(Color color);
         void setRmt(Color rmt);
 
-        AssetTypeID getMaterial();
+        AssetTypeId getMaterial();
         glm::vec2 getSize();
         glm::vec2 getTextureExtent();
         glm::vec2 getTexturePosition();
@@ -45,7 +45,7 @@ class IsoSpriteModel
 
     private:
         /// I could (should ?) switch to pointer to textureAsset for more efficiency...
-        AssetTypeID m_material;
+        AssetTypeId m_material;
         std::vector<bool>   m_needToCheckLoading;
 
         glm::vec2 m_size;

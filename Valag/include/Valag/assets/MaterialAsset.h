@@ -15,7 +15,7 @@ class MaterialAsset : public Asset, public NotificationListener
 {
     public:
         MaterialAsset();
-        MaterialAsset(const AssetTypeID);
+        MaterialAsset(const AssetTypeId);
         virtual ~MaterialAsset();
 
         bool loadFromFile(const std::string &filePath);

@@ -7,6 +7,7 @@
 
 #include "Valag/Types.h"
 #include "Valag/scene/SceneEntity.h"
+#include "Valag/scene/Light.h"
 
 #include "Valag/core/NotificationListener.h"
 #include "Valag/core/NotificationSender.h"
@@ -20,26 +21,26 @@ class SceneRenderer;
 class SceneNode : public NotificationSender, public NotificationListener
 {
     public:
-        SceneNode(const NodeTypeID);
-        SceneNode(const NodeTypeID, SceneNode* parent);
-        SceneNode(const NodeTypeID, SceneNode* parent, Scene* scene);
+        SceneNode(const NodeTypeId);
+        SceneNode(const NodeTypeId, SceneNode* parent);
+        SceneNode(const NodeTypeId, SceneNode* parent, Scene* scene);
         virtual ~SceneNode();
 
         void addChildNode(SceneNode*);
-        void addChildNode(const NodeTypeID id, SceneNode*);
+        void addChildNode(const NodeTypeId id, SceneNode*);
 
         SceneNode* removeChildNode(SceneNode*);
-        SceneNode* removeChildNode(const NodeTypeID id);
+        SceneNode* removeChildNode(const NodeTypeId id);
 
         SceneNode* createChildNode();
         SceneNode* createChildNode(float, float );
         SceneNode* createChildNode(float, float, float );
         SceneNode* createChildNode(glm::vec2 );
         SceneNode* createChildNode(glm::vec3 );
-        SceneNode* createChildNode(const NodeTypeID id);
+        SceneNode* createChildNode(const NodeTypeId id);
 
         bool destroyChildNode(SceneNode*);
-        bool destroyChildNode(const NodeTypeID id);
+        bool destroyChildNode(const NodeTypeId id);
 
         void removeAndDestroyAllChilds(bool destroyNonCreatedChilds = false);
 
@@ -74,13 +75,14 @@ class SceneNode : public NotificationSender, public NotificationListener
         glm::vec3 getGlobalPosition();
         glm::vec3 getScale();
         glm::vec3 getEulerRotation();
+        const glm::mat4 &getModelMatrix();
 
         glm::vec3 getPosition();
 
         /**sf::FloatRect getGlobalBounds();
         sf::FloatRect getBounds();**/
 
-        NodeTypeID getID();
+        NodeTypeId getId();
         SceneNode* getParent();
         Scene*  getScene();
 
@@ -103,28 +105,33 @@ class SceneNode : public NotificationSender, public NotificationListener
     protected:
         void setParent(SceneNode *);
         void setScene(Scene *);
-        void setID(const NodeTypeID );
-        NodeTypeID generateID();
+        void setId(const NodeTypeId );
+        NodeTypeId generateId();
 
-        ///Probably should add model matrix or something
+        void updateGlobalPosition();
+        void updateModelMatrix();
+
+    protected:
         glm::vec3 m_globalPosition;
 
         glm::vec3 m_position;
         glm::vec3 m_eulerRotations;
         glm::vec3 m_scale;
 
+        glm::mat4 m_modelMatrix;
+
         Scene* m_scene;
 
     private:
-        NodeTypeID m_id;
+        NodeTypeId m_id;
         SceneNode *m_parent;
-        std::map<NodeTypeID, SceneNode*> m_childs;
-        std::set<NodeTypeID> m_createdChildsList;
+        std::map<NodeTypeId, SceneNode*> m_childs;
+        std::set<NodeTypeId> m_createdChildsList;
 
-        std::list<SceneObject *> m_attachedObjects;
-        std::list<SceneEntity *> m_entities;
-        /**std::list<Light *> m_lights;
-        std::list<ShadowCaster *> m_shadowCasters;**/
+        std::list<SceneObject *>    m_attachedObjects;
+        std::list<SceneEntity *>    m_attachedEntities;
+        std::list<Light *>          m_attachedLights;
+        /**std::list<ShadowCaster *> m_shadowCasters;**/
 
         int m_curNewId;
 };

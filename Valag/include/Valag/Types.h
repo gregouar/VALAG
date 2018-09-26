@@ -75,9 +75,9 @@ enum NotificationType
 
 enum LightType
 {
-    OmniLight,
-    DirectionnalLight,
-    SpotLight,
+    LightType_Omni,
+    LightType_Directionnal,
+    LightType_Spot,
 };
 
 enum ShadowCastingType
@@ -95,15 +95,6 @@ enum ShadowVolumeType
     MirroredTwoSidedShadow,
 };
 
-enum PBRScreenType
-{
-    PBRAlbedoScreen = 0,
-    PBRNormalScreen,
-    PBRDepthScreen,
-    PBRMaterialScreen,
-    PBRExtraScreen0,
-};
-
 enum CommandPoolName
 {
     COMMANDPOOL_DEFAULT,
@@ -114,9 +105,9 @@ enum CommandPoolName
 
 typedef std::chrono::duration<double, std::chrono::seconds::period> Time;
 
-typedef unsigned int AssetTypeID;
-typedef unsigned int NodeTypeID;
-typedef unsigned int ObjectTypeID;
+typedef unsigned int AssetTypeId;
+typedef unsigned int NodeTypeId;
+typedef unsigned int ObjectTypeId;
 
 typedef glm::vec4 Color;
 
@@ -124,11 +115,11 @@ typedef glm::vec4 Color;
 typedef ListIterator<SceneEntity*> SceneEntityIterator;
 typedef ListIterator<ShadowCaster*> ShadowCasterIterator;
 typedef ListIterator<Light*> LightIterator;
-typedef MapIterator<NodeTypeID, SceneNode*> SceneNodeIterator;**/
+typedef MapIterator<NodeTypeId, SceneNode*> SceneNodeIterator;**/
 
 typedef AssetHandler<TextureAsset>  TexturesHandler;
 typedef AssetHandler<MaterialAsset> MaterialsHandler;
-typedef AssetHandler<MeshAsset>     MeshesHandler;
+//typedef AssetHandler<MeshAsset>     MeshesHandler;
 
 const std::string emptyString;
 ///const sf::Texture emptyTexture;

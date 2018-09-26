@@ -67,7 +67,9 @@ void main()
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
     vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
+
     outColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
+	outColor.rgb = pow(outColor.rgb, vec3(2.2));
 
 
     fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
@@ -76,5 +78,6 @@ void main()
     fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
 
     outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
+	outAlphaColor.rgb = pow(outAlphaColor.rgb, vec3(2.2));
 }
 

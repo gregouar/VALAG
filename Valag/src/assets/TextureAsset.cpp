@@ -15,7 +15,7 @@ TextureAsset::TextureAsset() : TextureAsset(-1)
 {
 }
 
-TextureAsset::TextureAsset(const AssetTypeID id) : Asset(id)
+TextureAsset::TextureAsset(const AssetTypeId id) : Asset(id)
 {
     m_allowLoadFromFile = true;
     m_allowLoadFromMemory = false;

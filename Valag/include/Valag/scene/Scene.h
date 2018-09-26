@@ -14,6 +14,8 @@ struct AmbientLightingData
     glm::vec4 ambientLight;
 };
 
+
+/// I need to reimplement methods to create objects (light, sprites, etc)
 class Scene
 {
     public:
@@ -47,7 +49,7 @@ class Scene
 
         CameraObject* createCamera();
 
-        void destroyCreatedObject(const ObjectTypeID);
+        void destroyCreatedObject(const ObjectTypeId);
         void destroyAllCreatedObjects();
 
         virtual glm::vec2 convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam = nullptr);
@@ -64,8 +66,8 @@ class Scene
         virtual void setCurrentCamera(CameraObject *);
 
     protected:
-        ObjectTypeID generateObjectID();
-        void addCreatedObject(const ObjectTypeID, SceneObject*);
+        ObjectTypeId generateObjectId();
+        void addCreatedObject(const ObjectTypeId, SceneObject*);
 
         ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 
@@ -88,8 +90,8 @@ class Scene
                    // m_viewProjInv;  //Mouse screen to world matrix
 
     private:
-        std::map<ObjectTypeID, SceneObject*> m_createdObjects;
-        ObjectTypeID m_curNewId;
+        std::map<ObjectTypeId, SceneObject*> m_createdObjects;
+        ObjectTypeId m_curNewId;
 
         bool m_needToUpdateRenderQueue;
 

@@ -23,7 +23,7 @@ class TextureAsset : public Asset
 
     public:
         TextureAsset();
-        TextureAsset(const AssetTypeID);
+        TextureAsset(const AssetTypeId);
         virtual ~TextureAsset();
 
         bool loadFromFile(const std::string &filePath);

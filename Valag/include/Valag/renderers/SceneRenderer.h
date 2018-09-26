@@ -11,6 +11,7 @@
 #include "Valag/scene/Scene.h"
 #include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/scene/MeshEntity.h"
+#include "Valag/scene/Light.h"
 
 #include "Valag/vulkanImpl/DynamicVBO.h"
 
@@ -25,7 +26,8 @@ class SceneRenderer : public AbstractRenderer
         virtual ~SceneRenderer();
 
         void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
-        void addToMeshVbo(MeshAsset *mesh, const MeshDatum &datum);
+        void addToMeshesVbo(MeshAsset *mesh, const MeshDatum &datum);
+        void addToLightsVbo(const LightDatum &datum);
 
         void setAmbientLightingData(const AmbientLightingData &);
 
@@ -46,6 +48,7 @@ class SceneRenderer : public AbstractRenderer
         void prepareDeferredRenderPass();
         void prepareAlphaDetectRenderPass();
         void prepareAlphaDeferredRenderPass();
+        void prepareLightingRenderPass();
         void prepareAmbientLightingRenderPass();
         void prepareToneMappingRenderPass();
 
@@ -53,6 +56,7 @@ class SceneRenderer : public AbstractRenderer
         bool createDeferredMeshesPipeline();
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
+        bool createLightingPipeline();
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
@@ -74,6 +78,7 @@ class SceneRenderer : public AbstractRenderer
                             m_deferredMeshesPipeline,
                             m_alphaDetectPipeline,
                             m_alphaDeferredPipeline,
+                            m_lightingPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
@@ -89,12 +94,13 @@ class SceneRenderer : public AbstractRenderer
         size_t  m_deferredPass,
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
+                m_lightingPass,
                 m_ambientLightingPass,
                 m_toneMappingPass;
 
-        std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >    m_spritesVbos;
-
-        std::vector<std::map<MeshAsset* ,DynamicVBO<MeshDatum> > > m_meshesVbos;
+        std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >          m_spritesVbos;
+        std::vector<std::map<MeshAsset* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
+        std::vector<DynamicVBO<LightDatum> >                        m_lightsVbos;
 
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;
@@ -104,6 +110,8 @@ class SceneRenderer : public AbstractRenderer
         static const char *ISOSPRITE_ALPHADETECT_FRAGSHADERFILE;
         static const char *ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE;
+        static const char *LIGHTING_VERTSHADERFILE;
+        static const char *LIGHTING_FRAGSHADERFILE;
         static const char *AMBIENTLIGHTING_VERTSHADERFILE;
         static const char *AMBIENTLIGHTING_FRAGSHADERFILE;
         static const char *TONEMAPPING_VERTSHADERFILE;

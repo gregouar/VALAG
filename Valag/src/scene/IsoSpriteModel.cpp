@@ -23,9 +23,9 @@ IsoSpriteModel::~IsoSpriteModel()
     m_size = size;
 }*/
 
-void IsoSpriteModel::setMaterial(AssetTypeID materialID)
+void IsoSpriteModel::setMaterial(AssetTypeId materialId)
 {
-    m_material = materialID;
+    m_material = materialId;
 }
 
 void IsoSpriteModel::setSize(glm::vec2 size)
@@ -55,7 +55,7 @@ void IsoSpriteModel::setRmt(Color rmt)
 }
 
 
-AssetTypeID IsoSpriteModel::getMaterial()
+AssetTypeId IsoSpriteModel::getMaterial()
 {
     return m_material;
 }

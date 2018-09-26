@@ -15,7 +15,7 @@ MaterialAsset::MaterialAsset() : MaterialAsset(-1)
 {
 }
 
-MaterialAsset::MaterialAsset(const AssetTypeID id) : Asset(id)
+MaterialAsset::MaterialAsset(const AssetTypeId id) : Asset(id)
 {
     m_allowLoadFromFile     = true;
     m_allowLoadFromMemory   = false;

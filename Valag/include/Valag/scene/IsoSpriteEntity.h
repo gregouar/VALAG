@@ -54,11 +54,9 @@ class IsoSpriteEntity : public SceneEntity
         void setRmt(glm::vec3 rmt);
         void setSpriteModel(IsoSpriteModel* model);
 
-
         float getRotation();
         Color getColor();
         glm::vec3 getRmt();
-
 
         InstanciedIsoSpriteDatum getIsoSpriteDatum();
 

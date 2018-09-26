@@ -38,7 +38,7 @@ class SpritesBatch : public Drawable
        // std::set<Sprite*> m_sprites;
       //  std::list<Sprite*> m_sprites;
         bool m_enableSorting;
-        std::map<AssetTypeID, std::set<Sprite*> > m_sortedSprites;
+        std::map<AssetTypeId, std::set<Sprite*> > m_sortedSprites;
 };
 
 }

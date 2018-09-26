@@ -8,15 +8,16 @@
 namespace vlg
 {
 
-SceneNode::SceneNode(const NodeTypeID id) : SceneNode(id, nullptr)
+SceneNode::SceneNode(const NodeTypeId id) : SceneNode(id, nullptr)
 {
 }
 
-SceneNode::SceneNode(const NodeTypeID id, SceneNode *p) :
+SceneNode::SceneNode(const NodeTypeId id, SceneNode *p) :
     m_globalPosition(0.0,0.0,0.0),
     m_position(0.0,0.0,0.0),
     m_eulerRotations(0.0,0.0,0.0),
-    m_scale(1.0,1.0,1.0)
+    m_scale(1.0,1.0,1.0),
+    m_modelMatrix(1.0)
 {
     m_scene = nullptr;
     m_parent = p;
@@ -28,7 +29,7 @@ SceneNode::SceneNode(const NodeTypeID id, SceneNode *p) :
     m_curNewId = 0;
 }
 
-SceneNode::SceneNode(const NodeTypeID id, SceneNode *p, Scene* scene) :
+SceneNode::SceneNode(const NodeTypeId id, SceneNode *p, Scene* scene) :
     SceneNode(id,p)
 {
     this->setScene(scene);
@@ -42,19 +43,19 @@ SceneNode::~SceneNode()
 
 void SceneNode::addChildNode(SceneNode* node)
 {
-    NodeTypeID id = this->generateID();
+    NodeTypeId id = this->generateId();
     this->addChildNode(id, node);
     if(node != nullptr)
-        node->setID(id);
+        node->setId(id);
 }
 
-void SceneNode::addChildNode(const NodeTypeID id, SceneNode* node)
+void SceneNode::addChildNode(const NodeTypeId id, SceneNode* node)
 {
     auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
     {
         std::ostringstream warn_report;
-        warn_report << "Adding child of same id as another one (ID="<<id<<")";
+        warn_report << "Adding child of same id as another one (Id="<<id<<")";
         Logger::warning(warn_report);
     }
 
@@ -70,7 +71,7 @@ void SceneNode::addChildNode(const NodeTypeID id, SceneNode* node)
         m_scene->askToComputeRenderQueue();
 }
 
-SceneNode* SceneNode::removeChildNode(const NodeTypeID id)
+SceneNode* SceneNode::removeChildNode(const NodeTypeId id)
 {
     SceneNode* node = nullptr;
 
@@ -79,7 +80,7 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeID id)
     if(childsIt == m_childs.end())
     {
         std::ostringstream error_report;
-        error_report << "Cannot remove child node (ID="<<id<<")";
+        error_report << "Cannot remove child node (Id="<<id<<")";
         Logger::error(error_report);
 
         return (nullptr);
@@ -89,7 +90,7 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeID id)
 
     this->removeFromAllNotificationList(node);
 
-    /*std::list<NodeTypeID>::iterator createdChildsIt;
+    /*std::list<NodeTypeId>::iterator createdChildsIt;
     createdChildsIt = std::list::find(m_createdChildsList.begin(),
                                 m_createdChildsList.end(), id);
 
@@ -108,13 +109,13 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeID id)
 SceneNode* SceneNode::removeChildNode(SceneNode* node)
 {
     if(node != nullptr && node->getParent() == this)
-        return this->removeChildNode(node->getID());
+        return this->removeChildNode(node->getId());
     return (nullptr);
 }
 
 SceneNode* SceneNode::createChildNode()
 {
-    return this->createChildNode(this->generateID());
+    return this->createChildNode(this->generateId());
 }
 
 SceneNode* SceneNode::createChildNode(float x, float y, float z)
@@ -141,13 +142,13 @@ SceneNode* SceneNode::createChildNode(glm::vec3 p)
     return this->createChildNode(p.x, p.y, p.z);
 }
 
-SceneNode* SceneNode::createChildNode(const NodeTypeID id)
+SceneNode* SceneNode::createChildNode(const NodeTypeId id)
 {
     auto childsIt = m_childs.find(id);
     if(childsIt != m_childs.end())
     {
         std::ostringstream error_report;
-        error_report << "Cannot create new child node with the same ID as an existing child node (ID="<<id<<")";
+        error_report << "Cannot create new child node with the same Id as an existing child node (Id="<<id<<")";
         Logger::error(error_report);
 
         return childsIt->second;
@@ -164,13 +165,13 @@ SceneNode* SceneNode::createChildNode(const NodeTypeID id)
 bool SceneNode::destroyChildNode(SceneNode* node)
 {
     if(node != nullptr && node->getParent() == this)
-        return this->destroyChildNode(node->getID());
+        return this->destroyChildNode(node->getId());
     return (false);
 }
 
-bool SceneNode::destroyChildNode(const NodeTypeID id)
+bool SceneNode::destroyChildNode(const NodeTypeId id)
 {
-    /*std::list<NodeTypeID>::iterator createdChildsIt;
+    /*std::list<NodeTypeId>::iterator createdChildsIt;
     createdChildsIt = std::find(m_createdChildsList.begin(),
                                 m_createdChildsList.end(), id);*/
 
@@ -187,7 +188,7 @@ bool SceneNode::destroyChildNode(const NodeTypeID id)
     if(childsIt == m_childs.end())
     {
         std::ostringstream error_report;
-        error_report << "Cannot destroy child (ID="<<id<<")";
+        error_report << "Cannot destroy child (Id="<<id<<")";
         Logger::error(error_report);
 
         return (false);
@@ -202,7 +203,7 @@ bool SceneNode::destroyChildNode(const NodeTypeID id)
 
 void SceneNode::removeAndDestroyAllChilds(bool destroyNonCreatedChilds)
 {
-    //std::map<NodeTypeID, SceneNode*>::iterator childsIt;
+    //std::map<NodeTypeId, SceneNode*>::iterator childsIt;
 
     if(!destroyNonCreatedChilds)
         while(!m_createdChildsList.empty())
@@ -247,12 +248,12 @@ void SceneNode::attachObject(SceneObject *e)
         m_attachedObjects.push_back(e);
 
         if(e->isAnEntity())
-            m_entities.push_back(dynamic_cast<SceneEntity*>(e));
+            m_attachedEntities.push_back(dynamic_cast<SceneEntity*>(e));
 
-        /**if(e->IsALight())
-            m_lights.push_back((Light*)e);
+        if(e->isALight())
+            m_attachedLights.push_back(dynamic_cast<Light*>(e));
 
-        if(e->IsAShadowCaster())
+        /**if(e->IsAShadowCaster())
             //m_shadowCasters.push_back(dynamic_cast<ShadowCaster*>(e));
             m_shadowCasters.push_back((ShadowCaster*)e);**/
 
@@ -272,12 +273,12 @@ void SceneNode::detachObject(SceneObject *e)
     m_attachedObjects.remove(e);
 
     if(e != nullptr && e->isAnEntity())
-        m_entities.remove(dynamic_cast<SceneEntity*>(e));
+        m_attachedEntities.remove(dynamic_cast<SceneEntity*>(e));
 
-    /**if(e != nullptr && e->isALight())
-        m_lights.remove((Light*)e);
+    if(e != nullptr && e->isALight())
+        m_attachedLights.remove((Light*)e);
 
-    if(e != nullptr && e->isAShadowCaster())
+    /**if(e != nullptr && e->isAShadowCaster())
         m_shadowCasters.remove((ShadowCaster*)e);**/
 
     this->removeFromAllNotificationList(e);
@@ -340,7 +341,9 @@ void SceneNode::setPosition(glm::vec3 pos)
 {
     m_position = pos;
 
-    if(m_parent != nullptr)
+    this->updateGlobalPosition();
+
+   /* if(m_parent != nullptr)
         m_globalPosition = m_parent->getGlobalPosition() + pos;
     else
         m_globalPosition = pos;
@@ -348,7 +351,7 @@ void SceneNode::setPosition(glm::vec3 pos)
     if(m_scene != nullptr)
         m_scene->askToComputeRenderQueue();
 
-    this->sendNotification(Notification_SceneNodeMoved);
+    this->sendNotification(Notification_SceneNodeMoved);*/
 }
 
 void SceneNode::scale(float scale)
@@ -369,10 +372,7 @@ void SceneNode::setScale(float scale)
 void SceneNode::setScale(glm::vec3 scale)
 {
     m_scale = scale;
-
-    /**Update childs global pos**/
-
-    this->sendNotification(Notification_SceneNodeMoved);
+    this->updateModelMatrix();
 }
 
 void SceneNode::rotate(float value, glm::vec3 axis)
@@ -383,9 +383,7 @@ void SceneNode::rotate(float value, glm::vec3 axis)
 void SceneNode::setRotation(glm::vec3 rotation)
 {
     m_eulerRotations = rotation;
-    /**Update childs global pos**/
-
-    this->sendNotification(Notification_SceneNodeMoved);
+    this->updateModelMatrix();
 }
 
 glm::vec3 SceneNode::getPosition()
@@ -408,7 +406,12 @@ glm::vec3 SceneNode::getEulerRotation()
     return m_eulerRotations;
 }
 
-NodeTypeID SceneNode::getID()
+const glm::mat4 &SceneNode::getModelMatrix()
+{
+    return m_modelMatrix;
+}
+
+NodeTypeId SceneNode::getId()
 {
     return m_id;
 }
@@ -425,7 +428,7 @@ SceneNode* SceneNode::getParent()
 
 
 
-void SceneNode::setID(const NodeTypeID id)
+void SceneNode::setId(const NodeTypeId id)
 {
     m_id = id;
 }
@@ -450,9 +453,10 @@ void SceneNode::setScene(Scene *scene)
 void SceneNode::setParent(SceneNode *p)
 {
     m_parent = p;
+    this->updateGlobalPosition();
 }
 
-NodeTypeID SceneNode::generateID()
+NodeTypeId SceneNode::generateId()
 {
     return m_curNewId++;
 }
@@ -564,11 +568,43 @@ void SceneNode::update(const Time &elapsedTime)
     }**/
 }
 
+void SceneNode::updateGlobalPosition()
+{
+    if(m_parent != nullptr)
+    {
+        glm::vec4 pos    = m_parent->getModelMatrix() * glm::vec4(m_position,1.0);
+        m_globalPosition = {pos.x,pos.y,pos.z};
+    }
+    else
+        m_globalPosition = m_position;
+
+    if(m_scene != nullptr)
+        m_scene->askToComputeRenderQueue();
+
+    this->updateModelMatrix();
+   // this->sendNotification(Notification_SceneNodeMoved);
+}
+
+void SceneNode::updateModelMatrix()
+{
+    m_modelMatrix = glm::translate(glm::mat4(1.0), m_globalPosition);
+    m_modelMatrix = glm::scale(m_modelMatrix, m_scale);
+    m_modelMatrix = glm::rotate(m_modelMatrix, m_eulerRotations.x, glm::vec3(1.0,0.0,0.0));
+    m_modelMatrix = glm::rotate(m_modelMatrix, m_eulerRotations.y, glm::vec3(0.0,1.0,0.0));
+    m_modelMatrix = glm::rotate(m_modelMatrix, m_eulerRotations.z, glm::vec3(0.0,0.0,1.0));
+
+    this->sendNotification(Notification_SceneNodeMoved);
+}
+
 void SceneNode::render(SceneRenderer *renderer)
 {
-    for(auto entity : m_entities)
+    for(auto entity : m_attachedEntities)
         if(entity->isVisible())
             entity->draw(renderer);
+
+    for(auto light : m_attachedLights)
+        if(light->isVisible())
+            light->draw(renderer);
 
     for(auto node : m_childs)
         node.second->render(renderer);
@@ -580,7 +616,7 @@ void SceneNode::notify(NotificationSender* sender, NotificationType type)
     if(sender == m_parent)
     {
         if(type == Notification_SceneNodeMoved)
-            this->setPosition(m_position);
+            this->updateGlobalPosition();
     }
 }
 

@@ -34,10 +34,11 @@ struct MeshVertex
 class MeshAsset : public Asset, public NotificationListener
 {
     friend class SceneRenderer;
+    friend class MeshesHandler;
 
     public:
         MeshAsset();
-        MeshAsset(const AssetTypeID);
+        MeshAsset(const AssetTypeId);
         virtual ~MeshAsset();
 
         bool loadFromFile(const std::string &filePath);
@@ -49,11 +50,16 @@ class MeshAsset : public Asset, public NotificationListener
         bool loadFromXML(TiXmlHandle *);
         bool loadModelFromObj(const std::string &filePath);
 
+        void setMaterial(AssetTypeId material);
+
         //Cannot generate until textures are loaded
         bool generateModel(const std::vector<glm::vec3> &vertexList,
                            const std::vector<glm::vec2> &uvList,
                            const std::vector<glm::vec3> &normalList,
                            const std::vector<glm::vec3> &indexList);
+
+        bool generateModel( std::vector<std::tuple<glm::vec3, glm::vec2, glm::vec3> > &vertexList,
+                            std::vector<uint16_t> &indexList);
 
         VBuffer getVertexBuffer();
         VBuffer getIndexBuffer();

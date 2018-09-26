@@ -57,9 +57,9 @@ bool DefaultRenderer::recordPrimaryCmb(uint32_t imageIndex)
     return m_renderGraph.endRecording(m_defaultPass);
 }
 
-bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeID textureID, size_t frameIndex)
+bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeId textureId, size_t frameIndex)
 {
-    TextureAsset *texAsset = TexturesHandler::instance()->getAsset(textureID);
+    TextureAsset *texAsset = TexturesHandler::instance()->getAsset(textureId);
 
     int pc[] = {0,0};
 

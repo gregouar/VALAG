@@ -20,6 +20,8 @@ const char *SceneRenderer::ISOSPRITE_ALPHADETECT_VERTSHADERFILE = "isoSpriteAlph
 const char *SceneRenderer::ISOSPRITE_ALPHADETECT_FRAGSHADERFILE = "isoSpriteAlphaDetection.frag.spv";
 const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
 const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE = "isoSpriteAlphaShader.frag.spv";
+const char *SceneRenderer::LIGHTING_VERTSHADERFILE = "lighting.vert.spv";
+const char *SceneRenderer::LIGHTING_FRAGSHADERFILE = "lighting.frag.spv";
 const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "ambientLighting.vert.spv";
 const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "ambientLighting.frag.spv";
 const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
@@ -44,13 +46,18 @@ void SceneRenderer::addToSpritesVbo(const InstanciedIsoSpriteDatum &datum)
     m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
-void SceneRenderer::addToMeshVbo(MeshAsset* mesh, const MeshDatum &datum)
+void SceneRenderer::addToMeshesVbo(MeshAsset* mesh, const MeshDatum &datum)
 {
     auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
     if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
         foundedVbo = m_meshesVbos[m_curFrameIndex].insert(foundedVbo, {mesh, DynamicVBO<MeshDatum>(4)});
     foundedVbo->second.push_back(datum);
     //m_spritesVbos[m_curFrameIndex].push_back(datum);
+}
+
+void SceneRenderer::addToLightsVbo(const LightDatum &datum)
+{
+    m_lightsVbos[m_curFrameIndex].push_back(datum);
 }
 
 void SceneRenderer::setAmbientLightingData(const AmbientLightingData &data)
@@ -76,10 +83,8 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
-
     ///Probably it should be put elsewhere...
     this->updateUbos(imageIndex);
-
 
     size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
     VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
@@ -184,6 +189,32 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_alphaDeferredPass))
         return (false);
 
+
+    size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex].uploadVBO();
+    VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex].getBuffer();
+
+    VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                             m_renderGraph.getDescriptorSet(m_lightingPass,m_curFrameIndex) };
+
+    cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
+
+        vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_lightingPipeline.getLayout(),0,2, lightDescriptorSets, 0, nullptr);
+
+        m_lightingPipeline.bind(cmb);
+
+        if(lightsVboSize != 0)
+        {
+            vkCmdBindVertexBuffers(cmb, 0, 1, &lightsInstancesVB.buffer, &lightsInstancesVB.offset);
+
+            m_lightingPipeline.bind(cmb);
+
+            vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
+        }
+
+    if(!m_renderGraph.endRecording(m_lightingPass))
+        return (false);
+
     return (true);
 }
 
@@ -225,6 +256,8 @@ bool SceneRenderer::init()
     m_spritesVbos.resize(m_targetWindow->getFramesCount(),
                          DynamicVBO<InstanciedIsoSpriteDatum>(1024));
     m_meshesVbos.resize(m_targetWindow->getFramesCount());
+    m_lightsVbos.resize(m_targetWindow->getFramesCount(),
+                        DynamicVBO<LightDatum>(512));
 
     //if(!this->createSampler())
        // return (false);
@@ -249,6 +282,7 @@ void SceneRenderer::prepareRenderPass()
     this->prepareDeferredRenderPass();
     this->prepareAlphaDetectRenderPass();
     this->prepareAlphaDeferredRenderPass();
+    this->prepareLightingRenderPass();
     this->prepareAmbientLightingRenderPass();
     this->prepareToneMappingRenderPass();
 
@@ -268,6 +302,8 @@ bool SceneRenderer::createGraphicsPipeline()
     if(!this->createAlphaDetectPipeline())
         return (false);
     if(!this->createAlphaDeferredPipeline())
+        return (false);
+    if(!this->createLightingPipeline())
         return (false);
     if(!this->createAmbientLightingPipeline())
         return (false);
@@ -428,12 +464,46 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
 }
 
+void SceneRenderer::prepareLightingRenderPass()
+{
+    m_lightingPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+    m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[0]);
+    m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[1]);
+
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 2);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 3);
+
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 2);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 3);
+
+
+
+    size_t imagesCount = m_targetWindow->getSwapchainSize();
+    m_ambientLightingUbo.resize(imagesCount);
+    for(auto &buffer : m_ambientLightingUbo)
+    {
+        VBuffersAllocator::allocBuffer(sizeof(AmbientLightingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                       buffer);
+    }
+    m_renderGraph.addNewUniforms(m_lightingPass, m_ambientLightingUbo);
+
+}
+
 void SceneRenderer::prepareAmbientLightingRenderPass()
 {
     m_ambientLightingPass = m_renderGraph.addRenderPass(0);
 
-    m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[0]);
-    m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[1]);
+    //m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[0]);
+    //m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[1]);
+
+    m_renderGraph.transferAttachmentsToAttachments(m_lightingPass, m_ambientLightingPass, 0);
+    m_renderGraph.transferAttachmentsToAttachments(m_lightingPass, m_ambientLightingPass, 1);
 
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 1);
@@ -445,17 +515,9 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 3);
 
-
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
-    m_ambientLightingUbo.resize(imagesCount);
-    for(auto &buffer : m_ambientLightingUbo)
-    {
-        VBuffersAllocator::allocBuffer(sizeof(AmbientLightingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                       buffer);
-    }
     m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
 
+    size_t imagesCount = m_targetWindow->getSwapchainSize();
     std::vector<VkImageView> brdflut(imagesCount, PBRToolbox::getBrdflut().view);
     m_renderGraph.addNewUniforms(m_ambientLightingPass, brdflut);
 }
@@ -596,6 +658,37 @@ bool SceneRenderer::createAlphaDeferredPipeline()
                                           m_renderGraph.getColorAttachmentsCount(m_alphaDeferredPass));
 }
 
+bool SceneRenderer::createLightingPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << LIGHTING_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << LIGHTING_FRAGSHADERFILE;
+
+    m_lightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_lightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    auto bindingDescription = LightDatum::getBindingDescription();
+    auto attributeDescriptions = LightDatum::getAttributeDescriptions();
+    m_lightingPipeline.setVertexInput(1, &bindingDescription,
+                                    attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_lightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
+
+    m_lightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+    m_lightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
+    //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    //m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    m_lightingPipeline.setBlendMode(BlendMode_Add,0);
+    m_lightingPipeline.setBlendMode(BlendMode_Add,1);
+
+    return m_lightingPipeline.init( m_renderGraph.getVkRenderPass(m_lightingPass), 0,
+                                    m_renderGraph.getColorAttachmentsCount(m_lightingPass));
+}
+
 bool SceneRenderer::createAmbientLightingPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
@@ -610,6 +703,9 @@ bool SceneRenderer::createAmbientLightingPipeline()
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_ambientLightingDescriptorLayout);
+
+    m_ambientLightingPipeline.setBlendMode(BlendMode_Add,0);
+    m_ambientLightingPipeline.setBlendMode(BlendMode_Add,1);
 
     return m_ambientLightingPipeline.init(m_renderGraph.getVkRenderPass(m_ambientLightingPass), 0,
                                           m_renderGraph.getColorAttachmentsCount(m_ambientLightingPass));
@@ -683,6 +779,7 @@ void SceneRenderer::cleanup()
     m_deferredMeshesPipeline.destroy();
     m_alphaDetectPipeline.destroy();
     m_alphaDeferredPipeline.destroy();
+    m_lightingPipeline.destroy();
     m_ambientLightingPipeline.destroy();
     m_toneMappingPipeline.destroy();
 

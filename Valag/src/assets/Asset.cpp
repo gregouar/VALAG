@@ -16,7 +16,7 @@ Asset::Asset()
     m_loadType = LoadType_Now;
 }
 
-Asset::Asset(const AssetTypeID id) : Asset()
+Asset::Asset(const AssetTypeId id) : Asset()
 {
     m_id=id;
 }
@@ -99,7 +99,7 @@ bool Asset::loadNow()
             ///this->loadFromStream(*m_loadStream);
         } else {
             Logger::error("Cannot load asset");
-            m_loaded = false;
+            loaded = false;
         }
 
         m_loaded = loaded;
@@ -135,7 +135,7 @@ AssetLoadSource Asset::getLoadSource()
     return m_loadSource;
 }
 
-AssetTypeID Asset::getID()
+AssetTypeId Asset::getId()
 {
     return m_id;
 }
@@ -143,6 +143,12 @@ AssetTypeID Asset::getID()
 void Asset::forceLoadType(AssetLoadType type)
 {
     m_loadType = type;
+}
+
+
+void Asset::forceLoaded(bool loaded)
+{
+    m_loaded = loaded;
 }
 
 }

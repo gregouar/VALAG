@@ -25,14 +25,14 @@ AssetHandler<AssetType>::~AssetHandler()
 
 
 template<typename AssetType>
-AssetType* AssetHandler<AssetType>::getAsset(const AssetTypeID assetID)
+AssetType* AssetHandler<AssetType>::getAsset(const AssetTypeId assetId)
 {
-    if(assetID == 0)
+    if(assetId == 0)
         return this->getDummyAsset();
 
-    typename std::map<AssetTypeID, AssetType*>::iterator assetIter;
+    typename std::map<AssetTypeId, AssetType*>::iterator assetIter;
 
-    assetIter = m_assets.find(assetID);
+    assetIter = m_assets.find(assetId);
 
     if(assetIter == m_assets.end())
     {
@@ -51,14 +51,14 @@ template<typename AssetType>
 AssetType* AssetHandler<AssetType>::loadAssetFromFile(
                                         const std::string &filePath, AssetLoadType loadType)
 {
-    return loadAssetFromFile(this->generateID(), filePath, loadType);
+    return loadAssetFromFile(this->generateId(), filePath, loadType);
 }
 
 template<typename AssetType>
-AssetType* AssetHandler<AssetType>::loadAssetFromFile(const AssetTypeID id,
+AssetType* AssetHandler<AssetType>::loadAssetFromFile(const AssetTypeId id,
                                         const std::string &filePath, AssetLoadType loadType)
 {
-	std::map<std::string, AssetTypeID>::iterator filesIter;
+	std::map<std::string, AssetTypeId>::iterator filesIter;
 	filesIter = m_filesList.find(filePath);
 	if(filesIter != m_filesList.end())
 	{
@@ -93,11 +93,11 @@ template<typename AssetType>
 AssetType* AssetHandler<AssetType>::loadAssetFromMemory(
                                         void *data, std::size_t dataSize, AssetLoadType loadType)
 {
-    return this->loadAssetFromMemory(this->generateID(), data, dataSize, loadType);
+    return this->loadAssetFromMemory(this->generateId(), data, dataSize, loadType);
 }
 
 template<typename AssetType>
-AssetType* AssetHandler<AssetType>::loadAssetFromMemory(const AssetTypeID id,
+AssetType* AssetHandler<AssetType>::loadAssetFromMemory(const AssetTypeId id,
                                         void *data, std::size_t dataSize, AssetLoadType loadType)
 {
     Asset* newAsset = this->addAsset(id);
@@ -115,11 +115,11 @@ AssetType* AssetHandler<AssetType>::loadAssetFromMemory(const AssetTypeID id,
 AssetType* AssetHandler<AssetType>::loadAssetFromStream(
                                         sf::InputStream *stream, AssetLoadType loadType)
 {
-    return this->loadAssetFromStream(GenerateID(), stream, loadType);
+    return this->loadAssetFromStream(GenerateId(), stream, loadType);
 }**/
 
 /**template<typename AssetType>
-AssetType* AssetHandler<AssetType>::loadAssetFromStream(const AssetTypeID id,
+AssetType* AssetHandler<AssetType>::loadAssetFromStream(const AssetTypeId id,
                                         sf::InputStream *stream, AssetLoadType loadType)
 {
     Asset* newAsset = AddAsset(id);
@@ -134,34 +134,34 @@ AssetType* AssetHandler<AssetType>::loadAssetFromStream(const AssetTypeID id,
 
 
 template<typename AssetType>
-AssetType* AssetHandler<AssetType>::addAsset(const AssetTypeID assetID, bool plannedObsolescence, int lifeSpan)
+AssetType* AssetHandler<AssetType>::addAsset(const AssetTypeId assetId, bool plannedObsolescence, int lifeSpan)
 {
     ///sf::Lock lockLoadMutex(m_loadMutex);
     std::lock_guard<std::mutex> lock(m_loadMutex);
 
     AssetType* newAsset = nullptr;
-    typename std::map<AssetTypeID, AssetType*>::iterator assetIter;
+    typename std::map<AssetTypeId, AssetType*>::iterator assetIter;
 
-    assetIter = m_assets.find(assetID);
+    assetIter = m_assets.find(assetId);
 
     if(assetIter == m_assets.end())
     {
-        newAsset = new AssetType(assetID);
-        m_assets[assetID] = newAsset;
+        newAsset = new AssetType(assetId);
+        m_assets[assetId] = newAsset;
     } else {
         if(!plannedObsolescence)
-            this->removeFromObsolescenceList(assetID);
+            this->removeFromObsolescenceList(assetId);
         newAsset = assetIter->second;
     }
 
     if(plannedObsolescence)
-        this->addToObsolescenceList(assetID, lifeSpan);
+        this->addToObsolescenceList(assetId, lifeSpan);
 
     return newAsset;
 }
 
 template<class AssetType>
-AssetTypeID AssetHandler<AssetType>::generateID()
+AssetTypeId AssetHandler<AssetType>::generateId()
 {
     return m_curNewId++;
 }
@@ -211,22 +211,22 @@ void AssetHandler<AssetType>::removeFromLoadingThread(AssetType* asset)
 }
 
 template<typename AssetType>
-void AssetHandler<AssetType>:: addToObsolescenceList(const AssetTypeID assetID,int lifeSpan)
+void AssetHandler<AssetType>:: addToObsolescenceList(const AssetTypeId assetId,int lifeSpan)
 {
-    if(this->getAsset(assetID) != nullptr)
-        m_obsolescenceList[assetID] = lifeSpan;
+    if(this->getAsset(assetId) != nullptr)
+        m_obsolescenceList[assetId] = lifeSpan;
 }
 
 template<typename AssetType>
-void AssetHandler<AssetType>:: removeFromObsolescenceList(const AssetTypeID assetID)
+void AssetHandler<AssetType>:: removeFromObsolescenceList(const AssetTypeId assetId)
 {
-    m_obsolescenceList.erase(assetID);
+    m_obsolescenceList.erase(assetId);
 }
 
 template<typename AssetType>
 void AssetHandler<AssetType>:: descreaseObsolescenceLife()
 {
-    std::map<AssetTypeID, int>::iterator iter;
+    std::map<AssetTypeId, int>::iterator iter;
     for(iter = m_obsolescenceList.begin() ; iter != m_obsolescenceList.end() ; ++iter)
     {
         iter->second--;
@@ -240,14 +240,14 @@ void AssetHandler<AssetType>:: descreaseObsolescenceLife()
 }
 
 template<typename AssetType>
-void AssetHandler<AssetType>::deleteAsset(const AssetTypeID assetID)
+void AssetHandler<AssetType>::deleteAsset(const AssetTypeId assetId)
 {
     ///sf::Lock lockLoadMutex(m_loadMutex);
     std::lock_guard<std::mutex> lock(m_loadMutex);
 
 
-    typename std::map<AssetTypeID, AssetType*>::iterator iter;
-    iter = m_assets.find(assetID);
+    typename std::map<AssetTypeId, AssetType*>::iterator iter;
+    iter = m_assets.find(assetId);
 
     if(iter != m_assets.end())
     {
@@ -273,7 +273,7 @@ template<typename AssetType>
 void AssetHandler<AssetType>::deleteAsset(AssetType *asset)
 {
     if(asset != nullptr)
-        this->deleteAsset(asset->getID());
+        this->deleteAsset(asset->getId());
 }
 
 
@@ -284,7 +284,7 @@ void AssetHandler<AssetType>::cleanAll()
 
     this->waitForLoadingThread(m_assetLoadingInThread);
 
-    typename std::map<AssetTypeID, AssetType*>::iterator assetIter;
+    typename std::map<AssetTypeId, AssetType*>::iterator assetIter;
     for(assetIter = m_assets.begin() ; assetIter != m_assets.end() ; ++assetIter)
         delete assetIter->second;
 

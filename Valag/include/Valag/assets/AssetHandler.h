@@ -20,29 +20,29 @@ template<class AssetType> class AssetHandler : public Singleton<AssetHandler<Ass
         friend class Singleton<AssetHandler<AssetType> >;
 
 
-        AssetType* getAsset(const AssetTypeID assetID);
+        AssetType* getAsset(const AssetTypeId assetId);
 
         AssetType* loadAssetFromFile(const std::string &, AssetLoadType = LoadType_Now);
         AssetType* loadAssetFromMemory(void *data, std::size_t dataSize, AssetLoadType = LoadType_Now);
         ///AssetType* loadAssetFromStream(sf::InputStream *stream, AssetLoadType = LoadType_Now);
 
-        AssetType* loadAssetFromFile(const AssetTypeID id,const std::string &, AssetLoadType = LoadType_Now);
-        AssetType* loadAssetFromMemory(const AssetTypeID id, void *data, std::size_t dataSize, AssetLoadType = LoadType_Now);
-       /// AssetType* loadAssetFromStream(const AssetTypeID& id,sf::InputStream *stream, AssetLoadType = LoadType_Now);
+        AssetType* loadAssetFromFile(const AssetTypeId id,const std::string &, AssetLoadType = LoadType_Now);
+        AssetType* loadAssetFromMemory(const AssetTypeId id, void *data, std::size_t dataSize, AssetLoadType = LoadType_Now);
+       /// AssetType* loadAssetFromStream(const AssetTypeId& id,sf::InputStream *stream, AssetLoadType = LoadType_Now);
 
-        AssetType* addAsset(const AssetTypeID assetID, bool plannedObsolescence=false, int lifeSpan=1);
+        AssetType* addAsset(const AssetTypeId assetId, bool plannedObsolescence=false, int lifeSpan=1);
 
         void addToLoadingThread(AssetType*);
         void removeFromLoadingThread(AssetType*);
 
-        AssetTypeID generateID();
+        AssetTypeId generateId();
 
-        void addToObsolescenceList(const AssetTypeID assetID,int lifeSpan = 1);
-        void removeFromObsolescenceList(const AssetTypeID assetID);
+        void addToObsolescenceList(const AssetTypeId assetId,int lifeSpan = 1);
+        void removeFromObsolescenceList(const AssetTypeId assetId);
 
         void descreaseObsolescenceLife();
         void deleteAsset(AssetType* );
-        void deleteAsset(const AssetTypeID assetID);
+        void deleteAsset(const AssetTypeId assetId);
         void cleanAll();
 
         void enableDummyAsset(bool enable = true);
@@ -60,9 +60,9 @@ template<class AssetType> class AssetHandler : public Singleton<AssetHandler<Ass
         void waitForLoadingThread(AssetType *assetToWaitFor);
 
     private:
-        std::map<AssetTypeID, AssetType*> m_assets;
-        std::map<AssetTypeID, int> m_obsolescenceList;
-        std::map<std::string, AssetTypeID> m_filesList;
+        std::map<AssetTypeId, AssetType*> m_assets;
+        std::map<AssetTypeId, int> m_obsolescenceList;
+        std::map<std::string, AssetTypeId> m_filesList;
 
         std::thread m_loadThread;
         std::mutex m_loadMutex;

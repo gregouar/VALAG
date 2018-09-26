@@ -21,14 +21,19 @@ void main()
 
     vec4 heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp), vec3(fragTexCoord,fragHeightTexId.y));
 
-    if(fragColorA > .99f && heightPixel.a < 1.0f)
+    //if(fragColorA < .99f)
+      //  heightPixel.a = 1.0f;
+
+    if(fragColorA > .99f  && heightPixel.a < 1.0f )
         discard;
 
     float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
 
     gl_FragDepth = gl_FragCoord.z + height * depthFactor;
 
-    outAlpha = 1;
+    ///I would need to use a different depthBuffer to do that properly
+    //outAlpha = heightPixel.a;
+    outAlpha = heightPixel.a;
 
 }
 

@@ -7,7 +7,10 @@
 #include "Valag/assets/AssetHandler.h"
 #include "Valag/assets/TextureAsset.h"
 #include "Valag/assets/MaterialAsset.h"
-#include "Valag/assets/MeshAsset.h"
+//#include "Valag/assets/MeshAsset.h"
+#include "Valag/assets/MeshesHandler.h"
+
+
 #include "Valag/renderers/DefaultRenderer.h"
 #include "Valag/renderers/InstancingRenderer.h"
 #include "Valag/renderers/SceneRenderer.h"
@@ -40,19 +43,19 @@ void TestingState::init()
 
     vlg::TexturesHandler* textureHandler =  vlg::TexturesHandler::instance();
 
-    vlg::AssetTypeID tex[10];
-    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread)->getID();
-    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getID();
-    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getID();
+    vlg::AssetTypeId tex[10];
+    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png"/*,vlg::LoadType_InThread*/)->getId();
 
-    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png"/*,vlg::LoadType_InThread*/)->getID();
-    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png"/*,vlg::LoadType_InThread*/)->getID();
-    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png"/*,vlg::LoadType_InThread*/)->getID();
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png"/*,vlg::LoadType_InThread*/)->getId();
 
-    tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getID();
-    tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
-    tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getID();
-    tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",vlg::LoadType_InThread)->getID();
+    tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getId();
+    tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getId();
+    tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getId();
+    tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",vlg::LoadType_InThread)->getId();
 
 
     m_testingSprites.resize(2);
@@ -85,18 +88,18 @@ void TestingState::init()
     /// SCENE
 
     //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
-    //m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
-    m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
+    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,64/255.0});
+    //m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
 
     vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
     vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
 
-    m_treeModel.setMaterial(treeMaterial->getID());
+    m_treeModel.setMaterial(treeMaterial->getId());
     m_treeModel.setSize({512.0,512.0});
     m_treeModel.setTextureRect({0,0},{1,1});
     m_treeModel.setTextureCenter({256,526});
 
-    m_abbeyModel.setMaterial(abbeyMaterial->getID());
+    m_abbeyModel.setMaterial(abbeyMaterial->getId());
     m_abbeyModel.setSize({1920,1080});
     m_abbeyModel.setTextureRect({0,0},{1,1});
     m_abbeyModel.setTextureCenter({1920/2,1080/2});
@@ -105,7 +108,7 @@ void TestingState::init()
     m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
     m_treeNode  =  m_scene->getRootNode()->createChildNode({0,0,-90});
-    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100});
+    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
 
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
@@ -127,6 +130,41 @@ void TestingState::init()
     m_quackNode = m_scene->getRootNode()->createChildNode();
     m_quackNode->attachObject(&m_quackEntities.back());
     m_quackNode->scale(5.0f);
+
+
+    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/sandXML.txt");
+    vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand->getId(),{0,0},{2.0,2.0});
+    m_groundSand.setMesh(groundMesh);
+    m_scene->getRootNode()->createChildNode({0,0,0})->attachObject(&m_groundSand);
+
+    //m_scene->getRootNode()->attachObject(&m_sunLight);
+    m_sunLight.setDiffuseColor({1.0,1.0,1.0,1.0});
+    m_sunLight.setIntensity(5.0);
+    m_sunLight.setType(vlg::LightType_Directionnal);
+    //m_sunLight.setDirection({-1.0,0.0,-1.0});
+    m_sunLight.setDirection({.2 ,-1.0,-1.0});
+
+    m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,100);
+    m_cursorLightNode->attachObject(&m_cursorLight);
+    m_cursorLight.setDiffuseColor({1.0,1.0,1.0,1.0});
+    m_cursorLight.setIntensity(5.0);
+    m_cursorLight.setRadius(400.0);
+    m_cursorLight.setType(vlg::LightType_Omni);
+
+    for(size_t i = 0 ; i < 100 ; ++i)
+    {
+        m_secLights.push_back(vlg::Light());
+        m_secLights.back().setDiffuseColor({glm::linearRand(0,100)/100.0,
+                                            glm::linearRand(0,100)/100.0,
+                                            glm::linearRand(0,100)/100.0});
+
+        m_secLights.back().setIntensity(glm::linearRand(2.0,20.0));
+        m_secLights.back().setRadius(glm::linearRand(100.0,600.0));
+        m_secLights.back().setType(vlg::LightType_Omni);
+        m_cursorLightNode->createChildNode({glm::linearRand(-600,600),
+                                            glm::linearRand(-600,600),
+                                            glm::linearRand(0,300)})->attachObject(&m_secLights.back());
+    }
 }
 
 void TestingState::entered()
@@ -164,6 +202,8 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     //std::cout<<worldMousePos.x<<" "<<worldMousePos.y<<std::endl;
     m_camVelocity = {0,0};
+
+    m_cursorLightNode->setPosition(worldMousePos);
 
     if(eventsManager->keyPressed(GLFW_KEY_A))
         m_treeEntity.setRotation(m_treeEntity.getRotation()+0.1f);
@@ -222,7 +262,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_testingSprites.resize(m_testingSprites.size() + 1);
         (--m_testingSprites.end())->setPosition(glm::vec3(eventsManager->mousePosition()+glm::vec2(j,j%100), j));
         (--m_testingSprites.end())->setSize(glm::vec2(100,100));
-        (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getID());
+        (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getId());
         //m_testingSpritesBatch.addSprite(&(*(--m_testingSprites.end())));
     }
 
@@ -249,6 +289,7 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
 
     m_quackNode->rotate(elapsedTime.count(), {0,0,1});
+    m_cursorLightNode ->rotate(elapsedTime.count(), {0,0,1});
 
    // m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }

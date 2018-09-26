@@ -8,6 +8,8 @@ namespace vlg
 
 class SceneRenderer;
 
+
+///Maybe this should be renamed in EntityObject
 class SceneEntity : public SceneObject
 {
     public:
