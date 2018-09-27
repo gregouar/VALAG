@@ -9,18 +9,8 @@
 namespace vlg
 {
 
-/*struct IsoSpriteEntityUBO {
-    glm::mat4 model;
-    glm::vec4 color;
-};*/
-
-struct InstanciedIsoSpriteDatum
+struct IsoSpriteDatum
 {
-    /*glm::vec4 model_0;
-    glm::vec4 model_1;
-    glm::vec4 model_2;
-    glm::vec4 model_3;*/
-
     glm::vec3 position;
     float rotation;
     glm::vec3 size;
@@ -58,16 +48,20 @@ class IsoSpriteEntity : public SceneEntity
         Color getColor();
         glm::vec3 getRmt();
 
-        InstanciedIsoSpriteDatum getIsoSpriteDatum();
+        IsoSpriteDatum getIsoSpriteDatum();
+        virtual void draw(SceneRenderer *renderer);
+
+        virtual void notify(NotificationSender *sender, NotificationType notification);
 
     protected:
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
+        void updateDatum();
 
-        virtual void draw(SceneRenderer *renderer);
 
         //bool checkUpdates(SceneRenderer *renderer, size_t frameIndex);
-
+    protected:
+        IsoSpriteDatum m_datum;
         IsoSpriteModel *m_spriteModel;
 
     private:
@@ -75,22 +69,6 @@ class IsoSpriteEntity : public SceneEntity
         float m_rotation;
         glm::vec4 m_color;
         glm::vec3 m_rmt;
-
-        /*std::vector<bool>       m_needToAllocUBO;
-        std::vector<bool>       m_needToUpdateUBO;
-        std::vector<size_t>     m_UBOIndex;
-        std::vector<size_t>     m_UBOVersion;*/
-
-
-
-    /** Static **/
-        /*static bool initRendering(size_t framesCount);
-        static void updateRendering(size_t frameIndex);
-        static void cleanupRendering();
-
-        static VkDescriptorSetLayout getUBODescriptorSetLayout();
-
-        static DynamicUBODescriptor s_entityUBO;*/
 };
 
 }

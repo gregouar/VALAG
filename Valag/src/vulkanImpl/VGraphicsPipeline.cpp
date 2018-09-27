@@ -117,6 +117,18 @@ void VGraphicsPipeline::setDepthTest(bool enableWrite, bool enableTest, VkCompar
     m_depthStencil.depthCompareOp = compareOp;
 }
 
+void VGraphicsPipeline::setStencilTest(bool enableTest, VkStencilOpState both)
+{
+    this->setStencilTest(enableTest, both, both);
+}
+
+void VGraphicsPipeline::setStencilTest(bool enableTest, VkStencilOpState front, VkStencilOpState back)
+{
+    m_depthStencil.stencilTestEnable = enableTest ? VK_TRUE : VK_FALSE;
+    m_depthStencil.front = front; // Optional
+    m_depthStencil.back = back; // Optional
+}
+
 bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t attachmentsCount)
 {
     VkDevice device = VInstance::device();

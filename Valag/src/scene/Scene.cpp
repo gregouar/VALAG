@@ -11,7 +11,7 @@ namespace vlg
 
 
 Scene::Scene() :
-    m_rootNode(0,nullptr, this)
+    m_rootNode(0, this)
 {
     m_rootNode.setPosition(0,0,0);
     m_curNewId = 0;

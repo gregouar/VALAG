@@ -22,8 +22,7 @@ class SceneNode : public NotificationSender, public NotificationListener
 {
     public:
         SceneNode(const NodeTypeId);
-        SceneNode(const NodeTypeId, SceneNode* parent);
-        SceneNode(const NodeTypeId, SceneNode* parent, Scene* scene);
+        SceneNode(const NodeTypeId, Scene* scene);
         virtual ~SceneNode();
 
         void addChildNode(SceneNode*);

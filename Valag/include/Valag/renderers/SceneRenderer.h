@@ -25,7 +25,7 @@ class SceneRenderer : public AbstractRenderer
         SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
-        void addToSpritesVbo(const InstanciedIsoSpriteDatum &datum);
+        void addToSpritesVbo(const IsoSpriteDatum &datum);
         void addToMeshesVbo(MeshAsset *mesh, const MeshDatum &datum);
         void addToLightsVbo(const LightDatum &datum);
 
@@ -49,6 +49,7 @@ class SceneRenderer : public AbstractRenderer
         void prepareAlphaDetectRenderPass();
         void prepareAlphaDeferredRenderPass();
         void prepareLightingRenderPass();
+        void prepareAlphaLightingRenderPass();
         void prepareAmbientLightingRenderPass();
         void prepareToneMappingRenderPass();
 
@@ -57,6 +58,7 @@ class SceneRenderer : public AbstractRenderer
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
         bool createLightingPipeline();
+        bool createAlphaLightingPipeline();
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
@@ -79,6 +81,7 @@ class SceneRenderer : public AbstractRenderer
                             m_alphaDetectPipeline,
                             m_alphaDeferredPipeline,
                             m_lightingPipeline,
+                            m_alphaLightingPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
@@ -95,10 +98,12 @@ class SceneRenderer : public AbstractRenderer
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
                 m_lightingPass,
+                m_alphaLightingPass,
                 m_ambientLightingPass,
                 m_toneMappingPass;
 
-        std::vector<DynamicVBO<InstanciedIsoSpriteDatum> >          m_spritesVbos;
+        ///I should probably sort by material
+        std::vector<DynamicVBO<IsoSpriteDatum> >                    m_spritesVbos;
         std::vector<std::map<MeshAsset* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
         std::vector<DynamicVBO<LightDatum> >                        m_lightsVbos;
 

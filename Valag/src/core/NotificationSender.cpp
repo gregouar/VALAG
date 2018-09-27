@@ -27,14 +27,14 @@ NotificationSender::~NotificationSender()
 
 
 
-void NotificationSender::askForAllNotifications(NotificationListener *listener)
+void NotificationSender::addToAllNotificationList(NotificationListener *listener)
 {
     auto ret = m_listenerToNotifyEverything.insert(listener);
     if(ret.second == true)
         listener->addSender(this);
 }
 
-void NotificationSender::askForNotification(NotificationListener *listener, NotificationType type)
+void NotificationSender::addToNotificationList(NotificationListener *listener, NotificationType type)
 {
     auto ret = m_listenerToNotify[type].insert(listener);
     if(ret.second == true)

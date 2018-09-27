@@ -68,6 +68,7 @@ enum NotificationType
     Notification_SceneNodeDetroyed,
     Notification_SceneNodeMoved,
     Notification_UpdateCmb,
+    Notification_ModelChanged,
     Notification_TextureChanged,
     Notification_TextureIsAboutToChange,
    // Notification_LightMoved,
@@ -100,6 +101,7 @@ enum CommandPoolName
     COMMANDPOOL_DEFAULT,
     COMMANDPOOL_SHORTLIVED, //fort short-lived command buffers
     COMMANDPOOL_TEXTURESLOADING, //for texture loading thread
+    COMMANDPOOL_MESHESLOADING, //for meshes loading thread
     COMMANDPOOL_NBR_NAMES,
 };
 

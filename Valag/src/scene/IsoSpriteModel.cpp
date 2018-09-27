@@ -1,5 +1,8 @@
 #include "Valag/scene/IsoSpriteModel.h"
 
+#include "Valag/assets/MaterialAsset.h"
+#include "Valag/assets/AssetHandler.h"
+
 namespace vlg
 {
 
@@ -18,44 +21,72 @@ IsoSpriteModel::~IsoSpriteModel()
     this->cleanup();
 }
 
-/*void IsoSpriteModel::setSize(glm::vec2 size)
-{
-    m_size = size;
-}*/
-
 void IsoSpriteModel::setMaterial(AssetTypeId materialId)
 {
-    m_material = materialId;
+    this->setMaterial(MaterialsHandler::instance()->getAsset(materialId));
+}
+
+void IsoSpriteModel::setMaterial(MaterialAsset *material)
+{
+    if(m_material != material)
+    {
+        if(m_material != nullptr)
+            this->stopListeningTo(m_material);
+        m_material = material;
+        if(m_material != nullptr)
+            this->startListeningTo(m_material);
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 void IsoSpriteModel::setSize(glm::vec2 size)
 {
-    m_size = size;
+    if(m_size != size)
+    {
+        m_size = size;
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 void IsoSpriteModel::setTextureRect(glm::vec2 pos, glm::vec2 extent)
 {
-    m_texturePosition = pos;
-    m_textureExtent = extent;
+    if(m_texturePosition != pos || m_textureExtent != extent)
+    {
+        m_texturePosition = pos;
+        m_textureExtent = extent;
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 void IsoSpriteModel::setTextureCenter(glm::vec2 pos)
 {
-    m_textureCenter = pos;
+    if(m_textureCenter != pos)
+    {
+        m_textureCenter = pos;
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 void IsoSpriteModel::setColor(Color color)
 {
-    m_color = color;
+    if(m_color != color)
+    {
+        m_color = color;
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 void IsoSpriteModel::setRmt(Color rmt)
 {
-    m_rmt = rmt;
+    if(m_rmt != rmt)
+    {
+        m_rmt = rmt;
+        this->sendNotification(Notification_ModelChanged);
+    }
 }
 
 
-AssetTypeId IsoSpriteModel::getMaterial()
+MaterialAsset* IsoSpriteModel::getMaterial()
 {
     return m_material;
 }
@@ -80,24 +111,24 @@ glm::vec2 IsoSpriteModel::getTextureCenter()
     return m_textureCenter;
 }
 
-/*void IsoSpriteModel::updateModel(SceneRenderer *renderer, size_t frameIndex)
-{
-
-}*/
-
 void IsoSpriteModel::cleanup()
 {
 
 }
 
-
-/** Static **/
-/*DynamicUBODescriptor IsoSpriteModel::s_modelUBO(sizeof(IsoSpriteModelUBO), 1024);
-
-VkDescriptorSetLayout IsoSpriteModel::getUBODescriptorSetLayout()
+void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notification)
 {
-    return IsoSpriteModel::s_modelUBO.getDescriptorSetLayout();
-}*/
+    if(notification == Notification_AssetLoaded)
+        this->sendNotification(Notification_ModelChanged);
+    if(notification == Notification_SenderDestroyed)
+    {
+        if(sender == m_material)
+        {
+            m_material = nullptr;
+            this->sendNotification(Notification_ModelChanged);
+        }
+    }
+}
 
 
 }

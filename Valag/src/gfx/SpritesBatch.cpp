@@ -24,7 +24,7 @@ void SpritesBatch::addSprite(Sprite *sprite)
     size_t texId = m_enableSorting*sprite->getTexture();
     if(m_sortedSprites[texId].insert(sprite).second)
     {
-        sprite->askForAllNotifications(this);
+        this->startListeningTo(sprite);
         ///for(auto b : m_needToUpdateDrawCmb) b = 0;
     }
 }

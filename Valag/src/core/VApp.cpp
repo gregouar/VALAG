@@ -31,6 +31,7 @@ const char *VApp::DEFAULT_ANISOTROPIC = "16";
 
 
 const bool VApp::ENABLE_PROFILER = false;
+const bool VApp::ENABLE_RANDOMNESS = false;
 
 /** I should replace that by config double/triple buffering at some point **/
 const size_t VApp::MAX_FRAMES_IN_FLIGHT = 3;
@@ -82,7 +83,8 @@ bool VApp::init()
 {
     Config::instance()->load(DEFAULT_CONFIG_FILE);
 
-    std::srand(std::time(nullptr));
+    if(VApp::ENABLE_RANDOMNESS)
+        std::srand(std::time(nullptr));
 
     Logger::write("Initializing application");
 

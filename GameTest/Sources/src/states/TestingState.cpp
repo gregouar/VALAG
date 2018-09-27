@@ -44,13 +44,13 @@ void TestingState::init()
     vlg::TexturesHandler* textureHandler =  vlg::TexturesHandler::instance();
 
     vlg::AssetTypeId tex[10];
-    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png"/*,vlg::LoadType_InThread*/)->getId();
-    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png"/*,vlg::LoadType_InThread*/)->getId();
-    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread)->getId();
+    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getId();
+    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getId();
 
-    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png"/*,vlg::LoadType_InThread*/)->getId();
-    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png"/*,vlg::LoadType_InThread*/)->getId();
-    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png"/*,vlg::LoadType_InThread*/)->getId();
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png",vlg::LoadType_InThread)->getId();
+    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread)->getId();
+    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread)->getId();
 
     tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getId();
     tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getId();
@@ -91,15 +91,15 @@ void TestingState::init()
     m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,64/255.0});
     //m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
 
-    vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt"/*,vlg::LoadType_InThread*/);
-    vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt"/*,vlg::LoadType_InThread*/);
+    vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt",vlg::LoadType_InThread);
+    vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt",vlg::LoadType_InThread);
 
-    m_treeModel.setMaterial(treeMaterial->getId());
+    m_treeModel.setMaterial(treeMaterial);
     m_treeModel.setSize({512.0,512.0});
     m_treeModel.setTextureRect({0,0},{1,1});
     m_treeModel.setTextureCenter({256,526});
 
-    m_abbeyModel.setMaterial(abbeyMaterial->getId());
+    m_abbeyModel.setMaterial(abbeyMaterial);
     m_abbeyModel.setSize({1920,1080});
     m_abbeyModel.setTextureRect({0,0},{1,1});
     m_abbeyModel.setTextureCenter({1920/2,1080/2});
@@ -123,7 +123,7 @@ void TestingState::init()
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
                           glm::pi<float>()/6.0f); //30
 
-    m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt");
+    m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt",vlg::LoadType_InThread);
 
     m_quackEntities.push_back(vlg::MeshEntity());
     m_quackEntities.back().setMesh(m_quackMesh);
@@ -132,8 +132,8 @@ void TestingState::init()
     m_quackNode->scale(5.0f);
 
 
-    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/sandXML.txt");
-    vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand->getId(),{0,0},{2.0,2.0});
+    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/sandXML.txt",vlg::LoadType_InThread);
+    vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{2.0,2.0});
     m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,0})->attachObject(&m_groundSand);
 

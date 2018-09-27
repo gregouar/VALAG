@@ -22,9 +22,9 @@ VkVertexInputBindingDescription MeshVertex::getBindingDescription()
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 9> MeshVertex::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 3> MeshVertex::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 9> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
 
     uint32_t i = 0;
     uint32_t b = 0;
@@ -46,7 +46,7 @@ std::array<VkVertexInputAttributeDescription, 9> MeshVertex::getAttributeDescrip
     attributeDescriptions[i].offset = offsetof(MeshVertex, normal);
     ++i;
 
-    attributeDescriptions[i].binding = b;
+    /*attributeDescriptions[i].binding = b;
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(MeshVertex, albedo_color);
@@ -80,7 +80,7 @@ std::array<VkVertexInputAttributeDescription, 9> MeshVertex::getAttributeDescrip
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(MeshVertex, rmt_texId);
-    ++i;
+    ++i;*/
 
 
     return attributeDescriptions;
@@ -98,6 +98,9 @@ MeshAsset::MeshAsset(const AssetTypeId id) : Asset(id)
     m_material              = nullptr;
 
     m_scale = 1.0f;
+
+    m_meshLoaded = false;
+    m_materialsLoaded = true;
 }
 
 MeshAsset::~MeshAsset()
@@ -125,8 +128,24 @@ bool MeshAsset::loadFromFile(const std::string &filePath)
     return this->loadFromXML(&hdl);
 }
 
-void MeshAsset::notify(NotificationSender* sender, NotificationType type)
+void MeshAsset::notify(NotificationSender* sender, NotificationType notification)
 {
+    if(notification == Notification_AssetLoaded)
+    if(sender == m_material)
+    {
+        m_materialsLoaded = true;
+        if(m_meshLoaded)
+            m_loaded = true, Asset::loadNow();
+    }
+
+    if(notification == Notification_SenderDestroyed)
+    {
+        if(sender == m_material)
+        {
+            m_material = nullptr;
+            this->sendNotification(Notification_TextureChanged);
+        }
+    }
 
 }
 
@@ -135,11 +154,17 @@ float MeshAsset::getScale()
     return m_scale;
 }
 
+MaterialAsset *MeshAsset::getMaterial()
+{
+    return m_material;
+}
 
 /// Protected ///
 
 bool MeshAsset::loadFromXML(TiXmlHandle *hdl)
 {
+    bool loaded = true;
+
     if(hdl == nullptr) return (false);
 
     if(hdl->FirstChildElement("name").Element() != nullptr)
@@ -154,7 +179,12 @@ bool MeshAsset::loadFromXML(TiXmlHandle *hdl)
 
         m_material = MaterialsHandler::instance()
                         ->loadAssetFromFile(m_fileDirectory+materialPath,m_loadType);
-        m_material->askForAllNotifications(this);
+        this->startListeningTo(m_material);
+        if(!m_material->isLoaded())
+        {
+            m_materialsLoaded = false;
+            loaded = false;
+        }
     }
 
     if(hdl->FirstChildElement("model").Element() != nullptr)
@@ -163,9 +193,13 @@ bool MeshAsset::loadFromXML(TiXmlHandle *hdl)
         this->loadModelFromObj(m_fileDirectory+modelPath);
     }
 
-    Logger::write("Mesh loaded from file: "+m_filePath);
+    if(m_materialsLoaded)
+        loaded = true;
 
-    return (true);
+    if(loaded)
+        Logger::write("Mesh loaded from file: "+m_filePath);
+
+    return (loaded);
 }
 
 bool MeshAsset::loadModelFromObj(const std::string &filePath)
@@ -249,13 +283,30 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
 }
 
 
-void MeshAsset::setMaterial(AssetTypeId material)
+void MeshAsset::setMaterial(AssetTypeId materialId)
+{
+    this->setMaterial(MaterialsHandler::instance()->getAsset(materialId));
+}
+
+void MeshAsset::setMaterial(MaterialAsset *material)
 {
     if(m_material != nullptr)
         m_material->stopListeningTo(this);
 
-    m_material = MaterialsHandler::instance()->getAsset(material);
-    m_material->askForAllNotifications(this);
+    m_material = material;
+    m_materialsLoaded = true;
+
+    if(m_material != nullptr)
+    {
+        if(!m_material->isLoaded())
+        {
+            m_materialsLoaded = false;
+            m_loaded = false;
+            Logger::write("Mesh loaded from file: "+m_filePath);
+        }
+        this->startListeningTo(m_material);
+    }
+
 }
 
 bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
@@ -313,7 +364,7 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
         meshVertexList.back().uv = std::get<1>(vertex);
         meshVertexList.back().normal = std::get<2>(vertex);
 
-        meshVertexList.back().albedo_color = glm::vec4(1.0,1.0,1.0,1.0);
+        /*meshVertexList.back().albedo_color = glm::vec4(1.0,1.0,1.0,1.0);
 
         if(m_material != nullptr)
         {
@@ -331,9 +382,17 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
             meshVertexList.back().rmt_texId    = {m_material->getRmtMap().m_textureId,
                                                   m_material->getRmtMap().m_textureLayer};
 
-        }
+        }*/
     }
 
+
+    CommandPoolName commandPoolName;
+    if(m_loadType == LoadType_Now)
+        commandPoolName = COMMANDPOOL_SHORTLIVED;
+    else
+        commandPoolName = COMMANDPOOL_MESHESLOADING;
+
+    ///I could have some kind of VMesh heh
     VkDeviceSize vertexBufferSize   = sizeof(MeshVertex) * meshVertexList.size();
     VkDeviceSize indexBufferSize    = sizeof(uint16_t) * indexList.size();
 
@@ -356,18 +415,19 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                    m_vertexBuffer);
 
-    VBuffersAllocator::copyBuffer(vertexStaging, m_vertexBuffer, vertexBufferSize);
+    VBuffersAllocator::copyBuffer(vertexStaging, m_vertexBuffer, vertexBufferSize, commandPoolName);
 
     VBuffersAllocator::allocBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                    m_indexBuffer);
 
-    VBuffersAllocator::copyBuffer(indexStaging, m_indexBuffer, indexBufferSize);
+    VBuffersAllocator::copyBuffer(indexStaging, m_indexBuffer, indexBufferSize, commandPoolName);
 
     VBuffersAllocator::freeBuffer(vertexStaging);
     VBuffersAllocator::freeBuffer(indexStaging);
 
     m_indexCount = indexList.size();
+    m_meshLoaded = true;
 
     return (true);
 }

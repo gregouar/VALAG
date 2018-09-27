@@ -445,6 +445,10 @@ bool VInstance::createCommandPools()
                 poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ;
                 break;
 
+            case COMMANDPOOL_MESHESLOADING:
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ;
+                break;
+
             default:
                 poolInfo.flags = 0;
         }

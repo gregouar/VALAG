@@ -17,8 +17,8 @@ class NotificationSender
         NotificationSender();
         virtual ~NotificationSender();
 
-        void askForAllNotifications(NotificationListener *);
-        void askForNotification(NotificationListener *, NotificationType);
+        void addToAllNotificationList(NotificationListener *);
+        void addToNotificationList(NotificationListener *, NotificationType);
 
         void removeFromNotificationList(NotificationListener *, NotificationType);
         void removeFromAllNotificationList(NotificationListener *);

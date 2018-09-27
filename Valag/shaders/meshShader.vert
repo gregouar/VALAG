@@ -13,17 +13,21 @@ layout(binding = 0, set = 0) uniform ViewUBO {
 layout(location = 0) in vec3  inPos;
 layout(location = 1) in vec2  inUV;
 layout(location = 2) in vec3  inNormal;
-layout(location = 3) in vec4  inColor;
+/*layout(location = 3) in vec4  inColor;
 layout(location = 4) in vec3  inRmt;
 layout(location = 5) in uvec2 inAlbedoTexId;
 layout(location = 6) in uvec2 inHeightTexId;
 layout(location = 7) in uvec2 inNormalTexId;
-layout(location = 8) in uvec2 inRmtTexId;
+layout(location = 8) in uvec2 inRmtTexId;*/
 
 //Instance vertex
-layout(location = 9)  in mat4  inModel;
-layout(location = 13) in vec4  inInstanceColor;
-layout(location = 14) in vec3  inInstanceRmt;
+layout(location = 3)  in mat4  inModel;
+layout(location = 7) in vec4  inInstanceColor;
+layout(location = 8) in vec3  inInstanceRmt;
+layout(location = 9) in uvec2 inAlbedoTexId;
+layout(location = 10) in uvec2 inHeightTexId;
+layout(location = 11) in uvec2 inNormalTexId;
+layout(location = 12) in uvec2 inRmtTexId;
 
 //Out
 layout(location = 0)      out vec4 fragColor;
@@ -46,14 +50,14 @@ void main()
     fragNormal   = vec4(inModel*vec4(inNormal,1.0)).xyz;
 
     gl_Position = viewUbo.view*fragWorldPos;
-    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, 0.0 /*1.0*/ /*viewUbo.depthOffsetAndFactor.y*/)
-                        + vec3(viewUbo.screenOffset, 0.0 /*viewUbo.depthOffsetAndFactor.x*/);
+    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, 0.0)
+                        + vec3(viewUbo.screenOffset, 0.0);
 
     fragWorldPos = vec4(fragWorldPos.xyz/*/fragWorldPos.w*/, 1.0);
 
     fragUV      = inUV;
-    fragColor   = inColor * inInstanceColor;
-    fragRmt     = inRmt * inInstanceRmt;
+    fragColor   = /*inColor **/ inInstanceColor;
+    fragRmt     = /*inRmt **/ inInstanceRmt;
     fragAlbedoTexId    = inAlbedoTexId;
     fragHeightTexId    = inHeightTexId;
     fragNormalTexId    = inNormalTexId;

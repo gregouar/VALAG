@@ -36,6 +36,7 @@ class Scene
 
         virtual void render(SceneRenderer *renderer);
 
+        ///This should probably be removed
         void askToComputeRenderQueue();
 
         SceneNode *getRootNode();

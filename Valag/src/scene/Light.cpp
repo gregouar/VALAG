@@ -50,6 +50,7 @@ Light::Light() : SceneObject(),
     m_intensity(1.0)
 {
     m_isALight = true;
+    this->updateDatum();
 }
 
 Light::~Light()
@@ -89,12 +90,20 @@ float Light::getIntensity()
 
 void Light::setType(LightType type)
 {
-    m_type = type;
+    if(m_type != type)
+    {
+        m_type = type;
+        this->updateDatum();
+    }
 }
 
 void Light::setDirection(glm::vec3 direction)
 {
-    m_direction = direction;
+    if(m_direction != direction)
+    {
+        m_direction = direction;
+        this->updateDatum();
+    }
 }
 
 void Light::setDiffuseColor(glm::vec3 color)
@@ -104,37 +113,55 @@ void Light::setDiffuseColor(glm::vec3 color)
 
 void Light::setDiffuseColor(Color color)
 {
-    m_color = color;
+    if(m_color != color)
+    {
+        m_color = color;
+        this->updateDatum();
+    }
 }
 
 void Light::setRadius(float radius)
 {
-    m_radius = radius;
+    if(m_radius != radius)
+    {
+        m_radius = radius;
+        this->updateDatum();
+    }
 }
 
 void Light::setIntensity(float intensity)
 {
-    m_intensity = intensity;
+    if(m_intensity != intensity)
+    {
+        m_intensity = intensity;
+        this->updateDatum();
+    }
+}
+
+LightDatum Light::getLightDatum()
+{
+    return m_datum;
 }
 
 /// Protected ///
 
-///I should probalby keep it in memory and update only if necessary (like other objects)
-LightDatum Light::getLightDatum()
+void Light::notify(NotificationSender *sender, NotificationType type)
 {
-    LightDatum datum = {};
+    if(type == Notification_SceneNodeMoved)
+        this->updateDatum();
+}
 
+void Light::updateDatum()
+{
     if(m_type == LightType_Directionnal)
-        datum.position = glm::vec4(m_direction,0.0);
-    else
-        datum.position = glm::vec4(m_parentNode->getGlobalPosition(),1.0);
+        m_datum.position = glm::vec4(m_direction,0.0);
+    else if(m_parentNode != nullptr)
+        m_datum.position = glm::vec4(m_parentNode->getGlobalPosition(),1.0);
 
-    datum.color     = m_color;
-    datum.color.a  *= m_intensity;
+    m_datum.color     = m_color;
+    m_datum.color.a  *= m_intensity;
 
-    datum.radius    = m_radius;
-
-    return datum;
+    m_datum.radius    = m_radius;
 }
 
 

@@ -8,12 +8,12 @@ layout (set = 1, binding = 1) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 2) uniform sampler2D samplerNormal;
 layout (set = 1, binding = 3) uniform sampler2D samplerRmt;
 
-layout (set = 1, binding = 4) uniform sampler2D samplerAlphaAlbedo;
+/*layout (set = 1, binding = 4) uniform sampler2D samplerAlphaAlbedo;
 layout (set = 1, binding = 5) uniform sampler2D samplerAlphaPosition;
 layout (set = 1, binding = 6) uniform sampler2D samplerAlphaNormal;
-layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;
+layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
 
-layout(set = 1, binding = 8) uniform AmbientLightingUbo {
+layout(set = 1, binding = 4) uniform AmbientLightingUbo {
     vec4 viewPos;
     vec4 ambientLight;
 } ubo;
@@ -27,7 +27,7 @@ layout(location = 1) flat in vec3  lightColor;
 layout(location = 2) flat in float lightRadiusInv;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outColorAlpha;
+//layout(location = 1) out vec4 outColorAlpha;
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -71,8 +71,8 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRm
 {
     vec4 lighting = vec4(0.0);
 
-    if(fragAlbedo.a < .1)
-        return lighting;
+    //if(fragAlbedo.a < .1)
+      //  return lighting;
 
     float attenuation = 0.0;
     vec3 lightDirection = vec3(0.0);
@@ -97,8 +97,8 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRm
             attenuation = clamp(sqrtnom*sqrtnom/(dist*dist+1.0),0.0,1.0);
     }
 
-    //if(attenuation > 0.0)
-    //{
+    if(attenuation > 0.0)
+    {
 
         //Compute attenuation from shadows here
 
@@ -121,7 +121,7 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRm
         float t         = fragRmt.b;
         lighting.rgb   -= (fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t;
 
-    //}
+    }
 
     return lighting;
 }
@@ -137,12 +137,12 @@ void main()
 	outColor.rgb = pow(outColor.rgb, vec3(2.2));
 	//outColor.g = 1.0;
 
-    fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
+    /*fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
     fragPos    = texture(samplerAlphaPosition, gl_FragCoord.xy).xyz;
     fragNormal = normalize(texture(samplerAlphaNormal, gl_FragCoord.xy).xyz);
     fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
 
     outColorAlpha = ComputeLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
-	outColorAlpha.rgb = pow(outColorAlpha.rgb, vec3(2.2));
+	outColorAlpha.rgb = pow(outColorAlpha.rgb, vec3(2.2));*/
 }
 

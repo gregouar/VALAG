@@ -97,7 +97,10 @@ bool MaterialAsset::loadFromFile(const std::string &filePath)
 
 bool MaterialAsset::loadFromXML(TiXmlHandle *hdl)
 {
-    if(hdl == nullptr) return (false);
+    bool loaded = true;
+
+    if(hdl == nullptr)
+        return (false);
 
     if(hdl->FirstChildElement("name").Element() != nullptr)
         m_name = hdl->FirstChildElement("name").Element()->GetText();
@@ -121,33 +124,41 @@ bool MaterialAsset::loadFromXML(TiXmlHandle *hdl)
         {
             m_albedoMap = TexturesHandler::instance()
                             ->loadAssetFromFile(m_fileDirectory+textElem->GetText(),m_loadType);
-            m_albedoMap->askForAllNotifications(this);
+            this->startListeningTo(m_albedoMap);
+            if(!m_albedoMap->isLoaded())
+                loaded = false;
         }
         else if(std::string(textElem->Attribute("type")).compare("normal") == 0)
         {
             m_normalMap = TexturesHandler::instance()
                             ->loadAssetFromFile(m_fileDirectory+textElem->GetText(),m_loadType);
-            m_normalMap->askForAllNotifications(this);
-
+            this->startListeningTo(m_normalMap);
+            if(!m_normalMap->isLoaded())
+                loaded = false;
         }
         else if(std::string(textElem->Attribute("type")).compare("height") == 0)
         {
             m_heightMap = TexturesHandler::instance()
                             ->loadAssetFromFile(m_fileDirectory+textElem->GetText(),m_loadType);
-            m_heightMap->askForAllNotifications(this);
+            this->startListeningTo(m_heightMap);
+            if(!m_heightMap->isLoaded())
+                loaded = false;
         }
         else if(std::string(textElem->Attribute("type")).compare("rmt") == 0)
         {
             m_rmtMap = TexturesHandler::instance()
                             ->loadAssetFromFile(m_fileDirectory+textElem->GetText(),m_loadType);
-            m_rmtMap->askForAllNotifications(this);
+            this->startListeningTo(m_rmtMap);
+            if(!m_rmtMap->isLoaded())
+                loaded = false;
         }
         textElem = textElem->NextSiblingElement("texture");
     }
 
-    Logger::write("Material loaded from file: "+m_filePath);
+    if(loaded)
+        Logger::write("Material loaded from file: "+m_filePath);
 
-    return (true);
+    return (loaded);
 }
 
 

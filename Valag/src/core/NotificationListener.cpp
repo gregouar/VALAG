@@ -35,4 +35,13 @@ void NotificationListener::stopListeningTo(NotificationSender* sender)
     }
 }
 
+void NotificationListener::startListeningTo(NotificationSender* sender)
+{
+    if(sender != nullptr)
+    {
+        m_senders.insert(sender);
+        sender->addToAllNotificationList(this);
+    }
+}
+
 }

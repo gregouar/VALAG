@@ -260,6 +260,8 @@ const  std::vector<VkSemaphore> &FullRenderPass::getSignalSemaphores(size_t fram
 
 const  std::vector<VFramebufferAttachment> &FullRenderPass::getAttachments(size_t attachmentsIndex)
 {
+    if(attachmentsIndex >= m_attachments.size())
+        throw std::runtime_error("Cannot get attachment");
     return m_attachments[attachmentsIndex];
 }
 
@@ -309,8 +311,10 @@ bool FullRenderPass::createRenderPass()
         attachments[i].samples          = VK_SAMPLE_COUNT_1_BIT;
         attachments[i].loadOp           = m_attachmentsLoadOp[i];
         attachments[i].storeOp          = m_attachmentsStoreOp[i].first;//VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[i].stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[i].stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        ///I'll need to update this
+        attachments[i].stencilLoadOp    = m_attachmentsLoadOp[i];///VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[i].stencilStoreOp   = m_attachmentsStoreOp[i].first;///VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 
         ///Could change this to be smarter

@@ -92,9 +92,9 @@ bool Asset::loadNow()
     {
         if(m_loadSource == LoadSource_File)
         {
-            this->loadFromFile(m_filePath);
+            loaded = this->loadFromFile(m_filePath);
         } else if(m_loadSource == LoadSource_Memory) {
-            this->loadFromMemory(m_loadData, m_loadDataSize);
+            loaded = this->loadFromMemory(m_loadData, m_loadDataSize);
         } else if(m_loadSource == LoadSource_Stream) {
             ///this->loadFromStream(*m_loadStream);
         } else {

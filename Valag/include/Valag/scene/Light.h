@@ -62,12 +62,16 @@ class Light : public SceneObject //, public NotificationListener
         //static int GetMaxNbrLights();
 
 
+        virtual void draw(SceneRenderer *renderer);
         LightDatum getLightDatum();
+
+        virtual void notify(NotificationSender *sender, NotificationType type);
+
 
     protected:
         //std::list<ShadowCaster*> *GetShadowCasterList();
 
-        virtual void draw(SceneRenderer *renderer);
+        virtual void updateDatum();
 
     private:
         LightType   m_type;
@@ -76,6 +80,8 @@ class Light : public SceneObject //, public NotificationListener
 
         float m_radius;
         float m_intensity;
+
+        LightDatum  m_datum;
 
         /*bool m_castShadow;
         sf::RenderTexture m_shadowMap;

@@ -19,13 +19,13 @@ struct MeshDatum
     glm::vec4 albedo_color;
     glm::vec3 rmt_color;
 
-    /*glm::uvec2 albedo_texId;
+    glm::uvec2 albedo_texId;
     glm::uvec2 height_texId;
     glm::uvec2 normal_texId;
-    glm::uvec2 rmt_texId;*/
+    glm::uvec2 rmt_texId;
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 10> getAttributeDescriptions();
 };
 
 class MeshEntity : public SceneEntity
@@ -36,6 +36,7 @@ class MeshEntity : public SceneEntity
         MeshEntity();
         virtual ~MeshEntity();
 
+        void setMesh(AssetTypeId meshId);
         void setMesh(MeshAsset* mesh);
 
         void setColor(Color color);
@@ -43,12 +44,16 @@ class MeshEntity : public SceneEntity
 
         MeshDatum getMeshDatum();
 
+        virtual void notify(NotificationSender *sender, NotificationType notification);
+
     protected:
         void cleanup();
         virtual void draw(SceneRenderer *renderer);
+        virtual void updateDatum();
 
     protected:
         MeshAsset *m_mesh;
+        MeshDatum  m_datum;
 
         Color       m_color;
         glm::vec3   m_rmt;

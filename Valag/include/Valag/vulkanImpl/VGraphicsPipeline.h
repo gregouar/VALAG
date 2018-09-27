@@ -38,6 +38,8 @@ class VGraphicsPipeline
         void attachPushConstant(VkShaderStageFlagBits shaderStageBit, uint32_t size, uint32_t offset = 0);
 
         void setDepthTest(bool enableWrite, bool enableTest, VkCompareOp compareOp = VK_COMPARE_OP_GREATER);
+        void setStencilTest(bool enableTest, VkStencilOpState both);
+        void setStencilTest(bool enableTest, VkStencilOpState front, VkStencilOpState back);
 
         bool init(VkRenderPass renderPass, uint32_t subpass, size_t attachmentsCount = 1/*, size_t framesCount*/);
         void destroy();

@@ -41,7 +41,7 @@ SceneRenderer::~SceneRenderer()
     this->cleanup();
 }
 
-void SceneRenderer::addToSpritesVbo(const InstanciedIsoSpriteDatum &datum)
+void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
 {
     m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
@@ -122,6 +122,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
                 VBuffer vertexBuffer = mesh.first->getVertexBuffer();
                 VBuffer indexBuffer = mesh.first->getIndexBuffer();
 
+                ///I could bind both in one call though
                 //Mesh vertex buffer
                 vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer,
                                                   &vertexBuffer.offset);
@@ -215,6 +216,28 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_lightingPass))
         return (false);
 
+    ///Test
+    lightDescriptorSets[1] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,m_curFrameIndex);
+
+    cmb = m_renderGraph.startRecording(m_alphaLightingPass, imageIndex, m_curFrameIndex);
+
+        vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_alphaLightingPipeline.getLayout(),0,2, lightDescriptorSets, 0, nullptr);
+
+        m_alphaLightingPipeline.bind(cmb);
+
+        if(lightsVboSize != 0)
+        {
+            vkCmdBindVertexBuffers(cmb, 0, 1, &lightsInstancesVB.buffer, &lightsInstancesVB.offset);
+
+            m_alphaLightingPipeline.bind(cmb);
+
+            vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
+        }
+
+    if(!m_renderGraph.endRecording(m_alphaLightingPass))
+        return (false);
+
     return (true);
 }
 
@@ -254,7 +277,7 @@ bool SceneRenderer::init()
     m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
     m_spritesVbos.resize(m_targetWindow->getFramesCount(),
-                         DynamicVBO<InstanciedIsoSpriteDatum>(1024));
+                         DynamicVBO<IsoSpriteDatum>(1024));
     m_meshesVbos.resize(m_targetWindow->getFramesCount());
     m_lightsVbos.resize(m_targetWindow->getFramesCount(),
                         DynamicVBO<LightDatum>(512));
@@ -283,6 +306,7 @@ void SceneRenderer::prepareRenderPass()
     this->prepareAlphaDetectRenderPass();
     this->prepareAlphaDeferredRenderPass();
     this->prepareLightingRenderPass();
+    this->prepareAlphaLightingRenderPass();
     this->prepareAmbientLightingRenderPass();
     this->prepareToneMappingRenderPass();
 
@@ -304,6 +328,8 @@ bool SceneRenderer::createGraphicsPipeline()
     if(!this->createAlphaDeferredPipeline())
         return (false);
     if(!this->createLightingPipeline())
+        return (false);
+    if(!this->createAlphaLightingPipeline())
         return (false);
     if(!this->createAmbientLightingPipeline())
         return (false);
@@ -334,7 +360,7 @@ bool SceneRenderer::createAttachments()
         {
             if(a == 0)
             {
-                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_D32_SFLOAT,
+                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_D24_UNORM_S8_UINT,
                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_deferredDepthAttachments[i]))
                     return (false);
 
@@ -361,76 +387,6 @@ bool SceneRenderer::createAttachments()
 
     return (true);
 }
-
-
-/*bool SceneRenderer::createDescriptorSetLayouts()
-{
-    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-
-    layoutBindings.resize(2);
-
-    size_t i = 0;
-    for(auto &layoutBinding : layoutBindings)
-    {
-        layoutBinding = {};
-        layoutBinding.binding       = i++;
-        layoutBinding.stageFlags    = VK_SHADER_STAGE_FRAGMENT_BIT;
-    }
-
-    layoutBindings[0].descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    layoutBindings[1].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-    layoutInfo.pBindings    = layoutBindings.data();
-
-    if(vkCreateDescriptorSetLayout(VInstance::device(), &layoutInfo, nullptr, &m_ambientLightingDescriptorLayout) != VK_SUCCESS)
-        return (false);
-
-    return (true);
-}
-
-bool SceneRenderer::createDescriptorPool()
-{
-    m_descriptorPoolSizes.push_back(
-                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,m_targetWindow->getSwapchainSize()});
-
-    return AbstractRenderer::createDescriptorPool();
-}
-
-bool SceneRenderer::createDescriptorSets()
-{
-    VkDevice device = VInstance::device();
-
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType                 = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool        = m_descriptorPool;
-    allocInfo.descriptorSetCount    = 1;
-    allocInfo.pSetLayouts           = &m_ambientLightingDescriptorLayout;
-
-    if (vkAllocateDescriptorSets(device, &allocInfo,&m_ambientLightingDescriptorSet) != VK_SUCCESS)
-        return (false);
-
-    VkDescriptorImageInfo imageInfo;
-    imageInfo.imageView     = PBRToolbox::getBrdflut().view;
-    imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.sampler       = VTexturesManager::sampler();
-
-    VkWriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.dstSet          = m_ambientLightingDescriptorSet;
-    descriptorWrite.dstBinding      = 0;
-    descriptorWrite.pImageInfo      = &imageInfo;
-
-    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-
-    return (true);
-}*/
-
 
 void SceneRenderer::prepareDeferredRenderPass()
 {
@@ -469,20 +425,20 @@ void SceneRenderer::prepareLightingRenderPass()
     m_lightingPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
     m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[0]);
-    m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[1]);
+    //m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[1]);
 
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 3);
 
-    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 0);
+    /*m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 2);
-    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 3);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 3);*/
 
 
-
+    ///This should be elsewhere
     size_t imagesCount = m_targetWindow->getSwapchainSize();
     m_ambientLightingUbo.resize(imagesCount);
     for(auto &buffer : m_ambientLightingUbo)
@@ -492,6 +448,21 @@ void SceneRenderer::prepareLightingRenderPass()
                                        buffer);
     }
     m_renderGraph.addNewUniforms(m_lightingPass, m_ambientLightingUbo);
+}
+
+void SceneRenderer::prepareAlphaLightingRenderPass()
+{
+    m_alphaLightingPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+    m_renderGraph.addNewAttachments(m_alphaLightingPass, m_hdrAttachements[1]);
+    m_renderGraph.transferAttachmentsToAttachments(m_alphaDeferredPass, m_alphaLightingPass, 4);
+
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 2);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 3);
+
+    m_renderGraph.addNewUniforms(m_alphaLightingPass, m_ambientLightingUbo);
 
 }
 
@@ -503,7 +474,8 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     //m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[1]);
 
     m_renderGraph.transferAttachmentsToAttachments(m_lightingPass, m_ambientLightingPass, 0);
-    m_renderGraph.transferAttachmentsToAttachments(m_lightingPass, m_ambientLightingPass, 1);
+    //m_renderGraph.transferAttachmentsToAttachments(m_lightingPass, m_ambientLightingPass, 1);
+    m_renderGraph.transferAttachmentsToAttachments(m_alphaLightingPass, m_ambientLightingPass, 0);
 
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 1);
@@ -541,8 +513,8 @@ bool SceneRenderer::createDeferredSpritesPipeline()
     m_deferredSpritesPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_deferredSpritesPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    auto bindingDescription = InstanciedIsoSpriteDatum::getBindingDescription();
-    auto attributeDescriptions = InstanciedIsoSpriteDatum::getAttributeDescriptions();
+    auto bindingDescription = IsoSpriteDatum::getBindingDescription();
+    auto attributeDescriptions = IsoSpriteDatum::getAttributeDescriptions();
     m_deferredSpritesPipeline.setVertexInput(1, &bindingDescription,
                                     attributeDescriptions.size(), attributeDescriptions.data());
 
@@ -612,8 +584,8 @@ bool SceneRenderer::createAlphaDetectPipeline()
     m_alphaDetectPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_alphaDetectPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    auto bindingDescription = InstanciedIsoSpriteDatum::getBindingDescription();
-    auto attributeDescriptions = InstanciedIsoSpriteDatum::getAttributeDescriptions();
+    auto bindingDescription = IsoSpriteDatum::getBindingDescription();
+    auto attributeDescriptions = IsoSpriteDatum::getAttributeDescriptions();
     m_alphaDetectPipeline.setVertexInput(1, &bindingDescription,
                                     attributeDescriptions.size(), attributeDescriptions.data());
 
@@ -625,6 +597,16 @@ bool SceneRenderer::createAlphaDetectPipeline()
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
+
+    VkStencilOpState stencil = {};
+    stencil.compareOp   = VK_COMPARE_OP_ALWAYS;
+	stencil.failOp      = VK_STENCIL_OP_REPLACE;
+	stencil.depthFailOp = VK_STENCIL_OP_REPLACE;
+	stencil.passOp      = VK_STENCIL_OP_REPLACE;
+	stencil.compareMask = 0xff;
+	stencil.writeMask   = 0xff;
+    stencil.reference   = 1;
+    m_alphaDetectPipeline.setStencilTest(true, stencil);
 
     return m_alphaDetectPipeline.init(  m_renderGraph.getVkRenderPass(m_alphaDetectPass), 0,
                                         m_renderGraph.getColorAttachmentsCount(m_alphaDetectPass));
@@ -639,8 +621,8 @@ bool SceneRenderer::createAlphaDeferredPipeline()
     m_alphaDeferredPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_alphaDeferredPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    auto bindingDescription = InstanciedIsoSpriteDatum::getBindingDescription();
-    auto attributeDescriptions = InstanciedIsoSpriteDatum::getAttributeDescriptions();
+    auto bindingDescription = IsoSpriteDatum::getBindingDescription();
+    auto attributeDescriptions = IsoSpriteDatum::getAttributeDescriptions();
     m_alphaDeferredPipeline.setVertexInput(1, &bindingDescription,
                                     attributeDescriptions.size(), attributeDescriptions.data());
 
@@ -653,6 +635,16 @@ bool SceneRenderer::createAlphaDeferredPipeline()
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaDeferredPass));
 
     m_alphaDeferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+
+    VkStencilOpState stencil = {};
+    stencil.compareOp   = VK_COMPARE_OP_EQUAL;//VK_COMPARE_OP_EQUAL;
+	stencil.failOp      = VK_STENCIL_OP_KEEP;
+	stencil.depthFailOp = VK_STENCIL_OP_KEEP;
+	stencil.passOp      = VK_STENCIL_OP_REPLACE;
+	stencil.compareMask = 0xff;
+	stencil.writeMask   = 0xff;
+    stencil.reference   = 1;
+    m_alphaDeferredPipeline.setStencilTest(true, stencil);
 
     return m_alphaDeferredPipeline.init(m_renderGraph.getVkRenderPass(m_alphaDeferredPass), 0,
                                           m_renderGraph.getColorAttachmentsCount(m_alphaDeferredPass));
@@ -680,13 +672,49 @@ bool SceneRenderer::createLightingPipeline()
     m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
     //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
-    //m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
-
     m_lightingPipeline.setBlendMode(BlendMode_Add,0);
-    m_lightingPipeline.setBlendMode(BlendMode_Add,1);
+    //m_lightingPipeline.setBlendMode(BlendMode_Add,1);
 
     return m_lightingPipeline.init( m_renderGraph.getVkRenderPass(m_lightingPass), 0,
                                     m_renderGraph.getColorAttachmentsCount(m_lightingPass));
+}
+
+bool SceneRenderer::createAlphaLightingPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << LIGHTING_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << LIGHTING_FRAGSHADERFILE;
+
+    m_alphaLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_alphaLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    auto bindingDescription = LightDatum::getBindingDescription();
+    auto attributeDescriptions = LightDatum::getAttributeDescriptions();
+    m_alphaLightingPipeline.setVertexInput(1, &bindingDescription,
+                                    attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_alphaLightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
+
+    m_alphaLightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+    m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaLightingPass));
+    //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_alphaLightingPipeline.setBlendMode(BlendMode_Add,0);
+
+    VkStencilOpState stencil = {};
+    stencil.compareOp   = VK_COMPARE_OP_EQUAL;//VK_COMPARE_OP_EQUAL;
+	stencil.failOp      = VK_STENCIL_OP_KEEP;
+	stencil.depthFailOp = VK_STENCIL_OP_KEEP;
+	stencil.passOp      = VK_STENCIL_OP_REPLACE;
+	stencil.compareMask = 0xff;
+	stencil.writeMask   = 0xff;
+    stencil.reference   = 1;
+    m_alphaLightingPipeline.setStencilTest(true, stencil);
+
+    return m_alphaLightingPipeline.init( m_renderGraph.getVkRenderPass(m_alphaLightingPass), 0,
+                                         m_renderGraph.getColorAttachmentsCount(m_alphaLightingPass));
 }
 
 bool SceneRenderer::createAmbientLightingPipeline()

@@ -74,6 +74,7 @@ class VApp
         static const char *DEFAULT_ANISOTROPIC;
 
         static const bool ENABLE_PROFILER;
+        static const bool ENABLE_RANDOMNESS;
         static const size_t MAX_FRAMES_IN_FLIGHT;
 };
 

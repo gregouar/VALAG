@@ -1,21 +1,16 @@
 #ifndef ISOSPRITEMODEL_H
 #define ISOSPRITEMODEL_H
 
+#include "Valag/core/NotificationListener.h"
+#include "Valag/core/NotificationSender.h"
 #include "Valag/Types.h"
-//#include "Valag/renderers/SceneRenderer.h"
-//#include "Valag/vulkanImpl/DynamicUBODescriptor.h"
 
 #include <vector>
 
 namespace vlg
 {
 
-/*struct IsoSpriteModelUBO {
-    glm::vec2 texPos;
-    glm::vec2 texExt;
-};*/
-
-class IsoSpriteModel
+class IsoSpriteModel : public NotificationListener, public NotificationSender
 {
     friend class IsoSpriteEntity;
 
@@ -25,7 +20,8 @@ class IsoSpriteModel
 
         //void setSize(glm::vec2 size);
 
-        void setMaterial(AssetTypeId textureId);
+        void setMaterial(AssetTypeId materialId);
+        void setMaterial(MaterialAsset *material);
         void setSize(glm::vec2 size);
         void setTextureRect(glm::vec2 pos, glm::vec2 extent);
         void setTextureCenter(glm::vec2 pos);
@@ -33,19 +29,20 @@ class IsoSpriteModel
         void setColor(Color color);
         void setRmt(Color rmt);
 
-        AssetTypeId getMaterial();
+        MaterialAsset *getMaterial();
         glm::vec2 getSize();
         glm::vec2 getTextureExtent();
         glm::vec2 getTexturePosition();
         glm::vec2 getTextureCenter();
+
+        virtual void notify(NotificationSender* sender, NotificationType notification);
 
     protected:
         //void updateModel(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
 
     private:
-        /// I could (should ?) switch to pointer to textureAsset for more efficiency...
-        AssetTypeId m_material;
+        MaterialAsset *m_material;
         std::vector<bool>   m_needToCheckLoading;
 
         glm::vec2 m_size;
@@ -56,12 +53,6 @@ class IsoSpriteModel
         glm::vec4 m_color;
         glm::vec4 m_rmt;
 
-
-
-    /** Static **/
-      /*  static VkDescriptorSetLayout getUBODescriptorSetLayout();
-
-        static DynamicUBODescriptor s_modelUBO;*/
 };
 
 }

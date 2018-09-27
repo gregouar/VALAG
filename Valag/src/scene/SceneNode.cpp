@@ -8,11 +8,7 @@
 namespace vlg
 {
 
-SceneNode::SceneNode(const NodeTypeId id) : SceneNode(id, nullptr)
-{
-}
-
-SceneNode::SceneNode(const NodeTypeId id, SceneNode *p) :
+SceneNode::SceneNode(const NodeTypeId id) :
     m_globalPosition(0.0,0.0,0.0),
     m_position(0.0,0.0,0.0),
     m_eulerRotations(0.0,0.0,0.0),
@@ -20,17 +16,13 @@ SceneNode::SceneNode(const NodeTypeId id, SceneNode *p) :
     m_modelMatrix(1.0)
 {
     m_scene = nullptr;
-    m_parent = p;
-
-    if(m_parent != nullptr)
-        this->setScene(m_parent->getScene());
-
+    m_parent = nullptr;
     m_id = id;
     m_curNewId = 0;
 }
 
-SceneNode::SceneNode(const NodeTypeId id, SceneNode *p, Scene* scene) :
-    SceneNode(id,p)
+SceneNode::SceneNode(const NodeTypeId id, Scene* scene) :
+    SceneNode(id)
 {
     this->setScene(scene);
 }
@@ -60,12 +52,13 @@ void SceneNode::addChildNode(const NodeTypeId id, SceneNode* node)
     }
 
     m_childs[id] = node;
+    node->setParent(this);
 
-    if(node != nullptr)
+    /*if(node != nullptr)
     {
         node->setScene(m_scene);
         this->askForAllNotifications(node);
-    }
+    }*/
 
     if(m_scene != nullptr)
         m_scene->askToComputeRenderQueue();
@@ -87,14 +80,10 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeId id)
     }
 
     node = childsIt->second;
+    node->setParent(nullptr);
 
-    this->removeFromAllNotificationList(node);
+    //this->removeFromAllNotificationList(node);
 
-    /*std::list<NodeTypeId>::iterator createdChildsIt;
-    createdChildsIt = std::list::find(m_createdChildsList.begin(),
-                                m_createdChildsList.end(), id);
-
-    if(createdChildsIt != m_createdChildsList.end())*/
     if(m_createdChildsList.find(id) != m_createdChildsList.end())
         Logger::warning("Removing created child without destroying it");
 
@@ -154,7 +143,7 @@ SceneNode* SceneNode::createChildNode(const NodeTypeId id)
         return childsIt->second;
     }
 
-    SceneNode* newNode = new SceneNode(id, this);
+    SceneNode* newNode = new SceneNode(id);
     m_createdChildsList.insert(id);
 
     this->addChildNode(id, newNode);
@@ -171,10 +160,6 @@ bool SceneNode::destroyChildNode(SceneNode* node)
 
 bool SceneNode::destroyChildNode(const NodeTypeId id)
 {
-    /*std::list<NodeTypeId>::iterator createdChildsIt;
-    createdChildsIt = std::find(m_createdChildsList.begin(),
-                                m_createdChildsList.end(), id);*/
-
     auto createdChildsIt = m_createdChildsList.find(id);
 
     if(createdChildsIt == m_createdChildsList.end())
@@ -196,7 +181,8 @@ bool SceneNode::destroyChildNode(const NodeTypeId id)
 
     if(childsIt->second != nullptr)
         delete childsIt->second;
-    this->removeChildNode(id);
+    m_childs.erase(childsIt);
+    //this->removeChildNode(id);
 
     return (true);
 }
@@ -260,7 +246,7 @@ void SceneNode::attachObject(SceneObject *e)
         if(e->setParentNode(this) != nullptr)
             Logger::warning("Attaching entity which has already a parent node");
 
-        this->askForAllNotifications(e);
+        e->notify(this, Notification_SceneNodeMoved);
     } else
         Logger::error("Cannot attach null entity");
 
@@ -452,8 +438,18 @@ void SceneNode::setScene(Scene *scene)
 
 void SceneNode::setParent(SceneNode *p)
 {
-    m_parent = p;
-    this->updateGlobalPosition();
+    if(m_parent != p)
+    {
+        if(m_parent != nullptr)
+            this->stopListeningTo(m_parent);
+        m_parent = p;
+        if(m_parent != nullptr)
+        {
+            this->setScene(m_parent->getScene());
+            this->startListeningTo(m_parent);
+        }
+        this->updateGlobalPosition();
+    }
 }
 
 NodeTypeId SceneNode::generateId()
@@ -617,6 +613,11 @@ void SceneNode::notify(NotificationSender* sender, NotificationType type)
     {
         if(type == Notification_SceneNodeMoved)
             this->updateGlobalPosition();
+        if(type == Notification_SenderDestroyed)
+        {
+            m_parent = nullptr;
+            this->updateGlobalPosition();
+        }
     }
 }
 
