@@ -12,6 +12,40 @@ namespace vlg
 {
 
 
+bool MeshVertex::operator<( /*MeshVertex const& lhs,*/ MeshVertex const& rhs ) const
+{
+    if(pos.x < rhs.pos.x)
+        return (true);
+    if(pos.y < rhs.pos.y)
+        return (true);
+    if(pos.z < rhs.pos.z)
+        return (true);
+    if(uv.x < rhs.uv.x)
+        return (true);
+    if(uv.y < rhs.uv.y)
+        return (true);
+    if(normal.x < rhs.normal.x)
+        return (true);
+    if(normal.y < rhs.normal.y)
+        return (true);
+    if(normal.z < rhs.normal.z)
+        return (true);
+    if(tangent.x < rhs.tangent.x)
+        return (true);
+    if(tangent.y < rhs.tangent.y)
+        return (true);
+    if(tangent.z < rhs.tangent.z)
+        return (true);
+    if(bitangent.x < rhs.bitangent.x)
+        return (true);
+    if(bitangent.y < rhs.bitangent.y)
+        return (true);
+    if(bitangent.z < rhs.bitangent.z)
+        return (true);
+    return (false);
+}
+
+
 VkVertexInputBindingDescription MeshVertex::getBindingDescription()
 {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -22,9 +56,9 @@ VkVertexInputBindingDescription MeshVertex::getBindingDescription()
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 3> MeshVertex::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 5> MeshVertex::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions = {};
 
     uint32_t i = 0;
     uint32_t b = 0;
@@ -44,6 +78,18 @@ std::array<VkVertexInputAttributeDescription, 3> MeshVertex::getAttributeDescrip
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(MeshVertex, normal);
+    ++i;
+
+    attributeDescriptions[i].binding = b;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(MeshVertex, tangent);
+    ++i;
+
+    attributeDescriptions[i].binding = b;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(MeshVertex, bitangent);
     ++i;
 
     /*attributeDescriptions[i].binding = b;
@@ -209,7 +255,8 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
     std::vector<glm::vec3> vertexList;
     std::vector<glm::vec2> uvList;
     std::vector<glm::vec3> normalList;
-    std::vector<glm::vec3> indexList;
+    //std::vector<glm::vec3> indexList;
+    std::vector<VertexTriangle> triangleList;
 
     if(file)
     {
@@ -258,19 +305,25 @@ bool MeshAsset::loadModelFromObj(const std::string &filePath)
                     indices.back().z -= 1;
                 }
 
-                indexList.push_back({indices[0].x, indices[0].y, indices[0].z});
+                /*indexList.push_back({indices[0].x, indices[0].y, indices[0].z});
                 indexList.push_back({indices[1].x, indices[1].y, indices[1].z});
-                indexList.push_back({indices[2].x, indices[2].y, indices[2].z});
+                indexList.push_back({indices[2].x, indices[2].y, indices[2].z});*/
+                triangleList.push_back({{indices[0].x, indices[0].y, indices[0].z},
+                                        {indices[1].x, indices[1].y, indices[1].z},
+                                        {indices[2].x, indices[2].y, indices[2].z}});
 
                 if(indices.size() == 4) //If quad we need to put 2 triangles
                 {
-                    indexList.push_back({indices[2].x, indices[2].y, indices[2].z});
+                    /*indexList.push_back({indices[2].x, indices[2].y, indices[2].z});
                     indexList.push_back({indices[3].x, indices[3].y, indices[3].z});
-                    indexList.push_back({indices[0].x, indices[0].y, indices[0].z});
+                    indexList.push_back({indices[0].x, indices[0].y, indices[0].z});*/
+                    triangleList.push_back({{indices[2].x, indices[2].y, indices[2].z},
+                                            {indices[3].x, indices[3].y, indices[3].z},
+                                            {indices[0].x, indices[0].y, indices[0].z}});
                 }
             }
         }
-        this->generateModel(vertexList, uvList, normalList, indexList);
+        this->generateModel(vertexList, uvList, normalList, triangleList);
         file.close();
     }
     else
@@ -306,10 +359,70 @@ void MeshAsset::setMaterial(MaterialAsset *material)
         }
         this->startListeningTo(m_material);
     }
+}
 
+void computeTangents(MeshVertex &v1, MeshVertex &v2, MeshVertex &v3)
+{
+    glm::vec3 edge1 = v2.pos - v1.pos;
+    glm::vec3 edge2 = v3.pos - v1.pos;
+    glm::vec2 deltaUV1 = v2.uv - v1.uv;
+    glm::vec2 deltaUV2 = v3.uv - v1.uv;
+
+    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+    v1.tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+    v1.tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+    v1.tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+    v1.tangent = glm::normalize(v1.tangent);
+
+    v1.bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+    v1.bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+    v1.bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+    v1.bitangent = glm::normalize(v1.bitangent);
 }
 
 bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
+                            const std::vector<glm::vec2> &uvList,
+                            const std::vector<glm::vec3> &normalList,
+                            const std::vector<VertexTriangle> &triangleList)
+{
+    std::map<MeshVertex, uint16_t>    meshVertexMap;
+    std::vector<MeshVertex>         meshVertexList;
+    std::vector<uint16_t>             indexList;
+
+    for(auto triangle : triangleList)
+    {
+        MeshVertex  v1 = {vertexList[triangle.v1.x], uvList[triangle.v1.y], normalList[triangle.v1.z],{},{}},
+                    v2 = {vertexList[triangle.v2.x], uvList[triangle.v2.y], normalList[triangle.v2.z],{},{}},
+                    v3 = {vertexList[triangle.v3.x], uvList[triangle.v3.y], normalList[triangle.v3.z],{},{}};
+
+        computeTangents(v1,v2,v2);
+        computeTangents(v2,v3,v1);
+        computeTangents(v3,v1,v2);
+
+        MeshVertex *v;
+        for(size_t i = 0 ; i < 3 ; ++i)
+        {
+            if(i == 0) v = &v1;
+            if(i == 1) v = &v2;
+            if(i == 2) v = &v3;
+
+            auto it = meshVertexMap.find(*v);
+            if(it != meshVertexMap.end())
+                indexList.push_back(it->second);
+            else
+            {
+                meshVertexMap.insert(it, {*v, meshVertexList.size()});
+                indexList.push_back(meshVertexList.size());
+                meshVertexList.push_back(*v);
+            }
+        }
+    }
+
+    return this->generateModel(meshVertexList, indexList);
+}
+
+/*bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
                             const std::vector<glm::vec2> &uvList,
                             const std::vector<glm::vec3> &normalList,
                             const std::vector<glm::vec3> &indexList)
@@ -349,20 +462,20 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
     }
 
     return this->generateModel(trueVertexList, trueIndexList);
-}
+}*/
 
 
-bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::vec3> > &vertexList,
+bool MeshAsset::generateModel(std::vector<MeshVertex> &vertexList,
                               std::vector<uint16_t> &indexList)
 {
-    std::vector<MeshVertex> meshVertexList;
+   /* std::vector<MeshVertex> meshVertexList;
 
     for(auto &vertex : vertexList)
     {
         meshVertexList.push_back({});
         meshVertexList.back().pos = std::get<0>(vertex);
         meshVertexList.back().uv = std::get<1>(vertex);
-        meshVertexList.back().normal = std::get<2>(vertex);
+        meshVertexList.back().normal = std::get<2>(vertex);*/
 
         /*meshVertexList.back().albedo_color = glm::vec4(1.0,1.0,1.0,1.0);
 
@@ -383,7 +496,7 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
                                                   m_material->getRmtMap().m_textureLayer};
 
         }*/
-    }
+  //  }
 
 
     CommandPoolName commandPoolName;
@@ -393,7 +506,7 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
         commandPoolName = COMMANDPOOL_MESHESLOADING;
 
     ///I could have some kind of VMesh heh
-    VkDeviceSize vertexBufferSize   = sizeof(MeshVertex) * meshVertexList.size();
+    VkDeviceSize vertexBufferSize   = sizeof(MeshVertex) * vertexList.size();
     VkDeviceSize indexBufferSize    = sizeof(uint16_t) * indexList.size();
 
     VBuffer vertexStaging,
@@ -403,7 +516,7 @@ bool MeshAsset::generateModel(std::vector<std::tuple<glm::vec3, glm::vec2, glm::
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                    vertexStaging);
 
-    VBuffersAllocator::writeBuffer(vertexStaging, meshVertexList.data(), vertexBufferSize);
+    VBuffersAllocator::writeBuffer(vertexStaging, vertexList.data(), vertexBufferSize);
 
     VBuffersAllocator::allocBuffer(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

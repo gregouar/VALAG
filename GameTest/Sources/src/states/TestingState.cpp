@@ -163,7 +163,7 @@ void TestingState::init()
         m_secLights.back().setType(vlg::LightType_Omni);
         m_cursorLightNode->createChildNode({glm::linearRand(-600,600),
                                             glm::linearRand(-600,600),
-                                            glm::linearRand(0,300)})->attachObject(&m_secLights.back());
+                                            glm::linearRand(-100,300)})->attachObject(&m_secLights.back());
     }
 }
 

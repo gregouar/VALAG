@@ -47,7 +47,7 @@ void main()
         if(gl_VertexIndex > 2) outUV = vec2(0.0);
         gl_Position = vec4(outUV * 2.0f - 1.0f, 0.0f, 1.0f);
     } else {
-        gl_Position = vec4(screenPos.xyz + vec3(vertPos[gl_VertexIndex] * inRadius * (1.0 - exp(-inColor.a*0.2)), 0.0), 1.0);
+        gl_Position = vec4(screenPos.xyz + vec3(vertPos[gl_VertexIndex] * inRadius * (1.0 - exp(-inColor.a*0.2-1)), 0.0), 1.0);
         gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
                             + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);
     }

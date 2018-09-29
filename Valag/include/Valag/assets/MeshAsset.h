@@ -15,6 +15,8 @@ struct MeshVertex
     glm::vec3 pos;
     glm::vec2 uv;
     glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
 
     /*glm::vec4 albedo_color;
     glm::vec3 rmt_color;
@@ -23,10 +25,18 @@ struct MeshVertex
     glm::uvec2 height_texId;
     glm::uvec2 normal_texId;
     glm::uvec2 rmt_texId;*/
+    bool operator<( const MeshVertex & rhs ) const;
 
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
+};
+
+struct VertexTriangle
+{
+    glm::vec3 v1;
+    glm::vec3 v2;
+    glm::vec3 v3;
 };
 
 class MeshAsset : public Asset, public NotificationListener
@@ -56,9 +66,10 @@ class MeshAsset : public Asset, public NotificationListener
         bool generateModel(const std::vector<glm::vec3> &vertexList,
                            const std::vector<glm::vec2> &uvList,
                            const std::vector<glm::vec3> &normalList,
-                           const std::vector<glm::vec3> &indexList);
+                           const std::vector<VertexTriangle> &indexList);
 
-        bool generateModel( std::vector<std::tuple<glm::vec3, glm::vec2, glm::vec3> > &vertexList,
+        //Could be in a VMesh
+        bool generateModel( std::vector<MeshVertex> &vertexList,
                             std::vector<uint16_t> &indexList);
 
         VBuffer getVertexBuffer();

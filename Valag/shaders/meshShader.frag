@@ -14,12 +14,14 @@ layout(binding = 1, set = 1) uniform texture2DArray textures[128];
 layout(location = 0)      in vec4  fragColor;
 layout(location = 1)      in vec3  fragRmt;
 layout(location = 2)      in vec2  fragUV;
-layout(location = 3)      in vec3  fragNormal;
-layout(location = 4) flat in uvec2 fragAlbedoTexId;
-layout(location = 5) flat in uvec2 fragHeightTexId;
-layout(location = 6) flat in uvec2 fragNormalTexId;
-layout(location = 7) flat in uvec2 fragRmtTexId;
-layout(location = 8)      in vec4  fragWorldPos;
+layout(location = 3)      in mat3  fragTBN; //Use 3
+// 4
+// 5
+layout(location = 6) flat in uvec2 fragAlbedoTexId;
+layout(location = 7) flat in uvec2 fragHeightTexId;
+layout(location = 8) flat in uvec2 fragNormalTexId;
+layout(location = 9) flat in uvec2 fragRmtTexId;
+layout(location = 10)      in vec4  fragWorldPos;
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outPosition;
@@ -38,10 +40,15 @@ void main()
 
     outPosition     = vec4(fragWorldPos.xyz, 1.0);
 
+    //I could add GS to improve quality of normal mapping
+
     //I need to compute normal in tangent space
-    /*outNormal       = vec4(texture(sampler2DArray(textures[fragNormalTexId.x], samp),
-                            vec3(fragUV,fragNormalTexId.y)).xyz, 1.0);*/
-    outNormal = vec4(fragNormal,1.0);
+
+    vec3 normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragUV,fragNormalTexId.y)).xyz;
+    normal = 2.0*normal - vec3(1.0);
+    normal = fragTBN*normal;
+
+    outNormal = vec4(normal,1.0);
     outRmt    = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp),
                              vec3(fragUV,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
 
