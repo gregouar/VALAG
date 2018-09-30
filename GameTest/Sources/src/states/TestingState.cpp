@@ -117,7 +117,7 @@ void TestingState::init()
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
 
     m_camera = m_scene->createCamera();
-    m_cameraNode = m_scene->getRootNode()->createChildNode(500,500,500);
+    m_cameraNode = m_scene->getRootNode()->createChildNode(1500,1500,1500);
     m_cameraNode->attachObject(m_camera);
     m_scene->setCurrentCamera(m_camera);
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
@@ -163,7 +163,7 @@ void TestingState::init()
         m_secLights.back().setType(vlg::LightType_Omni);
         m_cursorLightNode->createChildNode({glm::linearRand(-600,600),
                                             glm::linearRand(-600,600),
-                                            glm::linearRand(-100,300)})->attachObject(&m_secLights.back());
+                                            glm::linearRand(-50,300)})->attachObject(&m_secLights.back());
     }
 }
 

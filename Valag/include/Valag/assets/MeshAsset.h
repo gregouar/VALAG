@@ -10,27 +10,6 @@
 namespace vlg
 {
 
-struct MeshVertex
-{
-    glm::vec3 pos;
-    glm::vec2 uv;
-    glm::vec3 normal;
-    glm::vec3 tangent;
-    glm::vec3 bitangent;
-
-    /*glm::vec4 albedo_color;
-    glm::vec3 rmt_color;
-
-    glm::uvec2 albedo_texId;
-    glm::uvec2 height_texId;
-    glm::uvec2 normal_texId;
-    glm::uvec2 rmt_texId;*/
-    bool operator<( const MeshVertex & rhs ) const;
-
-
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
-};
 
 struct VertexTriangle
 {
@@ -56,7 +35,8 @@ class MeshAsset : public Asset, public NotificationListener
         void setMaterial(MaterialAsset* material);
 
         float getScale();
-        MaterialAsset* getMaterial();
+        MaterialAsset*  getMaterial();
+        VMesh*          getMesh();
 
     protected:
         bool loadFromXML(TiXmlHandle *);
@@ -68,24 +48,18 @@ class MeshAsset : public Asset, public NotificationListener
                            const std::vector<glm::vec3> &normalList,
                            const std::vector<VertexTriangle> &indexList);
 
-        //Could be in a VMesh
-        bool generateModel( std::vector<MeshVertex> &vertexList,
-                            std::vector<uint16_t> &indexList);
+        bool generateModel(std::vector<MeshVertex> &vertexList,
+                           std::vector<uint16_t>   &indexList);
 
-        VBuffer getVertexBuffer();
-        VBuffer getIndexBuffer();
-        size_t  getIndexCount();
 
     private:
-         MaterialAsset* m_material; //Could be vector
+        bool            m_materialsLoaded;
+        MaterialAsset  *m_material; //Could be vector
 
-         float m_scale;
-         VBuffer m_vertexBuffer;
-         VBuffer m_indexBuffer;
-         size_t  m_indexCount;
+        bool    m_meshLoaded;
+        VMesh  *m_mesh;
 
-        bool m_meshLoaded;
-        bool m_materialsLoaded;
+        float m_scale;
 };
 
 

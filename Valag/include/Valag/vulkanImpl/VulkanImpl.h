@@ -9,6 +9,7 @@
 #include "Valag/vulkanImpl/VMemoryAllocator.h"
 #include "Valag/vulkanImpl/VBuffersAllocator.h"
 #include "Valag/vulkanImpl/VTexturesManager.h"
+#include "Valag/vulkanImpl/VMesh.h"
 #include "Valag/vulkanImpl/VGraphicsPipeline.h"
 #include "Valag/vulkanImpl/VulkanExtProxies.h"
 #include "Valag/vulkanImpl/VulkanHelpers.h"

@@ -26,7 +26,7 @@ class SceneRenderer : public AbstractRenderer
         virtual ~SceneRenderer();
 
         void addToSpritesVbo(const IsoSpriteDatum &datum);
-        void addToMeshesVbo(MeshAsset *mesh, const MeshDatum &datum);
+        void addToMeshesVbo(VMesh *mesh, const MeshDatum &datum);
         void addToLightsVbo(const LightDatum &datum);
 
         void setAmbientLightingData(const AmbientLightingData &);
@@ -103,9 +103,9 @@ class SceneRenderer : public AbstractRenderer
                 m_toneMappingPass;
 
         ///I should probably sort by material
-        std::vector<DynamicVBO<IsoSpriteDatum> >                    m_spritesVbos;
-        std::vector<std::map<MeshAsset* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
-        std::vector<DynamicVBO<LightDatum> >                        m_lightsVbos;
+        std::vector<DynamicVBO<IsoSpriteDatum> >                m_spritesVbos;
+        std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
+        std::vector<DynamicVBO<LightDatum> >                    m_lightsVbos;
 
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;

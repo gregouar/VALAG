@@ -46,7 +46,7 @@ void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
     m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
-void SceneRenderer::addToMeshesVbo(MeshAsset* mesh, const MeshDatum &datum)
+void SceneRenderer::addToMeshesVbo(VMesh* mesh, const MeshDatum &datum)
 {
     auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
     if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())

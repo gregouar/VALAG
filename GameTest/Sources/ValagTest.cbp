@@ -115,6 +115,7 @@
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VGraphicsPipeline.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMesh.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexture.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexturesManager.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
@@ -187,6 +188,7 @@
 		<Unit filename="../../Valag/src/vulkanImpl/VGraphicsPipeline.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VMesh.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexture.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexturesManager.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />

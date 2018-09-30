@@ -42,8 +42,6 @@ void main()
 
     //I could add GS to improve quality of normal mapping
 
-    //I need to compute normal in tangent space
-
     vec3 normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragUV,fragNormalTexId.y)).xyz;
     normal = 2.0*normal - vec3(1.0);
     normal = fragTBN*normal;

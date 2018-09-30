@@ -154,7 +154,7 @@ MeshDatum MeshEntity::getMeshDatum()
 void MeshEntity::draw(SceneRenderer *renderer)
 {
     if(m_mesh != nullptr && m_mesh->isLoaded())
-        renderer->addToMeshesVbo(m_mesh, this->getMeshDatum());
+        renderer->addToMeshesVbo(m_mesh->getMesh(), this->getMeshDatum());
 }
 
 void MeshEntity::notify(NotificationSender *sender, NotificationType notification)
