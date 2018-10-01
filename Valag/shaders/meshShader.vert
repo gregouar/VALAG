@@ -33,6 +33,7 @@ layout(location = 11) in uvec2 inAlbedoTexId;
 layout(location = 12) in uvec2 inHeightTexId;
 layout(location = 13) in uvec2 inNormalTexId;
 layout(location = 14) in uvec2 inRmtTexId;
+layout(location = 15) in float inTexThickness;
 
 //Out
 layout(location = 0)      out vec4 fragColor;
@@ -41,11 +42,12 @@ layout(location = 2)      out vec2 fragUV;
 layout(location = 3)      out mat3 fragTBN; //Use 3
 //4
 //5
-layout(location = 6) flat out uvec2 fragAlbedoTexId;
-layout(location = 7) flat out uvec2 fragHeightTexId;
-layout(location = 8) flat out uvec2 fragNormalTexId;
-layout(location = 9) flat out uvec2 fragRmtTexId;
+layout(location = 6)  flat out uvec2 fragAlbedoTexId;
+layout(location = 7)  flat out uvec2 fragHeightTexId;
+layout(location = 8)  flat out uvec2 fragNormalTexId;
+layout(location = 9)  flat out uvec2 fragRmtTexId;
 layout(location = 10)      out vec4  fragWorldPos;
+layout(location = 11) flat out float fragTexThickness;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -55,9 +57,9 @@ void main()
 {
     fragWorldPos = inModel * vec4(inPos,1.0);
     //fragNormal   = vec4(inModel*vec4(inNormal,1.0)).xyz;
-    vec3 T      = normalize(vec4(inModel * vec4(inTangent,   1.0)).xyz);
-    vec3 B      = normalize(vec4(inModel * vec4(inBitangent, 1.0)).xyz);
-    vec3 N      = normalize(vec4(inModel * vec4(inNormal,    1.0)).xyz);
+    vec3 T      = normalize(vec4(inModel * vec4(inTangent,   0.0)).xyz);
+    vec3 B      = normalize(vec4(inModel * vec4(inBitangent, 0.0)).xyz);
+    vec3 N      = normalize(vec4(inModel * vec4(inNormal,    0.0)).xyz);
     fragTBN     = mat3(T, B, N);
 
     gl_Position = viewUbo.view*fragWorldPos;
@@ -73,6 +75,7 @@ void main()
     fragHeightTexId    = inHeightTexId;
     fragNormalTexId    = inNormalTexId;
     fragRmtTexId       = inRmtTexId;
+    fragTexThickness   = inTexThickness;
 
 }
 

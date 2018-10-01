@@ -13,7 +13,7 @@ layout(binding = 1, set = 1) uniform texture2DArray textures[128];
 
 layout(location = 0) flat in vec4 fragColor;
 layout(location = 1) flat in vec3 fragRmt;
-layout(location = 2) in vec2 fragTexCoord;
+layout(location = 2)      in vec2 fragTexCoord;
 layout(location = 3) flat in uvec2 fragAlbedoTexId;
 layout(location = 4) flat in uvec2 fragHeightTexId;
 layout(location = 5) flat in uvec2 fragNormalTexId;
@@ -44,7 +44,9 @@ void main()
     fragWorldPos.y -= (fragHeight - viewUbo.viewInv[3][2]) * viewUbo.view[2][1];
     fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
 
-    vec3 normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
+    vec3 normal = vec3(0.5,0.5,1.0);
+    if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
+        normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
     normal = 2.0*normal - vec3(1.0);
     normal = vec4(vec4(normal,1.0)*viewUbo.view).xyz;
 

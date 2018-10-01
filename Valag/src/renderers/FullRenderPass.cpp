@@ -478,7 +478,7 @@ bool FullRenderPass::createDescriptorSetLayout()
         layoutBindings[i].binding           = uniform.first;
         layoutBindings[i].descriptorCount   = 1;
         layoutBindings[i].stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBindings[i].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBindings[i].descriptorType    = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         i++;
     }
 
@@ -552,9 +552,9 @@ bool FullRenderPass::createDescriptorSets(VkDescriptorPool pool, VkSampler sampl
         {
             imageInfos[j].imageView     = uniform.second[i];
             imageInfos[j].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfos[j].sampler       = sampler;
+            //imageInfos[j].sampler       = sampler;
 
-            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[j].descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             descriptorWrites[j].dstBinding      = uniform.first;
             j++;
         }

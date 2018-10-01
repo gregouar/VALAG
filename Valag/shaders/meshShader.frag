@@ -17,11 +17,12 @@ layout(location = 2)      in vec2  fragUV;
 layout(location = 3)      in mat3  fragTBN; //Use 3
 // 4
 // 5
-layout(location = 6) flat in uvec2 fragAlbedoTexId;
-layout(location = 7) flat in uvec2 fragHeightTexId;
-layout(location = 8) flat in uvec2 fragNormalTexId;
-layout(location = 9) flat in uvec2 fragRmtTexId;
+layout(location = 6)  flat in uvec2 fragAlbedoTexId;
+layout(location = 7)  flat in uvec2 fragHeightTexId;
+layout(location = 8)  flat in uvec2 fragNormalTexId;
+layout(location = 9)  flat in uvec2 fragRmtTexId;
 layout(location = 10)      in vec4  fragWorldPos;
+layout(location = 11) flat in float fragTexThickness;
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outPosition;
@@ -36,13 +37,20 @@ void main()
     if(outAlbedo.a < .99f)
         discard;
 
-    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragWorldPos.z*viewUbo.depthOffsetAndFactor.y;
+    vec4  heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp),
+                               vec3(fragUV,fragHeightTexId.y));
+    float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
+    float fragHeight = fragWorldPos.z + height * fragTexThickness;
 
-    outPosition     = vec4(fragWorldPos.xyz, 1.0);
+    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight*viewUbo.depthOffsetAndFactor.y;
+
+    outPosition     = vec4(fragWorldPos.xy, fragHeight, 1.0);
 
     //I could add GS to improve quality of normal mapping
 
-    vec3 normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragUV,fragNormalTexId.y)).xyz;
+    vec3 normal = vec3(0.5,0.5,1.0);
+    if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
+        normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragUV,fragNormalTexId.y)).xyz;
     normal = 2.0*normal - vec3(1.0);
     normal = fragTBN*normal;
 

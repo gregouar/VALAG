@@ -2,6 +2,7 @@
 #define SCENE_H
 
 #include "Valag/Types.h"
+#include "Valag/core/NotificationListener.h"
 #include "Valag/scene/SceneNode.h"
 #include "Valag/scene/CameraObject.h"
 
@@ -12,11 +13,12 @@ struct AmbientLightingData
 {
     glm::vec4 viewPos;
     glm::vec4 ambientLight;
+    glm::uvec2 envMap;
 };
 
 
 /// I need to reimplement methods to create objects (light, sprites, etc)
-class Scene
+class Scene : public NotificationListener
 {
     public:
         Scene();
@@ -56,6 +58,7 @@ class Scene
         virtual glm::vec2 convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam = nullptr);
 
         virtual void setAmbientLight(Color color);
+        virtual void setEnvironmentMap(TextureAsset *texture);
 
         /**virtual void setShadowCasting(ShadowCastingType);
         virtual void enableGammaCorrection();
@@ -66,17 +69,20 @@ class Scene
         virtual void setViewAngle(float zAngle, float xyAngle);
         virtual void setCurrentCamera(CameraObject *);
 
+        void notify(NotificationSender *sender, NotificationType notification);
+
     protected:
         ObjectTypeId generateObjectId();
         void addCreatedObject(const ObjectTypeId, SceneObject*);
 
-        ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
+        void updateEnvMap();
 
+        ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 
         CameraObject *m_currentCamera;
         SceneNode m_rootNode;
 
-        /**sf::Color m_ambientLight;
+        /**
         ShadowCastingType m_shadowCastingOption;
         bool m_enableSRGB;
 
@@ -96,6 +102,7 @@ class Scene
 
         bool m_needToUpdateRenderQueue;
 
+        TextureAsset       *m_envMap;
         AmbientLightingData m_ambientLightingData;
 
         ///static const sf::Vector2u DEFAULT_SHADOWMAP_SIZE;

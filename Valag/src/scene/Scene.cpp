@@ -3,6 +3,7 @@
 #include "Valag/utils/Logger.h"
 #include "Valag/renderers/SceneRenderer.h"
 #include "Valag/scene/SceneObject.h"
+#include "Valag/assets/TextureAsset.h"
 
 namespace vlg
 {
@@ -24,6 +25,8 @@ Scene::Scene() :
 
     ///m_shadowCastingOption = NoShadow;
     ///m_enableSRGB = false;
+
+    m_envMap = nullptr;
 
     this->setViewAngle(0,0);
 }
@@ -453,6 +456,25 @@ void Scene::setAmbientLight(Color light)
     m_ambientLightingData.ambientLight = light;
 }
 
+void Scene::setEnvironmentMap(TextureAsset *texture)
+{
+    if(m_envMap != nullptr)
+        this->stopListeningTo(m_envMap);
+    m_envMap = texture;
+    this->startListeningTo(m_envMap);
+    this->updateEnvMap();
+}
+
+
+void Scene::notify(NotificationSender *sender, NotificationType notification)
+{
+    if(notification == Notification_AssetLoaded)
+    {
+        if(sender == m_envMap)
+            this->updateEnvMap();
+    }
+}
+
 /*void Scene::SetShadowCasting(ShadowCastingType type)
 {
     m_shadowCastingOption = type;
@@ -470,6 +492,15 @@ void Scene::DisableGammaCorrection()
 }
 
 **/
+
+void Scene::updateEnvMap()
+{
+    if(m_envMap != nullptr && m_envMap->isLoaded())
+        m_ambientLightingData.envMap = {m_envMap->getVTexture().getTextureId(),
+                                        m_envMap->getVTexture().getTextureLayer()};
+    else
+        m_ambientLightingData.envMap = {0,0};
+}
 
 ObjectTypeId Scene::generateObjectId()
 {

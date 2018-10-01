@@ -33,7 +33,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
         friend class VApp;
 
 
-        void checkUpdateDescriptorSets(size_t frameIndex);
+        void checkUpdateDescriptorSets(size_t frameIndex, size_t imageIndex);
 
         static bool allocTexture(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         static void freeTexture(VTexture &texture);
@@ -42,7 +42,9 @@ class VTexturesManager : public Singleton<VTexturesManager>
         static VkSampler                sampler();
         static VkDescriptorSetLayout    descriptorSetLayout();
         static VkDescriptorSet          descriptorSet(size_t frameIndex);
+        static VkDescriptorSet          imgDescriptorSet(size_t imageIndex);
         static size_t                   descriptorSetVersion(size_t frameIndex);
+        static size_t                   imgDescriptorSetVersion(size_t imageIndex);
 
     protected:
         VTexturesManager();
@@ -55,18 +57,22 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         bool    createDescriptorSetLayouts();
         bool    createSampler();
-        bool    createDescriptorPool(size_t framesCount);
-        bool    createDescriptorSets(size_t framesCount);
+        bool    createDescriptorPool(size_t framesCount, size_t imagesCount);
+        bool    createDescriptorSets(size_t framesCount, size_t imagesCount);
         bool    createDummyTexture();
 
         void    updateDescriptorSet(size_t frameIndex);
+        void    updateImgDescriptorSet(size_t imageIndex);
+        void    writeDescriptorSet(VkDescriptorSet &descSet);
 
-        bool    init(size_t framesCount);
+        bool    init(size_t framesCount, size_t imagesCount);
         void    cleanup();
 
         VkDescriptorSetLayout   getDescriptorSetLayout();
         VkDescriptorSet         getDescriptorSet(size_t frameIndex);
+        VkDescriptorSet         getImgDescriptorSet(size_t imageIndex);
         size_t                  getDescriptorSetVersion(size_t frameIndex);
+        size_t                  getImgDescriptorSetVersion(size_t imageIndex);
 
     private:
         std::multimap<std::pair<uint32_t,uint32_t>, size_t> m_extentToArray;
@@ -81,8 +87,11 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         VkSampler                       m_sampler;
         std::vector<bool>               m_needToUpdateDescSet;
+        std::vector<bool>               m_needToUpdateImgDescSet;
         std::vector<size_t>             m_descSetVersion;
+        std::vector<size_t>             m_imgDescSetVersion;
         std::vector<VkDescriptorSet>    m_descriptorSets;
+        std::vector<VkDescriptorSet>    m_imgDescriptorSets;
         VkDescriptorSetLayout           m_descriptorSetLayout;
         VkDescriptorPool                m_descriptorPool;
 

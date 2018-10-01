@@ -99,10 +99,10 @@ bool VApp::init()
     VInstance::instance()->init(m_renderWindow.getSurface()); //Throw error
     Profiler::popClock();
 
-    VTexturesManager::instance()->init(m_renderWindow.getFramesCount());
-
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
+
+    VTexturesManager::instance()->init(m_renderWindow.getFramesCount(), m_renderWindow.getSwapchainSize());
 
     m_eventsManager.init(m_renderWindow.getWindowPtr());
 
@@ -156,7 +156,8 @@ void VApp::loop()
         m_renderWindow.acquireNextImage();
         Profiler::popClock();
 
-        VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getCurrentFrameIndex());
+        VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getFrameIndex(),
+                                                                m_renderWindow.getImageIndex());
 
         m_eventsManager.update();
 
@@ -179,7 +180,7 @@ void VApp::loop()
         Profiler::popClock();
 
         if(m_eventsManager.keyPressed(GLFW_KEY_P))
-            VulkanHelpers::takeScreenshot(m_renderWindow.getSwapchainAttachments()[m_renderWindow.getCurrentFrameIndex()], "../screenshots/screen.jpg");
+            VulkanHelpers::takeScreenshot(m_renderWindow.getSwapchainAttachments()[m_renderWindow.getFrameIndex()], "../screenshots/screen.jpg");
     }
 
     VInstance::waitDeviceIdle();

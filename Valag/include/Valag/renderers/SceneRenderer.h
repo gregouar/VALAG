@@ -69,12 +69,9 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    updateUbos(uint32_t imageIndex);
 
     private:
-        ///You know that this should be part of RenderGraph right ?
-        /*VkDescriptorSetLayout m_ambientLightingDescriptorLayout;
-        VkDescriptorSet       m_ambientLightingDescriptorSet;*/
-
         AmbientLightingData     m_ambientLightingData;
         std::vector<VBuffer>    m_ambientLightingUbo;
+        std::vector<size_t>     m_ambientLightingDescVersion;
 
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,
@@ -85,8 +82,7 @@ class SceneRenderer : public AbstractRenderer
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
-        //VkSampler m_attachmentsSampler;
-        std::vector<VFramebufferAttachment> m_deferredDepthAttachments; ///Could use multiple if I want to implement multiple depth layers
+        std::vector<VFramebufferAttachment> m_deferredDepthAttachments;
         std::vector<VFramebufferAttachment> m_albedoAttachments[NBR_ALPHA_LAYERS],
                                             m_positionAttachments[NBR_ALPHA_LAYERS],
                                             m_normalAttachments[NBR_ALPHA_LAYERS],

@@ -34,7 +34,8 @@ class RenderWindow
 
         size_t      getFramesCount();
         size_t      getSwapchainSize();
-        size_t      getCurrentFrameIndex();
+        size_t      getFrameIndex();
+        size_t      getImageIndex();
         VkExtent2D  getSwapchainExtent();
         VkFormat    getSwapchainImageFormat();
         const std::vector<VFramebufferAttachment> &getSwapchainAttachments();

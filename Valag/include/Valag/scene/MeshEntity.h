@@ -24,8 +24,10 @@ struct MeshDatum
     glm::uvec2 normal_texId;
     glm::uvec2 rmt_texId;
 
+    float texThickness;
+
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 10> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 11> getAttributeDescriptions();
 };
 
 class MeshEntity : public SceneEntity

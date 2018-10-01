@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <material>
 	<name>QuackMaterial</name>
-	<height>1</height>
+	<height>0</height>
 	<texture type="albedo">quack.jpg</texture>
-	<roughness>.5</roughness>
-	<metalness>0</metalness>
+	<roughness>.2</roughness>
+	<metalness>1</metalness>
 	<translucency>0</translucency>
 </material>

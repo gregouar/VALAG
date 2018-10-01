@@ -34,6 +34,7 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         glm::vec2 getTextureExtent();
         glm::vec2 getTexturePosition();
         glm::vec2 getTextureCenter();
+        bool      isReady();
 
         virtual void notify(NotificationSender* sender, NotificationType notification);
 
@@ -52,6 +53,8 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
 
         glm::vec4 m_color;
         glm::vec4 m_rmt;
+
+        bool m_isReady;
 
 };
 

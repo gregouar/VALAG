@@ -38,5 +38,21 @@ bool VTexture::generateTexture(unsigned char* pixels, int texWidth, int texHeigh
     return (true);
 }
 
+uint32_t VTexture::getTextureId()
+{
+    return m_textureId;
+}
+
+uint32_t VTexture::getTextureLayer()
+{
+    return m_textureLayer;
+}
+
+VkExtent2D VTexture::getExtent()
+{
+    return m_extent;
+}
+
+
 
 }

@@ -11,7 +11,8 @@ IsoSpriteModel::IsoSpriteModel() :
     m_size({1.0f,1.0f}),
     m_texturePosition({0.0f,0.0f}),
     m_textureExtent({1.0f,1.0f}),
-    m_textureCenter({0.0f,0.0f})
+    m_textureCenter({0.0f,0.0f}),
+    m_isReady(true)
 {
     //ctor
 }
@@ -33,8 +34,13 @@ void IsoSpriteModel::setMaterial(MaterialAsset *material)
         if(m_material != nullptr)
             this->stopListeningTo(m_material);
         m_material = material;
-        if(m_material != nullptr)
-            this->startListeningTo(m_material);
+        this->startListeningTo(m_material);
+
+        if(m_material != nullptr && !m_material->isLoaded())
+            m_isReady = false;
+        else
+            m_isReady  = true;
+
         this->sendNotification(Notification_ModelChanged);
     }
 }
@@ -111,6 +117,11 @@ glm::vec2 IsoSpriteModel::getTextureCenter()
     return m_textureCenter;
 }
 
+bool IsoSpriteModel::isReady()
+{
+    return m_isReady;
+}
+
 void IsoSpriteModel::cleanup()
 {
 
@@ -119,7 +130,10 @@ void IsoSpriteModel::cleanup()
 void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notification)
 {
     if(notification == Notification_AssetLoaded)
+    {
+        m_isReady = true;
         this->sendNotification(Notification_ModelChanged);
+    }
     if(notification == Notification_SenderDestroyed)
     {
         if(sender == m_material)

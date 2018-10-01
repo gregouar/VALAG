@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <material>
 	<name>Sand</name>
-	<height>30</height>
+	<height>15</height>
 	<texture type="albedo">sand_color.png</texture>
 	<texture type="normal">sand_normal.png</texture>
 	<texture type="height">sand_height.png</texture>

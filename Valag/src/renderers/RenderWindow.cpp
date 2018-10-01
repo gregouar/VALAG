@@ -91,9 +91,14 @@ size_t RenderWindow::getSwapchainSize()
     return m_swapchainAttachments.size();
 }
 
-size_t RenderWindow::getCurrentFrameIndex()
+size_t RenderWindow::getFrameIndex()
 {
     return m_curFrameIndex;
+}
+
+size_t RenderWindow::getImageIndex()
+{
+    return m_curImageIndex;
 }
 
 VkExtent2D RenderWindow::getSwapchainExtent()

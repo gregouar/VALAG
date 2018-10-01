@@ -334,7 +334,7 @@ bool MeshAsset::generateModel(const std::vector<glm::vec3> &vertexList,
             {
                 index = accuVertexList.size();
                 vertexMap.insert(it, {t, accuVertexList.size()});
-                accuVertexList.push_back({t.pos,t.uv,t.normal});
+                accuVertexList.push_back({t.pos,t.uv,t.normal,{}});
             }
 
             indexList.push_back(index);

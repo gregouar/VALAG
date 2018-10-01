@@ -150,8 +150,7 @@ void IsoSpriteEntity::setSpriteModel(IsoSpriteModel* model)
         if(m_spriteModel != nullptr)
             this->stopListeningTo(m_spriteModel);
         m_spriteModel = model;
-        if(m_spriteModel != nullptr)
-            this->startListeningTo(m_spriteModel);
+        this->startListeningTo(m_spriteModel);
         this->updateDatum();
     }
 }
@@ -180,7 +179,11 @@ IsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
 
 void IsoSpriteEntity::draw(SceneRenderer *renderer)
 {
-    renderer->addToSpritesVbo(this->getIsoSpriteDatum());
+    if(m_spriteModel == nullptr || m_parentNode == nullptr)
+        return;
+
+    if(m_spriteModel->isReady())
+        renderer->addToSpritesVbo(this->getIsoSpriteDatum());
 }
 
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)
@@ -215,14 +218,14 @@ void IsoSpriteEntity::updateDatum()
     MaterialAsset* material = m_spriteModel->getMaterial();
     if(material != nullptr && material->isLoaded())
     {
-        m_datum.albedo_texId = {material->getAlbedoMap().m_textureId,
-                              material->getAlbedoMap().m_textureLayer};
-        m_datum.height_texId = {material->getHeightMap().m_textureId,
-                              material->getHeightMap().m_textureLayer};
-        m_datum.normal_texId = {material->getNormalMap().m_textureId,
-                              material->getNormalMap().m_textureLayer};
-        m_datum.rmt_texId    = {material->getRmtMap().m_textureId,
-                              material->getRmtMap().m_textureLayer};
+        m_datum.albedo_texId = {material->getAlbedoMap().getTextureId(),
+                                material->getAlbedoMap().getTextureLayer()};
+        m_datum.height_texId = {material->getHeightMap().getTextureId(),
+                                material->getHeightMap().getTextureLayer()};
+        m_datum.normal_texId = {material->getNormalMap().getTextureId(),
+                                material->getNormalMap().getTextureLayer()};
+        m_datum.rmt_texId    = {material->getRmtMap().getTextureId(),
+                                material->getRmtMap().getTextureLayer()};
 
         heightFactor = material->getHeightFactor();
         m_datum.rmt_color *= material->getRmtFactor();

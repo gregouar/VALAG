@@ -21,9 +21,9 @@ VkVertexInputBindingDescription MeshDatum::getBindingDescription()
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 10> MeshDatum::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 11> MeshDatum::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 10> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 11> attributeDescriptions = {};
 
     uint32_t i = 0;
     uint32_t d = MeshVertex::getAttributeDescriptions().size();
@@ -90,6 +90,12 @@ std::array<VkVertexInputAttributeDescription, 10> MeshDatum::getAttributeDescrip
     attributeDescriptions[i].offset = offsetof(MeshDatum, rmt_texId);
     ++i;
 
+    attributeDescriptions[i].binding = b;
+    attributeDescriptions[i].location = d+i;
+    attributeDescriptions[i].format = VK_FORMAT_R32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(MeshDatum, texThickness);
+    ++i;
+
 
     return attributeDescriptions;
 }
@@ -120,8 +126,7 @@ void MeshEntity::setMesh(MeshAsset* mesh)
         if(m_mesh != nullptr)
             this->stopListeningTo(m_mesh);
         m_mesh = mesh;
-        if(m_mesh != nullptr)
-            this->startListeningTo(m_mesh);
+        this->startListeningTo(m_mesh);
         this->updateDatum();
     }
 }
@@ -177,17 +182,25 @@ void MeshEntity::updateDatum()
     if(m_mesh == nullptr || m_parentNode == nullptr)
         return;
 
+    m_datum.albedo_color  = m_color;
+    m_datum.rmt_color     = m_rmt;
+    m_datum.texThickness  = 0.0;
+
     MaterialAsset* material = m_mesh->getMaterial();
     if(material != nullptr && material->isLoaded())
     {
-        m_datum.albedo_texId = {material->getAlbedoMap().m_textureId,
-                              material->getAlbedoMap().m_textureLayer};
-        m_datum.height_texId = {material->getHeightMap().m_textureId,
-                              material->getHeightMap().m_textureLayer};
-        m_datum.normal_texId = {material->getNormalMap().m_textureId,
-                              material->getNormalMap().m_textureLayer};
-        m_datum.rmt_texId    = {material->getRmtMap().m_textureId,
-                              material->getRmtMap().m_textureLayer};
+        m_datum.albedo_texId = {material->getAlbedoMap().getTextureId(),
+                                material->getAlbedoMap().getTextureLayer()};
+        m_datum.height_texId = {material->getHeightMap().getTextureId(),
+                                material->getHeightMap().getTextureLayer()};
+        m_datum.normal_texId = {material->getNormalMap().getTextureId(),
+                                material->getNormalMap().getTextureLayer()};
+        m_datum.rmt_texId    = {material->getRmtMap().getTextureId(),
+                                material->getRmtMap().getTextureLayer()};
+        m_datum.rmt_color *= material->getRmtFactor();
+
+        if(!(m_datum.normal_texId.x == 0 && m_datum.normal_texId.y == 0))
+            m_datum.texThickness = material->getHeightFactor();
     }
 
     float scale = m_mesh->getScale();
@@ -206,8 +219,6 @@ void MeshEntity::updateDatum()
     m_datum.model_2 = modelMatrix[2];
     m_datum.model_3 = modelMatrix[3];
 
-    m_datum.albedo_color  = m_color;
-    m_datum.rmt_color     = m_rmt;
 }
 
 }

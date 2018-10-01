@@ -16,6 +16,7 @@ layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
 layout(set = 1, binding = 4) uniform AmbientLightingUbo {
     vec4 viewPos;
     vec4 ambientLight;
+    uvec2 envMap;
 } ubo;
 
 

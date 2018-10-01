@@ -238,6 +238,9 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_alphaLightingPass))
         return (false);
 
+    if(m_ambientLightingDescVersion[imageIndex] != VTexturesManager::imgDescriptorSetVersion(imageIndex))
+        this->recordAmbientLightingCmb(imageIndex);
+
     return (true);
 }
 
@@ -248,11 +251,16 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 
         m_ambientLightingPipeline.bind(cmb);
 
-        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex)/*,
+        /// I COULD NEED TO UPDATE THIS CMB IF TEXTURE MANAGER CHANGE !!!!
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex),
+                                      VTexturesManager::imgDescriptorSet(imageIndex)/*,
                                       m_ambientLightingDescriptorSet*/};
+        m_ambientLightingDescVersion[imageIndex] = VTexturesManager::imgDescriptorSetVersion(imageIndex);
+
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
-                                0, 1, descSets, 0, NULL);
+                                0, 2, descSets, 0, NULL);
         vkCmdDraw(cmb, 3, 1, 0, 0);
+
 
     return m_renderGraph.endRecording(m_ambientLightingPass);
 }
@@ -291,6 +299,7 @@ bool SceneRenderer::init()
     if(!AbstractRenderer::init())
         return (false);
 
+    m_ambientLightingDescVersion.resize(m_targetWindow->getSwapchainSize());
     for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
         this->recordAmbientLightingCmb(i);
@@ -730,6 +739,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
 
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
+    m_ambientLightingPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_ambientLightingDescriptorLayout);
 
     m_ambientLightingPipeline.setBlendMode(BlendMode_Add,0);

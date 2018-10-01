@@ -120,7 +120,8 @@ void InstancingRenderer::draw(Sprite* sprite)
        datum.color   = modelUBO.color;
        datum.texExtent = modelUBO.texExt;
        datum.texPos = modelUBO.texPos;
-       datum.texId = {vtexture.m_textureId, vtexture.m_textureLayer};
+       datum.texId = {vtexture.getTextureId(),
+                      vtexture.getTextureLayer()};
 
        m_spritesVbos[m_curFrameIndex].push_back(datum);
     }

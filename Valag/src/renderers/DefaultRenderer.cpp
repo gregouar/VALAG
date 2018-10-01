@@ -66,8 +66,8 @@ bool DefaultRenderer::bindTexture(VkCommandBuffer &commandBuffer, AssetTypeId te
     if(texAsset != nullptr && texAsset->isLoaded())
     {
         VTexture vtexture = texAsset->getVTexture();
-        pc[0] = vtexture.m_textureId;
-        pc[1] = vtexture.m_textureLayer;
+        pc[0] = vtexture.getTextureId();
+        pc[1] = vtexture.getTextureLayer();
     }
 
     vkCmdPushConstants(commandBuffer, m_pipeline.getLayout(),
