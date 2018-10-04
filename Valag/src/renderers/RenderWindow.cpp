@@ -147,7 +147,7 @@ uint32_t RenderWindow::acquireNextImage()
     m_curImageIndex = imageIndex;
 
     for(auto renderer : m_attachedRenderers)
-        renderer.second->update(m_curImageIndex);
+        renderer.second->update(m_curFrameIndex/**m_curImageIndex**/);
 
     return imageIndex;
 }
@@ -378,6 +378,9 @@ bool RenderWindow::createSwapchain()
     vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, NULL);
     tempSwapchainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, tempSwapchainImages.data());
+
+    if(m_framesCount > imageCount)
+        m_framesCount = imageCount;
 
     m_swapchainAttachments.resize(imageCount);
     m_depthStencilAttachments.resize(imageCount);

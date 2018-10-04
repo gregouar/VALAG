@@ -34,6 +34,8 @@ class RenderGraph
         ///If an attachment is of type VK_IMAGE_LAYOUT_PRESENT_SRC_KHR then the cmb will be returned by submitToGraphicsQueue in order to be
         ///rendered by RenderWindow
        // void    setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
+        void    addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
+                               VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
         void    addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
                                VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
         void    addNewUniforms(size_t renderPassIndex, const std::vector<VBuffer> &buffers);

@@ -44,6 +44,7 @@ enum BlendMode
     BlendMode_None,
     BlendMode_Add,
     BlendMode_Alpha,
+    BlendMode_Accu,
     BlendMode_Custom,
 };
 

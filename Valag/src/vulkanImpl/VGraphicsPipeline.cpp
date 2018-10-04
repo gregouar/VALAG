@@ -229,6 +229,16 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
                     colorBlendAttachments[i].alphaBlendOp = VK_BLEND_OP_ADD;
                     break;
 
+                case BlendMode_Accu:
+                    colorBlendAttachments[i].blendEnable = VK_TRUE;
+                    colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_CONSTANT_COLOR;
+                    colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+                    colorBlendAttachments[i].colorBlendOp = VK_BLEND_OP_ADD;
+                    colorBlendAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                    colorBlendAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+                    colorBlendAttachments[i].alphaBlendOp = VK_BLEND_OP_ADD;
+                    break;
+
                 default:
                     colorBlendAttachments[i].blendEnable = VK_FALSE;
                     break;
@@ -240,10 +250,10 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
     colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
     colorBlending.pAttachments = colorBlendAttachments.data();
-    colorBlending.blendConstants[0] = 0.0f; // Optional
-    colorBlending.blendConstants[1] = 0.0f; // Optional
-    colorBlending.blendConstants[2] = 0.0f; // Optional
-    colorBlending.blendConstants[3] = 0.0f; // Optional
+    colorBlending.blendConstants[0] = 0.8f;
+    colorBlending.blendConstants[1] = 0.5f;
+    colorBlending.blendConstants[2] = 0.5f;
+    colorBlending.blendConstants[3] = 0.5f; //For accumulating, could be a parameter to tweak speed of converging
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

@@ -30,9 +30,9 @@ class AbstractRenderer
         virtual bool    createGraphicsPipeline() = 0;
         virtual bool    createRenderView();
 
-        virtual bool    createDescriptorSetLayouts();
+        /*virtual bool    createDescriptorSetLayouts();
         virtual bool    createDescriptorPool();
-        virtual bool    createDescriptorSets();
+        virtual bool    createDescriptorSets();*/
 
         virtual bool    init();
         virtual void    cleanup();
@@ -46,9 +46,10 @@ class AbstractRenderer
         RenderGraph     m_renderGraph;
         size_t          m_defaultPass;
 
-        std::vector<VkDescriptorPoolSize>   m_descriptorPoolSizes;
-        VkDescriptorPool                    m_descriptorPool;
+        /*std::vector<VkDescriptorPoolSize>   m_descriptorPoolSizes;
+        VkDescriptorPool                    m_descriptorPool;*/
 
+        //I should remove it and use targetWindow->getFrameIndex();
         size_t                          m_curFrameIndex;
 
     private:

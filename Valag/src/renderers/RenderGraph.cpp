@@ -88,19 +88,28 @@ void RenderGraph::connectRenderPasses(size_t src, size_t dst)
     m_renderPasses[renderPassIndex]->setAttachments(bufferIndex, attachments);
 }*/
 
+void RenderGraph::addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
+                                 VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
+{
+    std::vector<VFramebufferAttachment> attachments(m_imagesCount,attachment);
+    this->addNewAttachments(renderPassIndex, attachments, storeOp, loadOp);
+}
+
 void RenderGraph::addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
                                  VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
 {
-   m_renderPasses[renderPassIndex]->addAttachments(attachments, storeOp, loadOp);
+    m_renderPasses[renderPassIndex]->addAttachments(attachments, storeOp, loadOp, true);
 }
 
 void RenderGraph::addNewUniforms(size_t renderPassIndex, const std::vector<VBuffer> &buffers)
 {
+     m_descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(m_imagesCount)});
      m_renderPasses[renderPassIndex]->addUniforms(buffers);
 }
 
 void RenderGraph::addNewUniforms(size_t renderPassIndex, const std::vector<VkImageView> &views)
 {
+     m_descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(m_imagesCount)});
      m_renderPasses[renderPassIndex]->addUniforms(views);
 }
 
@@ -223,7 +232,6 @@ bool RenderGraph::createSemaphores()
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-
     for(auto &connexion : m_connexions)
     {
         for(size_t i = 0 ; i < m_framesCount ; ++i)
@@ -236,28 +244,6 @@ bool RenderGraph::createSemaphores()
             m_semaphores.push_back(semaphore);
         }
     }
-    /*for(auto connexion : m_connexions)
-    {
-        std::vector<VkSemaphore> waitSemaphores(m_framesCount, VkSemaphore{});
-
-        for(size_t i = 0 ; i < m_framesCount ; ++i)
-        {
-            VkSemaphore signalSem = m_renderPasses[connexion.first]->getSignalSemaphore(i);
-
-            if(signalSem == VK_NULL_HANDLE)
-            {
-                if(vkCreateSemaphore(VInstance::device(), &semaphoreInfo, nullptr, &signalSem) != VK_SUCCESS)
-                    return (false);
-                m_renderPasses[connexion.first]->setSignalSemaphores(i,signalSem);
-                m_semaphores.push_back(signalSem);
-            }
-
-            waitSemaphores[i] = signalSem;
-        }
-        m_renderPasses[connexion.second]->addWaitSemaphores(waitSemaphores, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-    }*/
-
-
 
     return (true);
 }

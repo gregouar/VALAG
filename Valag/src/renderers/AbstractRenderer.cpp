@@ -12,7 +12,7 @@ AbstractRenderer::AbstractRenderer(RenderWindow *targetWindow, RendererName name
     m_targetWindow(targetWindow),
     m_renderGraph(targetWindow->getSwapchainSize(),
                   targetWindow->getFramesCount()),
-    m_descriptorPool(VK_NULL_HANDLE),
+    //m_descriptorPool(VK_NULL_HANDLE),
     m_curFrameIndex(0),
     m_order(order),
     m_name(name)
@@ -81,11 +81,11 @@ bool AbstractRenderer::init()
 {
     this->prepareRenderPass();
 
-    if(!this->createDescriptorSetLayouts())
+    /*if(!this->createDescriptorSetLayouts())
     {
         Logger::error("Cannot create default descriptor set layout");
         return (false);
-    }
+    }*/
 
     if(!this->createRenderView())
     {
@@ -105,7 +105,7 @@ bool AbstractRenderer::init()
         return (false);
     }
 
-    if(!this->createDescriptorPool())
+    /*if(!this->createDescriptorPool())
     {
         Logger::error("Cannot create descriptor pool");
         return (false);
@@ -115,7 +115,7 @@ bool AbstractRenderer::init()
     {
         Logger::error("Cannot create descriptor sets");
         return (false);
-    }
+    }*/
 
     return (true);
 }
@@ -126,20 +126,14 @@ void AbstractRenderer::cleanup()
 
     m_renderView.destroy();
 
-    if(m_descriptorPool != VK_NULL_HANDLE)
+   /* if(m_descriptorPool != VK_NULL_HANDLE)
         vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);
-    m_descriptorPool = VK_NULL_HANDLE;
+    m_descriptorPool = VK_NULL_HANDLE;*/
 
     m_renderGraph.destroy();
 }
 
-
-bool AbstractRenderer::createDescriptorSetLayouts()
-{
-    return (true);
-}
-
-bool AbstractRenderer::createDescriptorPool()
+/*bool AbstractRenderer::createDescriptorPool()
 {
     if(m_descriptorPoolSizes.empty())
         return (true);
@@ -159,7 +153,7 @@ bool AbstractRenderer::createDescriptorPool()
 bool AbstractRenderer::createDescriptorSets()
 {
     return (true);
-}
+}*/
 
 
 

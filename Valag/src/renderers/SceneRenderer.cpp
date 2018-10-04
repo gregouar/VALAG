@@ -12,18 +12,22 @@
 namespace vlg
 {
 
-const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
-const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "isoSpriteShader.frag.spv";
-const char *SceneRenderer::MESH_DEFERRED_VERTSHADERFILE = "meshShader.vert.spv";
-const char *SceneRenderer::MESH_DEFERRED_FRAGSHADERFILE = "meshShader.frag.spv";
-const char *SceneRenderer::ISOSPRITE_ALPHADETECT_VERTSHADERFILE = "isoSpriteAlphaDetection.vert.spv";
-const char *SceneRenderer::ISOSPRITE_ALPHADETECT_FRAGSHADERFILE = "isoSpriteAlphaDetection.frag.spv";
-const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE = "isoSpriteShader.vert.spv";
-const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE = "isoSpriteAlphaShader.frag.spv";
-const char *SceneRenderer::LIGHTING_VERTSHADERFILE = "lighting.vert.spv";
-const char *SceneRenderer::LIGHTING_FRAGSHADERFILE = "lighting.frag.spv";
-const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "ambientLighting.vert.spv";
-const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "ambientLighting.frag.spv";
+const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "deferred/isoSpriteShader.vert.spv";
+const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "deferred/isoSpriteShader.frag.spv";
+const char *SceneRenderer::MESH_DEFERRED_VERTSHADERFILE = "deferred/meshShader.vert.spv";
+const char *SceneRenderer::MESH_DEFERRED_FRAGSHADERFILE = "deferred/meshShader.frag.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADETECT_VERTSHADERFILE = "deferred/isoSpriteAlphaDetection.vert.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADETECT_FRAGSHADERFILE = "deferred/isoSpriteAlphaDetection.frag.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE = "deferred/isoSpriteShader.vert.spv";
+const char *SceneRenderer::ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE = "deferred/isoSpriteAlphaShader.frag.spv";
+const char *SceneRenderer::SSGI_BN_VERTSHADERFILE = "lighting/ssgiBN.vert.spv";
+const char *SceneRenderer::SSGI_BN_FRAGSHADERFILE = "lighting/ssgiBN.frag.spv";
+const char *SceneRenderer::LIGHTING_VERTSHADERFILE = "lighting/lighting.vert.spv";
+const char *SceneRenderer::LIGHTING_FRAGSHADERFILE = "lighting/lighting.frag.spv";
+const char *SceneRenderer::SSGI_LIGHTING_VERTSHADERFILE = "lighting/ssgiLighting.vert.spv";
+const char *SceneRenderer::SSGI_LIGHTING_FRAGSHADERFILE = "lighting/ssgiLighting.frag.spv";
+const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "lighting/ambientLighting.vert.spv";
+const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "lighting/ambientLighting.frag.spv";
 const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
 const char *SceneRenderer::TONEMAPPING_FRAGSHADERFILE = "toneMapping.frag.spv";
 
@@ -195,7 +199,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex].getBuffer();
 
     VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
-                                             m_renderGraph.getDescriptorSet(m_lightingPass,m_curFrameIndex) };
+                                             m_renderGraph.getDescriptorSet(m_lightingPass,imageIndex/*m_curFrameIndex*/) };
 
     cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
 
@@ -217,7 +221,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
         return (false);
 
     ///Test
-    lightDescriptorSets[1] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,m_curFrameIndex);
+    lightDescriptorSets[1] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,imageIndex/**m_curFrameIndex**/);
 
     cmb = m_renderGraph.startRecording(m_alphaLightingPass, imageIndex, m_curFrameIndex);
 
@@ -244,6 +248,20 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     return (true);
 }
 
+bool SceneRenderer::recordSsgiCmb(uint32_t imageIndex)
+{
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_ssgiBNPass, imageIndex, m_curFrameIndex);
+
+        m_ssgiBNPipeline.bind(cmb);
+
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ssgiBNPass,imageIndex)};
+
+        vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ssgiBNPipeline.getLayout(),
+                                0, 1, descSets, 0, NULL);
+        vkCmdDraw(cmb, 3, 1, 0, 0);
+
+    return m_renderGraph.endRecording(m_ssgiBNPass);
+}
 
 bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 {
@@ -251,16 +269,13 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 
         m_ambientLightingPipeline.bind(cmb);
 
-        /// I COULD NEED TO UPDATE THIS CMB IF TEXTURE MANAGER CHANGE !!!!
         VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex),
-                                      VTexturesManager::imgDescriptorSet(imageIndex)/*,
-                                      m_ambientLightingDescriptorSet*/};
+                                      VTexturesManager::imgDescriptorSet(imageIndex)};
         m_ambientLightingDescVersion[imageIndex] = VTexturesManager::imgDescriptorSetVersion(imageIndex);
 
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
                                 0, 2, descSets, 0, NULL);
         vkCmdDraw(cmb, 3, 1, 0, 0);
-
 
     return m_renderGraph.endRecording(m_ambientLightingPass);
 }
@@ -302,6 +317,7 @@ bool SceneRenderer::init()
     m_ambientLightingDescVersion.resize(m_targetWindow->getSwapchainSize());
     for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
+        this->recordSsgiCmb(i);
         this->recordAmbientLightingCmb(i);
         this->recordToneMappingCmb(i);
     }
@@ -314,16 +330,12 @@ void SceneRenderer::prepareRenderPass()
     this->prepareDeferredRenderPass();
     this->prepareAlphaDetectRenderPass();
     this->prepareAlphaDeferredRenderPass();
+    this->prepareSsgiBNRenderPass();
     this->prepareLightingRenderPass();
     this->prepareAlphaLightingRenderPass();
+    this->prepareSsgiLightingRenderPass();
     this->prepareAmbientLightingRenderPass();
     this->prepareToneMappingRenderPass();
-
-    /*m_renderGraph.connectRenderPasses(m_deferredPass, m_ambientLightingPass);
-    m_renderGraph.connectRenderPasses(m_deferredPass, m_alphaDetectPass);
-    m_renderGraph.connectRenderPasses(m_alphaDetectPass, m_alphaDeferredPass);
-    m_renderGraph.connectRenderPasses(m_alphaDeferredPass, m_ambientLightingPass);
-    m_renderGraph.connectRenderPasses(m_ambientLightingPass, m_toneMappingPass);*/
 }
 
 bool SceneRenderer::createGraphicsPipeline()
@@ -336,9 +348,13 @@ bool SceneRenderer::createGraphicsPipeline()
         return (false);
     if(!this->createAlphaDeferredPipeline())
         return (false);
+    if(!this->createSsgiBNPipeline())
+        return (false);
     if(!this->createLightingPipeline())
         return (false);
     if(!this->createAlphaLightingPipeline())
+        return (false);
+    if(!this->createSsgiLightingPipeline())
         return (false);
     if(!this->createAmbientLightingPipeline())
         return (false);
@@ -394,6 +410,23 @@ bool SceneRenderer::createAttachments()
         }
     }
 
+    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_UNORM,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiAccuBentNormalsAttachment))
+        return (false);
+
+    //We put the attachment in read only for the first pass
+    VulkanHelpers::transitionImageLayout(m_ssgiAccuBentNormalsAttachment.image.vkImage, 0, VK_FORMAT_R16G16B16A16_UNORM,
+                                         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiAccuLightingAttachment))
+        return (false);
+
+    for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
+        if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_UNORM,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiCollisionsAttachments[i]))
+            return (false);
+
     return (true);
 }
 
@@ -427,6 +460,23 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     m_renderGraph.transferAttachmentsToAttachments(m_alphaDetectPass, m_alphaDeferredPass, 1);
 
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
+}
+
+void SceneRenderer::prepareSsgiBNRenderPass()
+{
+    m_ssgiBNPass = m_renderGraph.addRenderPass();
+
+    m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiAccuBentNormalsAttachment,
+                                    VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_LOAD);
+
+    for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
+        m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiCollisionsAttachments[i]);
+
+    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 0); //No need for albedo here
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 2);
+    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 3); //No need for rmt here I think
+
 }
 
 void SceneRenderer::prepareLightingRenderPass()
@@ -472,6 +522,10 @@ void SceneRenderer::prepareAlphaLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 3);
 
     m_renderGraph.addNewUniforms(m_alphaLightingPass, m_ambientLightingUbo);
+}
+
+void SceneRenderer::prepareSsgiLightingRenderPass()
+{
 
 }
 
@@ -495,6 +549,8 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 3);
+
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNPass, m_ambientLightingPass, 0);
 
     m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
 
@@ -659,6 +715,25 @@ bool SceneRenderer::createAlphaDeferredPipeline()
                                           m_renderGraph.getColorAttachmentsCount(m_alphaDeferredPass));
 }
 
+bool SceneRenderer::createSsgiBNPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_FRAGSHADERFILE;
+
+    m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    m_ssgiBNPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+    m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNPass));
+
+    m_ssgiBNPipeline.setBlendMode(BlendMode_Accu, 0);
+
+    return m_ssgiBNPipeline.init(m_renderGraph.getVkRenderPass(m_ssgiBNPass), 0,
+                                 m_renderGraph.getColorAttachmentsCount(m_ssgiBNPass));
+}
+
 bool SceneRenderer::createLightingPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
@@ -724,6 +799,11 @@ bool SceneRenderer::createAlphaLightingPipeline()
 
     return m_alphaLightingPipeline.init( m_renderGraph.getVkRenderPass(m_alphaLightingPass), 0,
                                          m_renderGraph.getColorAttachmentsCount(m_alphaLightingPass));
+}
+
+bool SceneRenderer::createSsgiLightingPipeline()
+{
+    return (true);
 }
 
 bool SceneRenderer::createAmbientLightingPipeline()
@@ -813,11 +893,18 @@ void SceneRenderer::cleanup()
         m_hdrAttachements[a].clear();
     }
 
+    VulkanHelpers::destroyAttachment(m_ssgiAccuBentNormalsAttachment);
+    VulkanHelpers::destroyAttachment(m_ssgiAccuLightingAttachment);
+    for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
+        VulkanHelpers::destroyAttachment(m_ssgiCollisionsAttachments[i]);
+
     m_deferredSpritesPipeline.destroy();
     m_deferredMeshesPipeline.destroy();
     m_alphaDetectPipeline.destroy();
     m_alphaDeferredPipeline.destroy();
+    m_ssgiBNPipeline.destroy();
     m_lightingPipeline.destroy();
+    m_ssgiLightingPipeline.destroy();
     m_ambientLightingPipeline.destroy();
     m_toneMappingPipeline.destroy();
 

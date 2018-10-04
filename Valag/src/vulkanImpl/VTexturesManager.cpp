@@ -262,18 +262,19 @@ bool VTexturesManager::createDescriptorSets(size_t framesCount, size_t imagesCou
 {
     VkDevice device = VInstance::device();
 
-    std::vector<VkDescriptorSetLayout> layouts(framesCount, m_descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(imagesCount, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(framesCount);
     allocInfo.pSetLayouts = layouts.data();
 
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(framesCount);
     m_descSetVersion = std::vector<size_t> (framesCount, 0);
     m_descriptorSets.resize(framesCount);
     if (vkAllocateDescriptorSets(device, &allocInfo,m_descriptorSets.data()) != VK_SUCCESS)
         return (false);
 
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(imagesCount);
     m_imgDescSetVersion = std::vector<size_t> (imagesCount, 0);
     m_imgDescriptorSets.resize(imagesCount);
     if (vkAllocateDescriptorSets(device, &allocInfo,m_imgDescriptorSets .data()) != VK_SUCCESS)

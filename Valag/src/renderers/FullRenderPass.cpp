@@ -183,10 +183,12 @@ void FullRenderPass::setClearValues(size_t attachmentIndex, glm::vec4 color, glm
 }*/
 
 void FullRenderPass::addAttachments(const std::vector<VFramebufferAttachment> &attachments,
-                                    VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
+                                    VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp,
+                                    bool fromUniform)
 {
-    m_attachmentsLoadOp.push_back(loadOp);
+    m_attachmentsLoadOp.push_back({loadOp, fromUniform});
     m_attachmentsStoreOp.push_back({storeOp, false});
+    //m_attachmentsLoadOp.push_back(loadOp);
     m_attachments.push_back(attachments);
 }
 
@@ -203,6 +205,11 @@ void FullRenderPass::addUniforms(const std::vector<VBuffer> &buffers)
 void FullRenderPass::addUniforms(const std::vector<VkImageView> &views)
 {
     m_uniformViews.push_back({m_curUniformBinding++, views});
+}
+
+void FullRenderPass::setAttachmentsLoadOp(size_t attachmentIndex, VkAttachmentLoadOp loadOp, bool fromUniform)
+{
+    m_attachmentsLoadOp[attachmentIndex] = {loadOp, fromUniform};
 }
 
 void FullRenderPass::setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform)
@@ -309,18 +316,22 @@ bool FullRenderPass::createRenderPass()
         attachments[i].format = m_attachments[i][0].format;
 
         attachments[i].samples          = VK_SAMPLE_COUNT_1_BIT;
-        attachments[i].loadOp           = m_attachmentsLoadOp[i];
+        attachments[i].loadOp           = m_attachmentsLoadOp[i].first;
         attachments[i].storeOp          = m_attachmentsStoreOp[i].first;//VK_ATTACHMENT_STORE_OP_STORE;
 
         ///I'll need to update this
-        attachments[i].stencilLoadOp    = m_attachmentsLoadOp[i];///VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[i].stencilLoadOp    = m_attachmentsLoadOp[i].first;///VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachments[i].stencilStoreOp   = m_attachmentsStoreOp[i].first;///VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 
         ///Could change this to be smarter
-        if(m_attachmentsLoadOp[i] == VK_ATTACHMENT_LOAD_OP_LOAD)
-            //attachments[i].initialLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            attachments[i].initialLayout    = layout;
+        if(m_attachmentsLoadOp[i].first == VK_ATTACHMENT_LOAD_OP_LOAD)
+        {
+            if(m_attachmentsLoadOp[i].second)
+                attachments[i].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            else
+                attachments[i].initialLayout = layout;
+        }
         else
             attachments[i].initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
 

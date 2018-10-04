@@ -200,16 +200,6 @@ bool InstancingRenderer::createGraphicsPipeline()
     return m_pipeline.init(m_renderGraph.getVkRenderPass(m_defaultPass), 0);
 }
 
-bool InstancingRenderer::createDescriptorPool()
-{
-    return (true);
-}
-
-bool InstancingRenderer::createDescriptorSets()
-{
-    return (true);
-}
-
 void InstancingRenderer::cleanup()
 {
     m_spritesVbos.clear();

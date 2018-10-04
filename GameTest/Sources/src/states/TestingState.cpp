@@ -88,8 +88,8 @@ void TestingState::init()
     /// SCENE
 
     //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
-   // m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,64/255.0});
-    m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
+    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
+   // m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
     //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.exr",vlg::LoadType_InThread));
     m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/panorama.jpg",vlg::LoadType_InThread));
 
@@ -137,11 +137,11 @@ void TestingState::init()
     vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/sandXML.txt",vlg::LoadType_InThread);
     vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{2.0,2.0});
     m_groundSand.setMesh(groundMesh);
-    m_scene->getRootNode()->createChildNode({0,0,0})->attachObject(&m_groundSand);
+    m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(&m_groundSand);
 
-    //m_scene->getRootNode()->attachObject(&m_sunLight);
+    m_scene->getRootNode()->attachObject(&m_sunLight);
     m_sunLight.setDiffuseColor({1.0,1.0,1.0,1.0});
-    m_sunLight.setIntensity(5.0);
+    m_sunLight.setIntensity(7.0);
     m_sunLight.setType(vlg::LightType_Directionnal);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
     m_sunLight.setDirection({.2 ,-1.0,-1.0});
@@ -289,6 +289,7 @@ void TestingState::update(const vlg::Time &elapsedTime)
         m_nbrFps = 0;
     }
 
+    //m_quackEntities.back().setRmt({5.0*m_totalTime.count(),1.0,1.0});
 
     m_quackNode->rotate(elapsedTime.count(), {0,0,1});
     m_cursorLightNode ->rotate(elapsedTime.count(), {0,0,1});

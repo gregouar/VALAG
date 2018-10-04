@@ -136,16 +136,6 @@ bool DefaultRenderer::createGraphicsPipeline()
     return m_pipeline.init(m_renderGraph.getVkRenderPass(m_defaultPass), 0);
 }
 
-bool DefaultRenderer::createDescriptorPool()
-{
-    return (true);
-}
-
-bool DefaultRenderer::createDescriptorSets()
-{
-    return (true);
-}
-
 void DefaultRenderer::cleanup()
 {
     AbstractRenderer::cleanup();

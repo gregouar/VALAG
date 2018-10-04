@@ -32,11 +32,12 @@ class FullRenderPass
         void setClearValues(size_t attachmentIndex, glm::vec4 color, glm::vec2 depth);
         //void setAttachments(size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
         void addAttachments(const std::vector<VFramebufferAttachment> &attachments,
-                            VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp);
+                            VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp, bool fromUniform = false);
         void addUniforms(const std::vector<VFramebufferAttachment> &attachments);
         void addUniforms(const std::vector<VBuffer> &buffers);
         void addUniforms(const std::vector<VkImageView> &views);
 
+        void setAttachmentsLoadOp(size_t attachmentIndex, VkAttachmentLoadOp loadOp, bool fromUniform);
         void setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform = false);
 
         VkFlags         getCmbUsage();
@@ -76,7 +77,8 @@ class FullRenderPass
         std::vector<VkFramebuffer> m_framebuffers;
 
         std::vector<std::vector<VFramebufferAttachment> > m_attachments;
-        std::vector<VkAttachmentLoadOp> m_attachmentsLoadOp;
+        std::vector<std::pair<VkAttachmentLoadOp, bool> > m_attachmentsLoadOp; //loadOp and fromUniform
+        //std::vector<VkAttachmentLoadOp> m_attachmentsLoadOp;
         std::vector<std::pair<VkAttachmentStoreOp, bool> > m_attachmentsStoreOp; //storeOp and toUniform
 
         std::vector<VkCommandBuffer>    m_primaryCmb;

@@ -8,8 +8,8 @@ namespace vlg
 {
 
 
-const char *PBRToolbox::BRDFLUT_VERTSHADERFILE = "brdflut.vert.spv";
-const char *PBRToolbox::BRDFLUT_FRAGSHADERFILE = "brdflut.frag.spv";
+const char *PBRToolbox::BRDFLUT_VERTSHADERFILE = "lighting/brdflut.vert.spv";
+const char *PBRToolbox::BRDFLUT_FRAGSHADERFILE = "lighting/brdflut.frag.spv";
 
 PBRToolbox::PBRToolbox()
 {

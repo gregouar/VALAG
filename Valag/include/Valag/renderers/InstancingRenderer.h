@@ -45,8 +45,6 @@ class InstancingRenderer : public AbstractRenderer
 
         virtual bool    createDescriptorSetLayouts();
         virtual bool    createGraphicsPipeline();
-        virtual bool    createDescriptorPool();
-        virtual bool    createDescriptorSets();
 
         virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 

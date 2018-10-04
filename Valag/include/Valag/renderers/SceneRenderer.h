@@ -16,6 +16,7 @@
 #include "Valag/vulkanImpl/DynamicVBO.h"
 
 #define NBR_ALPHA_LAYERS 2
+#define NBR_SSGI_SAMPLES 4
 
 namespace vlg
 {
@@ -48,8 +49,10 @@ class SceneRenderer : public AbstractRenderer
         void prepareDeferredRenderPass();
         void prepareAlphaDetectRenderPass();
         void prepareAlphaDeferredRenderPass();
+        void prepareSsgiBNRenderPass();
         void prepareLightingRenderPass();
         void prepareAlphaLightingRenderPass();
+        void prepareSsgiLightingRenderPass();
         void prepareAmbientLightingRenderPass();
         void prepareToneMappingRenderPass();
 
@@ -57,12 +60,15 @@ class SceneRenderer : public AbstractRenderer
         bool createDeferredMeshesPipeline();
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
+        bool createSsgiBNPipeline();
         bool createLightingPipeline();
         bool createAlphaLightingPipeline();
+        bool createSsgiLightingPipeline();
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
         virtual bool    recordPrimaryCmb(uint32_t imageIndex); ///Deferred, Alpha Detect, Alpha deferred
+        virtual bool    recordSsgiCmb(uint32_t imageIndex); ///BN and Lighting
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
@@ -77,8 +83,10 @@ class SceneRenderer : public AbstractRenderer
                             m_deferredMeshesPipeline,
                             m_alphaDetectPipeline,
                             m_alphaDeferredPipeline,
+                            m_ssgiBNPipeline,
                             m_lightingPipeline,
                             m_alphaLightingPipeline,
+                            m_ssgiLightingPipeline,
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
@@ -90,11 +98,21 @@ class SceneRenderer : public AbstractRenderer
         std::vector<VFramebufferAttachment> m_alphaDetectAttachments;
         std::vector<VFramebufferAttachment> m_hdrAttachements[NBR_ALPHA_LAYERS];
 
+
+        //Need to think how to deal with multibuffering
+        VFramebufferAttachment m_ssgiAccuBentNormalsAttachment;
+        VFramebufferAttachment m_ssgiAccuLightingAttachment;
+        VFramebufferAttachment m_ssgiCollisionsAttachments[NBR_SSGI_SAMPLES];
+        //VFramebufferAttachment m_SSGIBlurBentNormalsAttachment[2];
+        //VFramebufferAttachment m_SSGIBlurLightingAttachment[2];
+
         size_t  m_deferredPass,
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
+                m_ssgiBNPass,
                 m_lightingPass,
                 m_alphaLightingPass,
+                m_ssgiLightingPass,
                 m_ambientLightingPass,
                 m_toneMappingPass;
 
@@ -111,8 +129,12 @@ class SceneRenderer : public AbstractRenderer
         static const char *ISOSPRITE_ALPHADETECT_FRAGSHADERFILE;
         static const char *ISOSPRITE_ALPHADEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_ALPHADEFERRED_FRAGSHADERFILE;
+        static const char *SSGI_BN_VERTSHADERFILE;
+        static const char *SSGI_BN_FRAGSHADERFILE;
         static const char *LIGHTING_VERTSHADERFILE;
         static const char *LIGHTING_FRAGSHADERFILE;
+        static const char *SSGI_LIGHTING_VERTSHADERFILE;
+        static const char *SSGI_LIGHTING_FRAGSHADERFILE;
         static const char *AMBIENTLIGHTING_VERTSHADERFILE;
         static const char *AMBIENTLIGHTING_FRAGSHADERFILE;
         static const char *TONEMAPPING_VERTSHADERFILE;
