@@ -123,8 +123,7 @@ void MeshEntity::setMesh(MeshAsset* mesh)
 {
     if(m_mesh != mesh)
     {
-        if(m_mesh != nullptr)
-            this->stopListeningTo(m_mesh);
+        this->stopListeningTo(m_mesh);
         m_mesh = mesh;
         this->startListeningTo(m_mesh);
         this->updateDatum();

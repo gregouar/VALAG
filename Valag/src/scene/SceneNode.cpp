@@ -440,8 +440,7 @@ void SceneNode::setParent(SceneNode *p)
 {
     if(m_parent != p)
     {
-        if(m_parent != nullptr)
-            this->stopListeningTo(m_parent);
+        this->stopListeningTo(m_parent);
         m_parent = p;
         if(m_parent != nullptr)
         {

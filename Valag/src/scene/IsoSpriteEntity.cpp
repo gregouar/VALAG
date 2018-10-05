@@ -147,8 +147,7 @@ void IsoSpriteEntity::setSpriteModel(IsoSpriteModel* model)
 {
     if(m_spriteModel != model)
     {
-        if(m_spriteModel != nullptr)
-            this->stopListeningTo(m_spriteModel);
+        this->stopListeningTo(m_spriteModel);
         m_spriteModel = model;
         this->startListeningTo(m_spriteModel);
         this->updateDatum();

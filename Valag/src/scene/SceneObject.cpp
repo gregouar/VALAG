@@ -27,8 +27,7 @@ SceneNode* SceneObject::setParentNode(SceneNode *newParent)
 
     if(m_parentNode != newParent)
     {
-        if(m_parentNode != nullptr)
-            this->stopListeningTo(m_parentNode);
+        this->stopListeningTo(m_parentNode);
         m_parentNode = newParent;
         this->startListeningTo(m_parentNode);
     }

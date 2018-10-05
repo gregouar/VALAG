@@ -20,10 +20,10 @@ class RenderView
         RenderView();
         virtual ~RenderView();
 
-        bool create(size_t framesCount);
+        bool create(size_t imagesCount);
         void destroy();
 
-        void update(size_t frameIndex);
+        void update(size_t imageIndex);
 
         void setDepthFactor(float depthFactor);
 

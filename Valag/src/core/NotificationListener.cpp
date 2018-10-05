@@ -37,6 +37,7 @@ void NotificationListener::stopListeningTo(NotificationSender* sender)
 
 void NotificationListener::startListeningTo(NotificationSender* sender)
 {
+    this->stopListeningTo(sender);
     if(sender != nullptr)
     {
         m_senders.insert(sender);

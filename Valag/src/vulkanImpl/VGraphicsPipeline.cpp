@@ -49,6 +49,14 @@ void VGraphicsPipeline::createShader(const std::string &shaderPath, VkShaderStag
     m_attachedShaders.push_back({shaderPath, shaderStageBit});
 }
 
+void VGraphicsPipeline::setSpecializationInfo(VkSpecializationInfo &specializationInfo, size_t shaderNbr)
+{
+    //if(m_specializationInfos.size() < shaderNbr)
+      //  m_specializationInfos.resize(shaderNbr+1, {});
+    m_specializationInfos.insert(m_specializationInfos.end(), shaderNbr + 1 - m_specializationInfos.size(), VkSpecializationInfo{});
+    m_specializationInfos[shaderNbr] = specializationInfo;
+}
+
 void VGraphicsPipeline::setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,
                                         size_t vertexAttributeCount, VkVertexInputAttributeDescription* vertexAttributes)
 {
@@ -136,6 +144,7 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     std::vector<VkShaderModule> shaders;
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
+    size_t s = 0;
     for(auto shader : m_attachedShaders)
     {
         auto shaderCode = VulkanHelpers::readFile(shader.first);
@@ -146,6 +155,9 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
         shaderStages.back().stage = shader.second;
         shaderStages.back().module = shaders.back();
         shaderStages.back().pName = "main";
+        if(s < m_specializationInfos.size())
+            shaderStages.back().pSpecializationInfo = &m_specializationInfos[s];
+        ++s;
     }
 
     ///I should switch to dynamic
@@ -231,11 +243,11 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
 
                 case BlendMode_Accu:
                     colorBlendAttachments[i].blendEnable = VK_TRUE;
-                    colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_CONSTANT_COLOR;
-                    colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+                    colorBlendAttachments[i].srcColorBlendFactor = VK_BLEND_FACTOR_CONSTANT_ALPHA;
+                    colorBlendAttachments[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
                     colorBlendAttachments[i].colorBlendOp = VK_BLEND_OP_ADD;
-                    colorBlendAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-                    colorBlendAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+                    colorBlendAttachments[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_CONSTANT_ALPHA;
+                    colorBlendAttachments[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
                     colorBlendAttachments[i].alphaBlendOp = VK_BLEND_OP_ADD;
                     break;
 
@@ -250,9 +262,10 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
     colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
     colorBlending.pAttachments = colorBlendAttachments.data();
-    colorBlending.blendConstants[0] = 0.8f;
-    colorBlending.blendConstants[1] = 0.5f;
-    colorBlending.blendConstants[2] = 0.5f;
+    colorBlending.blendConstants[0] = 0.0f;
+    colorBlending.blendConstants[1] = 0.0f;
+    colorBlending.blendConstants[2] = 0.0f;
+    ///Could be dynamic, depending on framerate
     colorBlending.blendConstants[3] = 0.5f; //For accumulating, could be a parameter to tweak speed of converging
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};

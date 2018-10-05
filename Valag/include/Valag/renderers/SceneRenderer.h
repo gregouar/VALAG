@@ -49,7 +49,7 @@ class SceneRenderer : public AbstractRenderer
         void prepareDeferredRenderPass();
         void prepareAlphaDetectRenderPass();
         void prepareAlphaDeferredRenderPass();
-        void prepareSsgiBNRenderPass();
+        void prepareSsgiBNRenderPasses();
         void prepareLightingRenderPass();
         void prepareAlphaLightingRenderPass();
         void prepareSsgiLightingRenderPass();
@@ -60,7 +60,7 @@ class SceneRenderer : public AbstractRenderer
         bool createDeferredMeshesPipeline();
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
-        bool createSsgiBNPipeline();
+        bool createSsgiBNPipelines();
         bool createLightingPipeline();
         bool createAlphaLightingPipeline();
         bool createSsgiLightingPipeline();
@@ -84,6 +84,7 @@ class SceneRenderer : public AbstractRenderer
                             m_alphaDetectPipeline,
                             m_alphaDeferredPipeline,
                             m_ssgiBNPipeline,
+                            m_ssgiBNBlurPipelines[2],
                             m_lightingPipeline,
                             m_alphaLightingPipeline,
                             m_ssgiLightingPipeline,
@@ -100,16 +101,18 @@ class SceneRenderer : public AbstractRenderer
 
 
         //Need to think how to deal with multibuffering
+        //Use blitting to move accordingly to camera ? Could also add velocity map...
         VFramebufferAttachment m_ssgiAccuBentNormalsAttachment;
         VFramebufferAttachment m_ssgiAccuLightingAttachment;
         VFramebufferAttachment m_ssgiCollisionsAttachments[NBR_SSGI_SAMPLES];
-        //VFramebufferAttachment m_SSGIBlurBentNormalsAttachment[2];
+        VFramebufferAttachment m_SSGIBlurBentNormalsAttachments[2];
         //VFramebufferAttachment m_SSGIBlurLightingAttachment[2];
 
         size_t  m_deferredPass,
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
                 m_ssgiBNPass,
+                m_ssgiBNBlurPasses[2],
                 m_lightingPass,
                 m_alphaLightingPass,
                 m_ssgiLightingPass,
@@ -139,6 +142,8 @@ class SceneRenderer : public AbstractRenderer
         static const char *AMBIENTLIGHTING_FRAGSHADERFILE;
         static const char *TONEMAPPING_VERTSHADERFILE;
         static const char *TONEMAPPING_FRAGSHADERFILE;
+        static const char *BLUR_VERTSHADERFILE;
+        static const char *BLUR_FRAGSHADERFILE;
 };
 
 }

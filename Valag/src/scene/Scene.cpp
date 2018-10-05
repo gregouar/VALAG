@@ -458,8 +458,7 @@ void Scene::setAmbientLight(Color light)
 
 void Scene::setEnvironmentMap(TextureAsset *texture)
 {
-    if(m_envMap != nullptr)
-        this->stopListeningTo(m_envMap);
+    this->stopListeningTo(m_envMap);
     m_envMap = texture;
     this->startListeningTo(m_envMap);
     this->updateEnvMap();

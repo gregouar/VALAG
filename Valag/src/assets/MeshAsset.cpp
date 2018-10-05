@@ -223,8 +223,7 @@ void MeshAsset::setMaterial(AssetTypeId materialId)
 
 void MeshAsset::setMaterial(MaterialAsset *material)
 {
-    if(m_material != nullptr)
-        m_material->stopListeningTo(this);
+    this->stopListeningTo(m_material);
 
     m_material = material;
     m_materialsLoaded = true;

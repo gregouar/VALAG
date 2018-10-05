@@ -51,7 +51,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRmt)
+vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
 {
 
     vec3 ambientLighting = ubo.ambientLight.rgb * ubo.ambientLight.a;
@@ -70,7 +70,8 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3
 
     vec3 F = fresnelSchlickRoughness(NdotV, surfaceReflection0, fragRmt.r);
     vec3 kS = F;
-    vec3 kD = (1.0 - kS)*(1.0 - fragRmt.g);
+    vec3 kD = (1.0 - F)*(1.0 - fragRmt.g);
+    //kD *= fragBentNormal.a;
     vec3 irradiance = ambientLighting;
 
     vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal);
@@ -97,11 +98,10 @@ void main()
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
     vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
+    vec4 fragBentNormal = texture(samplerBentNormals, gl_FragCoord.xy);
 
-    outColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
+    outColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);
 	outColor.rgb = pow(outColor.rgb, vec3(2.2));
-
-	outColor.rgb = texture(samplerBentNormals, gl_FragCoord.xy).rgb;
 
 
     fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
@@ -109,7 +109,7 @@ void main()
     fragNormal = normalize(texture(samplerAlphaNormal, gl_FragCoord.xy).xyz);
     fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
 
-    outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragRmt);
+    outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, vec4(fragNormal,1.0), fragRmt);
 	outAlphaColor.rgb = pow(outAlphaColor.rgb, vec3(2.2));
 }
 

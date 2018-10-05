@@ -125,6 +125,8 @@
 		<Unit filename="../../Valag/libs/tinyxml/tinyxml.cpp" />
 		<Unit filename="../../Valag/libs/tinyxml/tinyxmlerror.cpp" />
 		<Unit filename="../../Valag/libs/tinyxml/tinyxmlparser.cpp" />
+		<Unit filename="../../Valag/shaders/blur.frag" />
+		<Unit filename="../../Valag/shaders/blur.vert" />
 		<Unit filename="../../Valag/shaders/defaultShader.frag" />
 		<Unit filename="../../Valag/shaders/defaultShader.vert" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteAlphaDetection.frag" />

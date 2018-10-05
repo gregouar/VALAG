@@ -30,6 +30,8 @@ const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "lighting/ambientLig
 const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "lighting/ambientLighting.frag.spv";
 const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
 const char *SceneRenderer::TONEMAPPING_FRAGSHADERFILE = "toneMapping.frag.spv";
+const char *SceneRenderer::BLUR_VERTSHADERFILE = "blur.vert.spv";
+const char *SceneRenderer::BLUR_FRAGSHADERFILE = "blur.frag.spv";
 
 
 SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
@@ -109,6 +111,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                         VTexturesManager::descriptorSet(m_curFrameIndex) };
 
+    /// Opac sprites & meshes
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_deferredPass, imageIndex, m_curFrameIndex);
 
 
@@ -155,6 +158,8 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_deferredPass))
         return (false);
 
+
+    /// Detection of alpha fragments
     cmb = m_renderGraph.startRecording(m_alphaDetectPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -177,6 +182,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
                                             VTexturesManager::descriptorSet(m_curFrameIndex),
                                             m_renderGraph.getDescriptorSet(m_alphaDeferredPass, imageIndex) };
 
+    /// Alpha sprites
     cmb = m_renderGraph.startRecording(m_alphaDeferredPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -201,6 +207,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                              m_renderGraph.getDescriptorSet(m_lightingPass,imageIndex/*m_curFrameIndex*/) };
 
+    /// Lighting of opac fragments
     cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -220,7 +227,8 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_lightingPass))
         return (false);
 
-    ///Test
+
+    /// Lighting of alpha fragments
     lightDescriptorSets[1] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,imageIndex/**m_curFrameIndex**/);
 
     cmb = m_renderGraph.startRecording(m_alphaLightingPass, imageIndex, m_curFrameIndex);
@@ -254,13 +262,42 @@ bool SceneRenderer::recordSsgiCmb(uint32_t imageIndex)
 
         m_ssgiBNPipeline.bind(cmb);
 
-        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ssgiBNPass,imageIndex)};
+        ///m_renderView set shouldnt be by IMAGE !!! Need to update renderView or split set in two !!
+        VkDescriptorSet descSets[] = {  m_renderView.getDescriptorSet(0),
+                                        m_renderGraph.getDescriptorSet(m_ssgiBNPass,imageIndex)};
 
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ssgiBNPipeline.getLayout(),
-                                0, 1, descSets, 0, NULL);
+                                0, 2, descSets, 0, NULL);
+
+        int pc = static_cast<int>(imageIndex);
+        vkCmdPushConstants(cmb, m_ssgiBNPipeline.getLayout(),
+            VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int), (void*)&pc);
+
         vkCmdDraw(cmb, 3, 1, 0, 0);
 
-    return m_renderGraph.endRecording(m_ssgiBNPass);
+    if(!m_renderGraph.endRecording(m_ssgiBNPass))
+        return (false);
+
+
+    ///Blur
+    for(size_t i = 0 ; i < 2 ; ++i)
+    {
+        cmb = m_renderGraph.startRecording(m_ssgiBNBlurPasses[i], imageIndex, m_curFrameIndex);
+
+            m_ssgiBNBlurPipelines[i].bind(cmb);
+
+            VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ssgiBNBlurPasses[i],imageIndex)};
+
+            vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ssgiBNBlurPipelines[i].getLayout(),
+                                    0, 1, descSets, 0, NULL);
+
+            vkCmdDraw(cmb, 3, 1, 0, 0);
+
+        if(!m_renderGraph.endRecording(m_ssgiBNBlurPasses[i]))
+            return (false);
+    }
+
+    return (true);
 }
 
 bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
@@ -330,7 +367,7 @@ void SceneRenderer::prepareRenderPass()
     this->prepareDeferredRenderPass();
     this->prepareAlphaDetectRenderPass();
     this->prepareAlphaDeferredRenderPass();
-    this->prepareSsgiBNRenderPass();
+    this->prepareSsgiBNRenderPasses();
     this->prepareLightingRenderPass();
     this->prepareAlphaLightingRenderPass();
     this->prepareSsgiLightingRenderPass();
@@ -348,7 +385,7 @@ bool SceneRenderer::createGraphicsPipeline()
         return (false);
     if(!this->createAlphaDeferredPipeline())
         return (false);
-    if(!this->createSsgiBNPipeline())
+    if(!this->createSsgiBNPipelines())
         return (false);
     if(!this->createLightingPipeline())
         return (false);
@@ -410,12 +447,12 @@ bool SceneRenderer::createAttachments()
         }
     }
 
-    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_UNORM,
+    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SNORM,
                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiAccuBentNormalsAttachment))
         return (false);
 
     //We put the attachment in read only for the first pass
-    VulkanHelpers::transitionImageLayout(m_ssgiAccuBentNormalsAttachment.image.vkImage, 0, VK_FORMAT_R16G16B16A16_UNORM,
+    VulkanHelpers::transitionImageLayout(m_ssgiAccuBentNormalsAttachment.image.vkImage, 0, VK_FORMAT_R16G16B16A16_SNORM,
                                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -425,6 +462,11 @@ bool SceneRenderer::createAttachments()
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_UNORM,
                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiCollisionsAttachments[i]))
+            return (false);
+
+    for(size_t i = 0 ; i < 2 ; ++i)
+        if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SNORM,
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_SSGIBlurBentNormalsAttachments[i]))
             return (false);
 
     return (true);
@@ -462,8 +504,9 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
 }
 
-void SceneRenderer::prepareSsgiBNRenderPass()
+void SceneRenderer::prepareSsgiBNRenderPasses()
 {
+    /// compute bent normals
     m_ssgiBNPass = m_renderGraph.addRenderPass();
 
     m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiAccuBentNormalsAttachment,
@@ -472,10 +515,20 @@ void SceneRenderer::prepareSsgiBNRenderPass()
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiCollisionsAttachments[i]);
 
-    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 0); //No need for albedo here
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 2);
-    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 3); //No need for rmt here I think
+
+    /// blur horizontal
+    m_ssgiBNBlurPasses[0] = m_renderGraph.addRenderPass();
+
+    m_renderGraph.addNewAttachments(m_ssgiBNBlurPasses[0], m_SSGIBlurBentNormalsAttachments[0]);
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNPass, m_ssgiBNBlurPasses[0], 0);
+
+    /// blur vertical
+    m_ssgiBNBlurPasses[1] = m_renderGraph.addRenderPass();
+
+    m_renderGraph.addNewAttachments(m_ssgiBNBlurPasses[1], m_SSGIBlurBentNormalsAttachments[1]);
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[0], m_ssgiBNBlurPasses[1], 0);
 
 }
 
@@ -495,6 +548,8 @@ void SceneRenderer::prepareLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_lightingPass, 3);*/
+
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[1], m_lightingPass, 0);
 
 
     ///This should be elsewhere
@@ -520,6 +575,8 @@ void SceneRenderer::prepareAlphaLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 1);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_alphaLightingPass, 3);
+
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[1], m_alphaLightingPass, 0);
 
     m_renderGraph.addNewUniforms(m_alphaLightingPass, m_ambientLightingUbo);
 }
@@ -550,7 +607,7 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass, m_ambientLightingPass, 3);
 
-    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNPass, m_ambientLightingPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[1], m_ambientLightingPass, 0);
 
     m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
 
@@ -663,7 +720,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
 
     m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
 
-    VkStencilOpState stencil = {};
+    /*VkStencilOpState stencil = {};
     stencil.compareOp   = VK_COMPARE_OP_ALWAYS;
 	stencil.failOp      = VK_STENCIL_OP_REPLACE;
 	stencil.depthFailOp = VK_STENCIL_OP_REPLACE;
@@ -671,7 +728,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
 	stencil.compareMask = 0xff;
 	stencil.writeMask   = 0xff;
     stencil.reference   = 1;
-    m_alphaDetectPipeline.setStencilTest(true, stencil);
+    m_alphaDetectPipeline.setStencilTest(true, stencil);*/
 
     return m_alphaDetectPipeline.init(  m_renderGraph.getVkRenderPass(m_alphaDetectPass), 0,
                                         m_renderGraph.getColorAttachmentsCount(m_alphaDetectPass));
@@ -701,10 +758,20 @@ bool SceneRenderer::createAlphaDeferredPipeline()
 
     m_alphaDeferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-    VkStencilOpState stencil = {};
+   /* VkStencilOpState stencil = {};
     stencil.compareOp   = VK_COMPARE_OP_EQUAL;//VK_COMPARE_OP_EQUAL;
 	stencil.failOp      = VK_STENCIL_OP_KEEP;
 	stencil.depthFailOp = VK_STENCIL_OP_KEEP;
+	stencil.passOp      = VK_STENCIL_OP_REPLACE;
+	stencil.compareMask = 0xff;
+	stencil.writeMask   = 0xff;
+    stencil.reference   = 1;
+    m_alphaDeferredPipeline.setStencilTest(true, stencil);*/
+
+    VkStencilOpState stencil = {};
+    stencil.compareOp   = VK_COMPARE_OP_ALWAYS;
+	stencil.failOp      = VK_STENCIL_OP_REPLACE;
+	stencil.depthFailOp = VK_STENCIL_OP_ZERO;
 	stencil.passOp      = VK_STENCIL_OP_REPLACE;
 	stencil.compareMask = 0xff;
 	stencil.writeMask   = 0xff;
@@ -715,23 +782,78 @@ bool SceneRenderer::createAlphaDeferredPipeline()
                                           m_renderGraph.getColorAttachmentsCount(m_alphaDeferredPass));
 }
 
-bool SceneRenderer::createSsgiBNPipeline()
+bool SceneRenderer::createSsgiBNPipelines()
 {
-    std::ostringstream vertShaderPath,fragShaderPath;
-    vertShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_VERTSHADERFILE;
-    fragShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_FRAGSHADERFILE;
+    ///Bent normals computation
+    {
+        std::ostringstream vertShaderPath,fragShaderPath;
+        vertShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_VERTSHADERFILE;
+        fragShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_FRAGSHADERFILE;
 
-    m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
-    m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+        m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+        m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_ssgiBNPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+        m_ssgiBNPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
 
-    m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNPass));
+        m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+        m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNPass));
 
-    m_ssgiBNPipeline.setBlendMode(BlendMode_Accu, 0);
+        m_ssgiBNPipeline.attachPushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(int));
 
-    return m_ssgiBNPipeline.init(m_renderGraph.getVkRenderPass(m_ssgiBNPass), 0,
-                                 m_renderGraph.getColorAttachmentsCount(m_ssgiBNPass));
+       // m_ssgiBNPipeline.setBlendMode(BlendMode_Accu, 0);
+
+        if(!m_ssgiBNPipeline.init(m_renderGraph.getVkRenderPass(m_ssgiBNPass), 0,
+                                     m_renderGraph.getColorAttachmentsCount(m_ssgiBNPass)))
+            return (false);
+    }
+
+    ///Horizontal and vertical blur
+    for(size_t i = 0 ; i < 2 ; ++i)
+    {
+        struct SpecializationData {
+            float radius;
+            bool  vertical;
+        } specializationData;
+
+        specializationData.radius = 4.0;
+        specializationData.vertical = static_cast<bool>(i);
+
+		std::array<VkSpecializationMapEntry, 2> specializationMapEntries;
+		specializationMapEntries[0].constantID = 0;
+		specializationMapEntries[0].size = sizeof(specializationData.radius);
+		specializationMapEntries[0].offset = 0;
+
+		specializationMapEntries[1].constantID = 1;
+		specializationMapEntries[1].size = sizeof(specializationData.vertical);
+		specializationMapEntries[1].offset = offsetof(SpecializationData, vertical);
+
+		VkSpecializationInfo specializationInfo{};
+		specializationInfo.dataSize = sizeof(specializationData);
+		specializationInfo.mapEntryCount = static_cast<uint32_t>(specializationMapEntries.size());
+		specializationInfo.pMapEntries = specializationMapEntries.data();
+        specializationInfo.pData = &specializationData;
+
+
+        std::ostringstream vertShaderPath,fragShaderPath;
+        vertShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_VERTSHADERFILE;
+        fragShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_FRAGSHADERFILE;
+
+        m_ssgiBNBlurPipelines[i].createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+        m_ssgiBNBlurPipelines[i].createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
+
+        m_ssgiBNBlurPipelines[i].setDefaultExtent(m_targetWindow->getSwapchainExtent());
+
+        m_ssgiBNBlurPipelines[i].attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNBlurPasses[i]));
+
+        if(!m_ssgiBNBlurPipelines[i].init(m_renderGraph.getVkRenderPass(m_ssgiBNBlurPasses[i]), 0,
+                                     m_renderGraph.getColorAttachmentsCount(m_ssgiBNBlurPasses[i])))
+            return (false);
+    }
+
+
+    return (true);
 }
 
 bool SceneRenderer::createLightingPipeline()
@@ -897,6 +1019,8 @@ void SceneRenderer::cleanup()
     VulkanHelpers::destroyAttachment(m_ssgiAccuLightingAttachment);
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         VulkanHelpers::destroyAttachment(m_ssgiCollisionsAttachments[i]);
+    for(size_t i = 0 ; i < 2 ; ++i)
+        VulkanHelpers::destroyAttachment(m_SSGIBlurBentNormalsAttachments[i]);
 
     m_deferredSpritesPipeline.destroy();
     m_deferredMeshesPipeline.destroy();

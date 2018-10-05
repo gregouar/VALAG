@@ -19,6 +19,9 @@ class VGraphicsPipeline
         ///Only before init()
         void createShader(const std::string &shaderPath, VkShaderStageFlagBits shaderStageBit);
 
+        ///I could do something more high level here heh
+        void setSpecializationInfo(VkSpecializationInfo &specializationInfo, size_t shaderNbr);
+
         void setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,
                             size_t vertexAttributeCount, VkVertexInputAttributeDescription* vertexAttributes);
 
@@ -57,6 +60,7 @@ class VGraphicsPipeline
 
     private:
         std::vector< std::pair<std::string,VkShaderStageFlagBits> > m_attachedShaders;
+        std::vector<VkSpecializationInfo>       m_specializationInfos;
         VkPipelineVertexInputStateCreateInfo    m_vertexInput;
         VkPipelineInputAssemblyStateCreateInfo  m_inputAssembly;
         VkExtent2D          m_defaultExtent;

@@ -134,8 +134,8 @@ void TestingState::init()
     m_quackNode->scale(5.0f);
 
 
-    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/sandXML.txt",vlg::LoadType_InThread);
-    vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{2.0,2.0});
+    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/wetSandXML.txt",vlg::LoadType_InThread);
+    vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{4.0,4.0});
     m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(&m_groundSand);
 
@@ -144,16 +144,16 @@ void TestingState::init()
     m_sunLight.setIntensity(7.0);
     m_sunLight.setType(vlg::LightType_Directionnal);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
-    m_sunLight.setDirection({.2 ,-1.0,-1.0});
+    m_sunLight.setDirection({-.2 ,-1.0,-1.0});
 
-    m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,100);
+    m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,60);
     m_cursorLightNode->attachObject(&m_cursorLight);
     m_cursorLight.setDiffuseColor({1.0,1.0,1.0,1.0});
-    m_cursorLight.setIntensity(5.0);
+    m_cursorLight.setIntensity(10.0);
     m_cursorLight.setRadius(400.0);
     m_cursorLight.setType(vlg::LightType_Omni);
 
-    for(size_t i = 0 ; i < 100 ; ++i)
+    for(size_t i = 0 ; i < 0 ; ++i)
     {
         m_secLights.push_back(vlg::Light());
         m_secLights.back().setDiffuseColor({glm::linearRand(0,100)/100.0,

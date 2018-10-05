@@ -7,13 +7,14 @@ layout (set = 1, binding = 0) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 1) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 2) uniform sampler2D samplerNormal;
 layout (set = 1, binding = 3) uniform sampler2D samplerRmt;
+layout (set = 1, binding = 4) uniform sampler2D samplerBentNormal;
 
 /*layout (set = 1, binding = 4) uniform sampler2D samplerAlphaAlbedo;
 layout (set = 1, binding = 5) uniform sampler2D samplerAlphaPosition;
 layout (set = 1, binding = 6) uniform sampler2D samplerAlphaNormal;
 layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
 
-layout(set = 1, binding = 4) uniform AmbientLightingUbo {
+layout(set = 1, binding = 5) uniform AmbientLightingUbo {
     vec4 viewPos;
     vec4 ambientLight;
     uvec2 envMap;
@@ -68,7 +69,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRmt)
+vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
 {
     vec4 lighting = vec4(0.0);
 
@@ -103,21 +104,29 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec3 fragRm
 
         //Compute attenuation from shadows here
 
-        lightDirection       = normalize(lightDirection);
-        vec3 halfwayVector   = normalize(viewDirection + lightDirection);
+        lightDirection      = normalize(lightDirection);
+        vec3 halfwayVector  = normalize(viewDirection + lightDirection);
         float NdotL         = max(dot(fragNormal, lightDirection), 0.0);
+        float BNdotL        = max(dot(fragBentNormal.xyz, lightDirection), 0.0);
 
-        vec3 radiance        = attenuation*lightColor.rgb;
+        vec3 radiance   = attenuation*lightColor.rgb;
         float NDF   = DistributionGGX(fragNormal, halfwayVector, fragRmt.r);
         float G     = GeometrySmith(fragNormal, viewDirection, lightDirection, fragRmt.r);
         vec3 F      = FresnelSchlick(max(dot(halfwayVector, viewDirection), 0.0), surfaceReflection0);
         vec3 kS     = F;
         vec3 kD     = vec3(1.0) - kS;
         kD         *= 1.0 - fragRmt.g;
+        //kD         *= fragBentNormal.a; //SSAO
+
+        //float ao = max(1.0 - length(lightDirection - fragBentNormal.xyz) /* * (1.0 - fragBentNormal.a) */, 0.0);
+        //ao = fragBentNormal.a;
+        float ao = (1.0 - abs(BNdotL-NdotL)) *fragBentNormal.a;
+        //ao = fragBentNormal.a;
+
         vec3 nominator      = NDF * G * F;
         float denominator   = 4.0 * max(dot(fragNormal, viewDirection), 0.0) * NdotL;
         vec3 specular       = nominator / max(denominator, 0.01);
-        lighting.rgb       += (kD * fragAlbedo.rgb *0.31830988618 + specular) * radiance * NdotL;
+        lighting.rgb       += (kD * pow(ao,1.0)  * fragAlbedo.rgb *0.31830988618+ specular )  * NdotL * radiance ;
 
         //Translucency
         float t         = fragRmt.b;
@@ -134,8 +143,9 @@ void main()
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
     vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
+    vec4 fragBentNormal = texture(samplerBentNormal, gl_FragCoord.xy);
 
-    outColor = ComputeLighting(fragAlbedo, fragPos, fragNormal, fragRmt);//vec4(lightColor.rgb,0.0);
+    outColor = ComputeLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);//vec4(lightColor.rgb,0.0);
 	outColor.rgb = pow(outColor.rgb, vec3(2.2));
 	//outColor.g = 1.0;
 
