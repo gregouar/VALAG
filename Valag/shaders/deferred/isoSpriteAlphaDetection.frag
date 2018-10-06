@@ -25,7 +25,7 @@ void main()
       //  heightPixel.a = 1.0f;
 
     if(fragColorA > .99f  && heightPixel.a < 1.0f )
-        heightPixel.a = 0.0; //discard;
+        discard;
 
     float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
 

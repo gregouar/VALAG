@@ -79,7 +79,7 @@ vec3 hash(vec3 a)
 
 vec3 rayTrace(vec3 screenStart, vec3 ray)
 {
-    uint nbrSteps   = 10;
+    uint nbrSteps   = 4;
 
     vec3 screenRayStep  = vec3(vec4(viewUbo.view * vec4(ray ,0.0)).xy, ray.z)/float(nbrSteps);
     vec3 curPos         = screenStart;
@@ -97,7 +97,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
         else
             isUnder = false;
 
-        if(isUnder != wasUnder && abs(curPos.z - dstFragHeight) < 10)
+        if(isUnder != wasUnder && abs(curPos.z - dstFragHeight) < 20)
             return vec3(curPos.xy,nbrSteps-i);
 
         wasUnder = isUnder;
@@ -134,14 +134,14 @@ void main()
     uint j = 0;
     for(uint i = 0 ; i < 16 ; ++i)
     {
-        vec3 ray = 100.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
+        vec3 ray = 60.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
         vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
 
         if(c.z != -1)
         {
-            outBentNormal.xyz += normalize(ray)/c.z;
+            //outBentNormal.xyz += normalize(ray)/c.z;
             if(j == 0) outCollision1 = vec4(c, 0.0);
             if(j == 1) outCollision2 = vec4(c, 0.0);
             if(j == 2) outCollision3 = vec4(c, 0.0);

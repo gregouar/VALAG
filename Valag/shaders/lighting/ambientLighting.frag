@@ -71,7 +71,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4
     vec3 F = fresnelSchlickRoughness(NdotV, surfaceReflection0, fragRmt.r);
     vec3 kS = F;
     vec3 kD = (1.0 - F)*(1.0 - fragRmt.g);
-    //kD *= fragBentNormal.a;
+    kD *= pow(fragBentNormal.a,2.0);
     vec3 irradiance = ambientLighting;
 
     vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal);

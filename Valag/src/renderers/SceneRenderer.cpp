@@ -502,6 +502,7 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     m_renderGraph.transferAttachmentsToAttachments(m_alphaDetectPass, m_alphaDeferredPass, 1);
 
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_alphaDeferredPass, 1);
 }
 
 void SceneRenderer::prepareSsgiBNRenderPasses()
@@ -771,7 +772,7 @@ bool SceneRenderer::createAlphaDeferredPipeline()
     VkStencilOpState stencil = {};
     stencil.compareOp   = VK_COMPARE_OP_ALWAYS;
 	stencil.failOp      = VK_STENCIL_OP_REPLACE;
-	stencil.depthFailOp = VK_STENCIL_OP_ZERO;
+	stencil.depthFailOp = VK_STENCIL_OP_REPLACE;//VK_STENCIL_OP_ZERO;
 	stencil.passOp      = VK_STENCIL_OP_REPLACE;
 	stencil.compareMask = 0xff;
 	stencil.writeMask   = 0xff;

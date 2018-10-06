@@ -88,7 +88,7 @@ void TestingState::init()
     /// SCENE
 
     //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
-    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96/255.0});
+    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96.0/255.0});
    // m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
     //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.exr",vlg::LoadType_InThread));
     m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/panorama.jpg",vlg::LoadType_InThread));
@@ -115,7 +115,7 @@ void TestingState::init()
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
 
-    m_treeEntity.setColor({0.0,1.0,0.0,0.5});
+    //m_treeEntity.setColor({0.0,1.0,0.0,0.5});
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
 
     m_camera = m_scene->createCamera();
@@ -141,10 +141,10 @@ void TestingState::init()
 
     m_scene->getRootNode()->attachObject(&m_sunLight);
     m_sunLight.setDiffuseColor({1.0,1.0,1.0,1.0});
-    m_sunLight.setIntensity(7.0);
+    m_sunLight.setIntensity(15.0);
     m_sunLight.setType(vlg::LightType_Directionnal);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
-    m_sunLight.setDirection({-.2 ,-1.0,-1.0});
+    m_sunLight.setDirection({.2 ,-1.0,-1.0});
 
     m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,60);
     m_cursorLightNode->attachObject(&m_cursorLight);
@@ -214,9 +214,9 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
 
     if(eventsManager->keyPressed(GLFW_KEY_Q))
-        m_abbeyNode->move(0,0,10);
+        m_abbeyNode->move(0,0,100);
     if(eventsManager->keyPressed(GLFW_KEY_S))
-        m_abbeyNode->move(0,0,-10);
+        m_abbeyNode->move(0,0,-100);
 
     if(eventsManager->keyIsPressed(GLFW_KEY_DOWN))
         m_camVelocity.y = 200.0;

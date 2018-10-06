@@ -116,21 +116,17 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         vec3 kS     = F;
         vec3 kD     = vec3(1.0) - kS;
         kD         *= 1.0 - fragRmt.g;
-        //kD         *= fragBentNormal.a; //SSAO
 
-        //float ao = max(1.0 - length(lightDirection - fragBentNormal.xyz) /* * (1.0 - fragBentNormal.a) */, 0.0);
-        //ao = fragBentNormal.a;
-        float ao = (1.0 - abs(BNdotL-NdotL)) *fragBentNormal.a;
-        //ao = fragBentNormal.a;
+        float ao = 0.25 * fragBentNormal.a + (1.0 - (1.0 - BNdotL) * (1.0 - fragBentNormal.a))*0.75;
 
         vec3 nominator      = NDF * G * F;
         float denominator   = 4.0 * max(dot(fragNormal, viewDirection), 0.0) * NdotL;
         vec3 specular       = nominator / max(denominator, 0.01);
-        lighting.rgb       += (kD * pow(ao,1.0)  * fragAlbedo.rgb *0.31830988618+ specular )  * NdotL * radiance ;
+        lighting.rgb       += (kD * fragAlbedo.rgb * 0.31830988618 + specular)  * NdotL * radiance * pow(ao,6.0);
 
         //Translucency
         float t         = fragRmt.b;
-        lighting.rgb   -= (fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t;
+        lighting.rgb   -= (kD * fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t;
 
     }
 
@@ -145,8 +141,9 @@ void main()
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
     vec4 fragBentNormal = texture(samplerBentNormal, gl_FragCoord.xy);
 
+	fragAlbedo.rgb = pow(fragAlbedo.rgb, vec3(2.2));
+
     outColor = ComputeLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);//vec4(lightColor.rgb,0.0);
-	outColor.rgb = pow(outColor.rgb, vec3(2.2));
 	//outColor.g = 1.0;
 
     /*fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
