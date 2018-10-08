@@ -137,7 +137,7 @@ void VGraphicsPipeline::setStencilTest(bool enableTest, VkStencilOpState front, 
     m_depthStencil.back = back; // Optional
 }
 
-bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t attachmentsCount)
+bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, size_t attachmentsCount*/)
 {
     VkDevice device = VInstance::device();
 
@@ -201,8 +201,9 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     VkPipelineColorBlendStateCreateInfo colorBlending = {};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 
-    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.resize(attachmentsCount);
+    size_t attachmentsCount = renderPass->getColorAttachmentsCount();
+
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(attachmentsCount);
 
     m_blendModes.insert(m_blendModes.end(), attachmentsCount - m_blendModes.size(), BlendMode_None);
     m_writeMasks.insert(m_writeMasks.end(), attachmentsCount + 1 - m_writeMasks.size(),
@@ -306,7 +307,7 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = (m_staticExtent.height == 0 && m_staticExtent.width == 0) ? &dynamicState : nullptr;
     pipelineInfo.layout = m_pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = renderPass->getVkRenderPass();
     pipelineInfo.subpass = subpass;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional

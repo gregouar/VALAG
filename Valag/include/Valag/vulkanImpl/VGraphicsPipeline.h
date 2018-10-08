@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Valag/Types.h"
+#include "Valag/vulkanImpl/VRenderPass.h"
 
 namespace vlg
 {
@@ -45,7 +46,7 @@ class VGraphicsPipeline
         void setStencilTest(bool enableTest, VkStencilOpState both);
         void setStencilTest(bool enableTest, VkStencilOpState front, VkStencilOpState back);
 
-        bool init(VkRenderPass renderPass, uint32_t subpass, size_t attachmentsCount = 1/*, size_t framesCount*/);
+        bool init(const VRenderPass *renderPass, uint32_t subpass = 0/*, size_t attachmentsCount = 1*//*, size_t framesCount*/);
         void destroy();
 
         ///Only after init()

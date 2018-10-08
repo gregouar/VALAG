@@ -650,8 +650,7 @@ bool SceneRenderer::createDeferredSpritesPipeline()
 
     m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    return m_deferredSpritesPipeline.init(  m_renderGraph.getVkRenderPass(m_deferredPass), 0,
-                                            m_renderGraph.getColorAttachmentsCount(m_deferredPass));
+    return m_deferredSpritesPipeline.init(m_renderGraph.getRenderPass(m_deferredPass));
 }
 
 bool SceneRenderer::createDeferredMeshesPipeline()
@@ -694,8 +693,7 @@ bool SceneRenderer::createDeferredMeshesPipeline()
 
     m_deferredMeshesPipeline.setCullMode(VK_CULL_MODE_BACK_BIT);
 
-    return m_deferredMeshesPipeline.init(   m_renderGraph.getVkRenderPass(m_deferredPass), 0,
-                                            m_renderGraph.getColorAttachmentsCount(m_deferredPass));
+    return m_deferredMeshesPipeline.init(m_renderGraph.getRenderPass(m_deferredPass));
 }
 
 bool SceneRenderer::createAlphaDetectPipeline()
@@ -731,8 +729,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
     stencil.reference   = 1;
     m_alphaDetectPipeline.setStencilTest(true, stencil);*/
 
-    return m_alphaDetectPipeline.init(  m_renderGraph.getVkRenderPass(m_alphaDetectPass), 0,
-                                        m_renderGraph.getColorAttachmentsCount(m_alphaDetectPass));
+    return m_alphaDetectPipeline.init(m_renderGraph.getRenderPass(m_alphaDetectPass));
 }
 
 bool SceneRenderer::createAlphaDeferredPipeline()
@@ -779,8 +776,7 @@ bool SceneRenderer::createAlphaDeferredPipeline()
     stencil.reference   = 1;
     m_alphaDeferredPipeline.setStencilTest(true, stencil);
 
-    return m_alphaDeferredPipeline.init(m_renderGraph.getVkRenderPass(m_alphaDeferredPass), 0,
-                                          m_renderGraph.getColorAttachmentsCount(m_alphaDeferredPass));
+    return m_alphaDeferredPipeline.init(m_renderGraph.getRenderPass(m_alphaDeferredPass));
 }
 
 bool SceneRenderer::createSsgiBNPipelines()
@@ -803,8 +799,7 @@ bool SceneRenderer::createSsgiBNPipelines()
 
        // m_ssgiBNPipeline.setBlendMode(BlendMode_Accu, 0);
 
-        if(!m_ssgiBNPipeline.init(m_renderGraph.getVkRenderPass(m_ssgiBNPass), 0,
-                                     m_renderGraph.getColorAttachmentsCount(m_ssgiBNPass)))
+        if(!m_ssgiBNPipeline.init(m_renderGraph.getRenderPass(m_ssgiBNPass)))
             return (false);
     }
 
@@ -848,8 +843,7 @@ bool SceneRenderer::createSsgiBNPipelines()
 
         m_ssgiBNBlurPipelines[i].attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNBlurPasses[i]));
 
-        if(!m_ssgiBNBlurPipelines[i].init(m_renderGraph.getVkRenderPass(m_ssgiBNBlurPasses[i]), 0,
-                                     m_renderGraph.getColorAttachmentsCount(m_ssgiBNBlurPasses[i])))
+        if(!m_ssgiBNBlurPipelines[i].init(m_renderGraph.getRenderPass(m_ssgiBNBlurPasses[i])))
             return (false);
     }
 
@@ -882,8 +876,7 @@ bool SceneRenderer::createLightingPipeline()
     m_lightingPipeline.setBlendMode(BlendMode_Add,0);
     //m_lightingPipeline.setBlendMode(BlendMode_Add,1);
 
-    return m_lightingPipeline.init( m_renderGraph.getVkRenderPass(m_lightingPass), 0,
-                                    m_renderGraph.getColorAttachmentsCount(m_lightingPass));
+    return m_lightingPipeline.init(m_renderGraph.getRenderPass(m_lightingPass));
 }
 
 bool SceneRenderer::createAlphaLightingPipeline()
@@ -920,8 +913,7 @@ bool SceneRenderer::createAlphaLightingPipeline()
     stencil.reference   = 1;
     m_alphaLightingPipeline.setStencilTest(true, stencil);
 
-    return m_alphaLightingPipeline.init( m_renderGraph.getVkRenderPass(m_alphaLightingPass), 0,
-                                         m_renderGraph.getColorAttachmentsCount(m_alphaLightingPass));
+    return m_alphaLightingPipeline.init(m_renderGraph.getRenderPass(m_alphaLightingPass));
 }
 
 bool SceneRenderer::createSsgiLightingPipeline()
@@ -948,8 +940,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
     m_ambientLightingPipeline.setBlendMode(BlendMode_Add,0);
     m_ambientLightingPipeline.setBlendMode(BlendMode_Add,1);
 
-    return m_ambientLightingPipeline.init(m_renderGraph.getVkRenderPass(m_ambientLightingPass), 0,
-                                          m_renderGraph.getColorAttachmentsCount(m_ambientLightingPass));
+    return m_ambientLightingPipeline.init(m_renderGraph.getRenderPass(m_ambientLightingPass));
 }
 
 bool SceneRenderer::createToneMappingPipeline()
@@ -968,8 +959,7 @@ bool SceneRenderer::createToneMappingPipeline()
     //m_toneMappingPipeline.attachDescriptorSetLayout(m_hdrDescriptorSetLayout);
     m_toneMappingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_toneMappingPass));
 
-    return m_toneMappingPipeline.init(  m_renderGraph.getVkRenderPass(m_toneMappingPass), 0,
-                                        m_renderGraph.getColorAttachmentsCount(m_toneMappingPass));
+    return m_toneMappingPipeline.init(m_renderGraph.getRenderPass(m_toneMappingPass));
 }
 
 void SceneRenderer::cleanup()

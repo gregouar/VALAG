@@ -30,7 +30,23 @@ layout(push_constant) uniform PER_OBJECT
 }pc;
 
 vec3 samplesHemisphere[16] = vec3[](
-    vec3(.4,0,.8),
+    /*vec3(0,0,.8),
+    vec3(0,0,.4),
+    vec3(0,0,.2),
+    vec3(0,0,.1),
+    vec3(1,0,.4),
+    vec3(-1,0,.4),
+    vec3(0,1,.4),
+    vec3(0,-1,.4),
+    vec3(.5,.5,.5),
+    vec3(.5,-.5,.5),
+    vec3(-.5,.5,.5),
+    vec3(-.5,-.5,.5),
+    vec3(.5,0,.5),
+    vec3(-.5,0,.5),
+    vec3(0,.5,.5),
+    vec3(0,-.5,.5)*/
+    /*vec3(.4,0,.8),
     vec3(0,.2,.4),
     vec3(.1,0,.2),
     vec3(0,0,.1),
@@ -45,7 +61,23 @@ vec3 samplesHemisphere[16] = vec3[](
     vec3(.5,0,.5),
     vec3(-.5,0,.5),
     vec3(0,.5,.5),
-    vec3(0,-.5,.5)
+    vec3(0,-.5,.5)*/
+vec3(0.0477973,0.022405,0.140405),
+vec3(-0.0477973,-0.022405,0.140405),
+vec3(-0.151491,-0.107032,0.0411661),
+vec3(0.151491,0.107032,0.0411661),
+vec3(-0.501778,-0.528188,0.0462164),
+vec3(0.501778,0.528188,0.0462164),
+vec3(-0.0118434,-0.331614,0.240815),
+vec3(0.0118434,0.331614,0.240815),
+vec3(0.710307,-0.1215,0.168231),
+vec3(-0.710307,0.1215,0.168231),
+vec3(0.368779,-0.652455,0.0283676),
+vec3(-0.368779,0.652455,0.0283676),
+vec3(0.303026,0.264267,0.345309),
+vec3(-0.303026,-0.264267,0.345309),
+vec3(0.522069,-0.422261,0.614198),
+vec3(-0.522069,0.422261,0.614198)
 );
 
 vec2 hashed[16] = vec2[](
@@ -97,7 +129,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
         else
             isUnder = false;
 
-        if(isUnder != wasUnder && abs(curPos.z - dstFragHeight) < 20)
+        if(isUnder != wasUnder && abs(curPos.z - dstFragHeight) < 15)
             return vec3(curPos.xy,nbrSteps-i);
 
         wasUnder = isUnder;
@@ -119,7 +151,7 @@ void main()
     //d = 1;
 
     //vec3 rVec   = vec3(hash(vec3(gl_FragCoord.xy+vec2(pc.imgIndex,pc.imgIndex),d)).xy, 1.0);
-    vec3 rVec   = vec3(hashed[/*pc.imgIndex % 4 + d*4*/dp].xy, 1.0);
+    vec3 rVec   = vec3(hashed[/*pc.imgIndex % 4 + d*4*/dp].xy, 0.0);
 	vec3 t      = normalize(rVec - fragNormal * dot(rVec, fragNormal));
 	mat3 rot    = mat3(t,cross(fragNormal,t),fragNormal);
 
@@ -134,7 +166,7 @@ void main()
     uint j = 0;
     for(uint i = 0 ; i < 16 ; ++i)
     {
-        vec3 ray = 60.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
+        vec3 ray = 100.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
         vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);

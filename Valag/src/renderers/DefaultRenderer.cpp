@@ -133,7 +133,7 @@ bool DefaultRenderer::createGraphicsPipeline()
 
     m_pipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
-    return m_pipeline.init(m_renderGraph.getVkRenderPass(m_defaultPass), 0);
+    return m_pipeline.init(m_renderGraph.getRenderPass(m_defaultPass));
 }
 
 void DefaultRenderer::cleanup()

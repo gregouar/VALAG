@@ -41,8 +41,16 @@ bool PBRToolbox::generateBrdflut()
     if(!VulkanHelpers::createAttachment(width,height,VK_FORMAT_R8G8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,m_brdflutAttachement))
         return (false);
 
+    ///Why am I not using a full render pass ?
+
     ///Render pass
-    VkAttachmentDescription attachmentDesc = {};
+    VRenderPass renderPass;
+    renderPass.addAttachmentType(m_brdflutAttachement.type, VK_ATTACHMENT_STORE_OP_STORE, true,
+                                 VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    renderPass.init();
+
+    ///Render pass
+    /*VkAttachmentDescription attachmentDesc = {};
     attachmentDesc.format  = m_brdflutAttachement.type.format;
     attachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
     attachmentDesc.loadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -87,7 +95,7 @@ bool PBRToolbox::generateBrdflut()
 
     VkRenderPass pass;
     if(vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &pass) != VK_SUCCESS)
-        return (false);
+        return (false);*/
 
     ///Pipeline
     VGraphicsPipeline pipeline;
@@ -101,13 +109,13 @@ bool PBRToolbox::generateBrdflut()
 
     pipeline.setStaticExtent({width,height});
 
-    if(!pipeline.init(pass, 0, 1))
+    if(!pipeline.init(&renderPass))
         return (false);
 
     ///Framebuffer
     VkFramebufferCreateInfo framebufferInfo = {};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass      = pass;
+    framebufferInfo.renderPass      = renderPass.getVkRenderPass();
     framebufferInfo.attachmentCount = 1;
     framebufferInfo.pAttachments    = &m_brdflutAttachement.view;
     framebufferInfo.width           = width;
@@ -137,11 +145,12 @@ bool PBRToolbox::generateBrdflut()
     if (vkBeginCommandBuffer(cmb, &beginInfo) != VK_SUCCESS)
         return (false);*/
 
+    ///Mmmm if I use RenderTarget, then I would lose this (recycling cmb) => but not really important since one use only I guess
     VkCommandBuffer cmb = VInstance::beginSingleTimeCommands();
 
     VkRenderPassBeginInfo renderPassBeginInfo = {};
     renderPassBeginInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassBeginInfo.renderPass   = pass;
+    renderPassBeginInfo.renderPass   = renderPass.getVkRenderPass();
     renderPassBeginInfo.framebuffer  = framebuffer;
     renderPassBeginInfo.renderArea.offset = {0, 0};
     renderPassBeginInfo.renderArea.extent = {width, height};
@@ -160,7 +169,8 @@ bool PBRToolbox::generateBrdflut()
     ///Cleaning
     vkDestroyFramebuffer(VInstance::device(), framebuffer, nullptr);
     pipeline.destroy();
-    vkDestroyRenderPass(VInstance::device(), pass, nullptr);
+    renderPass.destroy();
+    //vkDestroyRenderPass(VInstance::device(), pass, nullptr);
 
     return (true);
 }

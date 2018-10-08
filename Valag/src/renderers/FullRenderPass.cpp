@@ -242,13 +242,18 @@ VkRenderPass FullRenderPass::getVkRenderPass()
     return m_renderPass.getVkRenderPass();
 }
 
+const VRenderPass *FullRenderPass::getRenderPass()
+{
+    return &m_renderPass;
+}
+
 bool FullRenderPass::isFinalPass()
 {
     return m_isFinalPass;
 }
 
-size_t FullRenderPass::getColorAttachmentsCount()
-{
+//size_t FullRenderPass::getColorAttachmentsCount()
+//{
     /*size_t c = 0;
 
     for(auto &attachment : m_attachments)
@@ -258,8 +263,8 @@ size_t FullRenderPass::getColorAttachmentsCount()
 
     return c;*/
 
-    return m_renderPass.getColorAttachmentsCount();
-}
+ //   return m_renderPass.getColorAttachmentsCount();
+//}
 
 const  std::vector<VkPipelineStageFlags> &FullRenderPass::getWaitSemaphoresStages()
 {

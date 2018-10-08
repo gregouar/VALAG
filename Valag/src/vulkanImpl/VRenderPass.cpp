@@ -59,12 +59,12 @@ void VRenderPass::setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStor
     m_attachmentsStoreOp[attachmentIndex] = {storeOp, toMemory};
 }
 
-VkRenderPass VRenderPass::getVkRenderPass()
+VkRenderPass VRenderPass::getVkRenderPass() const
 {
     return m_vkRenderPass;
 }
 
-size_t VRenderPass::getColorAttachmentsCount()
+size_t VRenderPass::getColorAttachmentsCount() const
 {
     size_t c = 0;
 

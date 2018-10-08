@@ -7,7 +7,7 @@
 namespace vlg
 {
 
-///Perhaps this should actually inherit from RenderTarget beh
+///Perhaps this should actually inherit from RenderTarget beh (and called renderNode ?)
 class FullRenderPass
 {
     public:
@@ -45,8 +45,9 @@ class FullRenderPass
         VkFlags         getCmbUsage();
         VkExtent2D      getExtent();
         VkRenderPass    getVkRenderPass();
+        const VRenderPass *getRenderPass();
         bool            isFinalPass();
-        size_t          getColorAttachmentsCount();
+       // size_t          getColorAttachmentsCount();
 
         const  std::vector<VkPipelineStageFlags> &getWaitSemaphoresStages();
         const  std::vector<VkSemaphore> &getWaitSemaphores(size_t frameIndex);

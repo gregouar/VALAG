@@ -141,6 +141,11 @@ VkRenderPass RenderGraph::getVkRenderPass(size_t renderPassIndex)
     return m_renderPasses[renderPassIndex]->getVkRenderPass();
 }
 
+const VRenderPass *RenderGraph::getRenderPass(size_t renderPassIndex)
+{
+    return m_renderPasses[renderPassIndex]->getRenderPass();
+}
+
 VkDescriptorSetLayout RenderGraph::getDescriptorLayout(size_t renderPassIndex)
 {
     return m_renderPasses[renderPassIndex]->getDescriptorLayout();
@@ -151,10 +156,10 @@ VkDescriptorSet RenderGraph::getDescriptorSet(size_t renderPassIndex, size_t ima
     return m_renderPasses[renderPassIndex]->getDescriptorSet(imageIndex);
 }
 
-size_t RenderGraph::getColorAttachmentsCount(size_t renderPassIndex)
+/*size_t RenderGraph::getColorAttachmentsCount(size_t renderPassIndex)
 {
     return m_renderPasses[renderPassIndex]->getColorAttachmentsCount();
-}
+}*/
 
 VkCommandBuffer RenderGraph::startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
 {

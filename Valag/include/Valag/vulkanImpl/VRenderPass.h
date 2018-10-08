@@ -27,8 +27,8 @@ class VRenderPass
         void setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toMemory = false);
 
         //I could do something clever to keep encapsulating
-        VkRenderPass    getVkRenderPass();
-        size_t          getColorAttachmentsCount();
+        VkRenderPass    getVkRenderPass() const;
+        size_t          getColorAttachmentsCount() const;
 
     protected:
         bool createRenderPass();

@@ -167,6 +167,32 @@ void TestingState::init()
                                             glm::linearRand(-600,600),
                                             glm::linearRand(-50,300)})->attachObject(&m_secLights.back());
     }
+
+
+    for(size_t i = 0 ; i < 8 ; ++i)
+    {
+        //vec3(.4,0,.8)
+        glm::vec3 v;
+        v.x = glm::linearRand(-100,100)/100.0;
+        v.y = glm::linearRand(-100,100)/100.0;
+        v.z = glm::linearRand(0,100)/100.0;
+        v = glm::normalize(v);
+        v *= glm::linearRand(10,100)/100.0;
+       /* float s = (float)i/16.0;
+        s = 0.1 + s * s * 0.9;
+        v *= s;*/
+
+        std::ostringstream buf;
+        buf<<"vec3("<<v.x<<","<<v.y<<","<<v.z<<"),";
+        Logger::write(buf);
+
+        v.x *= -1;
+        v.y *= -1;
+
+        std::ostringstream buf2;
+        buf2<<"vec3("<<v.x<<","<<v.y<<","<<v.z<<"),";
+        Logger::write(buf2);
+    }
 }
 
 void TestingState::entered()

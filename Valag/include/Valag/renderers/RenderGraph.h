@@ -43,6 +43,7 @@ class RenderGraph
         void    setClearValue(size_t renderPassIndex, size_t attachmentIndex ,glm::vec4 color, glm::vec2 depth);
 
         VkRenderPass            getVkRenderPass(size_t renderPassIndex);
+        const VRenderPass      *getRenderPass(size_t renderPassIndex);
         VkDescriptorSetLayout   getDescriptorLayout(size_t renderPassIndex);
         VkDescriptorSet         getDescriptorSet(size_t renderPassIndex, size_t imageIndex);
 
