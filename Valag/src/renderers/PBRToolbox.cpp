@@ -43,7 +43,7 @@ bool PBRToolbox::generateBrdflut()
 
     ///Render pass
     VkAttachmentDescription attachmentDesc = {};
-    attachmentDesc.format  = m_brdflutAttachement.format;
+    attachmentDesc.format  = m_brdflutAttachement.type.format;
     attachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
     attachmentDesc.loadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachmentDesc.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
@@ -99,7 +99,7 @@ bool PBRToolbox::generateBrdflut()
     pipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     pipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    pipeline.setDefaultExtent({width,height});
+    pipeline.setStaticExtent({width,height});
 
     if(!pipeline.init(pass, 0, 1))
         return (false);

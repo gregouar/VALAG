@@ -312,7 +312,7 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
     VkImageAspectFlags aspectMask = 0;
     VkImageLayout imageLayout;
 
-    attachment.format = format;
+    attachment.type.format = format;
     attachment.extent.width = width;
     attachment.extent.height = height;
 
@@ -340,7 +340,7 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
 
     VulkanHelpers::transitionImageLayout(attachment.image.vkImage, 0, format, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
-    attachment.layout = imageLayout;
+    attachment.type.layout = imageLayout;
 
     return (true);
 }
@@ -372,7 +372,7 @@ void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const s
     int width = source.extent.width;
     int height = source.extent.height;
 
-    VkImageLayout oldLayout = source.layout;
+    VkImageLayout oldLayout = source.type.layout;
 
     VImage dstImage;
     VulkanHelpers::createImage(width, height, 1, VK_FORMAT_R8G8B8A8_UNORM,

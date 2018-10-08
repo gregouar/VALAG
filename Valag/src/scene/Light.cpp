@@ -42,12 +42,13 @@ std::array<VkVertexInputAttributeDescription, 3> LightDatum::getAttributeDescrip
     return attributeDescriptions;
 }
 
-Light::Light() : SceneObject(),
+Light::Light() : SceneEntity(),
     m_type(LightType_Omni),
     m_direction(0.0,0.0,-1.0),
     m_color(1.0,1.0,1.0,1.0),
     m_radius(100.0),
-    m_intensity(1.0)
+    m_intensity(1.0),
+    m_castShadow(false)
 {
     m_isALight = true;
     this->updateDatum();
@@ -137,6 +138,17 @@ void Light::setIntensity(float intensity)
         this->updateDatum();
     }
 }
+
+void Light::enableShadowCasting()
+{
+    m_castShadow = true;
+}
+
+void Light::disableShadowCasting()
+{
+    m_castShadow = false;
+}
+
 
 LightDatum Light::getLightDatum()
 {

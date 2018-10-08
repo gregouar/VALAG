@@ -8,9 +8,9 @@ namespace vlg
 FullRenderPass::FullRenderPass(size_t imagesCount, size_t framesCount) :
     m_imagesCount(imagesCount),
     m_cmbCount(0),
-    m_extent{0,0},
-    m_cmbUsage(0),
-    m_vkRenderPass(VK_NULL_HANDLE),
+    //m_extent{0,0},
+    //m_cmbUsage(0),
+    //m_renderPass(nullptr),
     m_curUniformBinding(0),
     m_descriptorSetLayout(VK_NULL_HANDLE)
 {
@@ -29,10 +29,12 @@ bool FullRenderPass::init(VkDescriptorPool pool, VkSampler sampler)
 {
     if(!this->createRenderPass())
         return (false);
-    if(!this->createFramebuffers())
+    if(!this->createRenderTarget())
+        return (false);
+    /*if(!this->createFramebuffers())
         return (false);
     if(!this->createCmb())
-        return (false);
+        return (false);*/
     if(!this->createDescriptorSetLayout())
         return (false);
     if(!this->createDescriptorSets(pool, sampler))
@@ -44,17 +46,16 @@ bool FullRenderPass::init(VkDescriptorPool pool, VkSampler sampler)
 void FullRenderPass::destroy()
 {
     m_cmbCount      = 0;
-    m_extent        = {0,0};
-    m_cmbUsage      = 0;
+    //m_extent        = {0,0};
+    //m_cmbUsage      = 0;
     m_isFinalPass   = false;
 
-    m_clearValues.clear();
+    //m_clearValues.clear();
 
     VkDevice device = VInstance::device();
 
-    if(m_vkRenderPass != VK_NULL_HANDLE)
-        vkDestroyRenderPass(device, m_vkRenderPass, nullptr);
-    m_vkRenderPass = VK_NULL_HANDLE;
+    m_renderTarget.destroy();
+    m_renderPass.destroy();
 
     if(m_descriptorSetLayout != VK_NULL_HANDLE)
         vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
@@ -65,15 +66,15 @@ void FullRenderPass::destroy()
     m_uniformBuffers.clear();
     m_uniformViews.clear();
 
-    for(auto framebuffer : m_framebuffers)
+    /*for(auto framebuffer : m_framebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
-    m_framebuffers.clear();
+    m_framebuffers.clear();*/
 
-    m_attachmentsLoadOp.clear();
-    m_attachmentsStoreOp.clear();
-    m_attachments.clear();
+    //m_attachmentsLoadOp.clear();
+    //m_attachmentsStoreOp.clear();
+    //m_attachments.clear();
 
-    m_primaryCmb.clear();
+    //m_primaryCmb.clear();
     m_waitSemaphoreStages.clear();
 
     for(size_t i = 0 ; i < m_waitSemaphores.size() ; ++i)
@@ -81,15 +82,15 @@ void FullRenderPass::destroy()
 
     for(size_t i = 0 ; i < m_signalSemaphores.size() ; ++i)
         m_signalSemaphores[i].clear();
-
-    //m_signalSemaphores.clear();
 }
 
 VkCommandBuffer FullRenderPass::startRecording(size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
 {
-    m_curRecordingIndex = (m_cmbUsage == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? frameIndex : imageIndex;
+    size_t cmbIndex = (m_renderTarget.getCmbUsage() == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? frameIndex : imageIndex;
 
-    VkCommandBufferBeginInfo beginInfo = {};
+    return m_renderTarget.startRecording(cmbIndex, imageIndex, contents);
+
+    /*VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = m_cmbUsage;
 
@@ -101,7 +102,7 @@ VkCommandBuffer FullRenderPass::startRecording(size_t imageIndex, size_t frameIn
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass   = m_vkRenderPass;
+    renderPassInfo.renderPass   = m_renderPass.getVkRenderPass();
     renderPassInfo.framebuffer  = m_framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_extent;
@@ -111,20 +112,20 @@ VkCommandBuffer FullRenderPass::startRecording(size_t imageIndex, size_t frameIn
 
     vkCmdBeginRenderPass(m_primaryCmb[m_curRecordingIndex], &renderPassInfo, contents);
 
-    return m_primaryCmb[m_curRecordingIndex];
+    return m_primaryCmb[m_curRecordingIndex];*/
 }
 
 bool FullRenderPass::endRecording()
 {
-    vkCmdEndRenderPass(m_primaryCmb[m_curRecordingIndex]);
+    /*vkCmdEndRenderPass(m_primaryCmb[m_curRecordingIndex]);
 
     if (vkEndCommandBuffer(m_primaryCmb[m_curRecordingIndex]) != VK_SUCCESS)
     {
         Logger::error("Failed to record primary command buffer");
         return (false);
-    }
+    }*/
 
-    return (true);
+    return m_renderTarget.endRecording();
 }
 
 /*void FullRenderPass::addWaitSemaphores(const std::vector<VkSemaphore> &semaphores, VkPipelineStageFlags stage)
@@ -155,7 +156,8 @@ void FullRenderPass::addSignalSemaphore(size_t frameIndex, VkSemaphore semaphore
 
 void FullRenderPass::setExtent(VkExtent2D extent)
 {
-    m_extent = extent;
+    //m_extent = extent;
+    m_renderTarget.setExtent(extent);
 }
 
 void FullRenderPass::setCmbCount(size_t buffersCount)
@@ -165,16 +167,17 @@ void FullRenderPass::setCmbCount(size_t buffersCount)
 
 void FullRenderPass::setCmbUsage(VkFlags usage)
 {
-    m_cmbUsage = usage;
+    m_renderTarget.setCmbUsage(usage);
 }
 
 void FullRenderPass::setClearValues(size_t attachmentIndex, glm::vec4 color, glm::vec2 depth)
 {
-    if(attachmentIndex >= m_clearValues.size())
+    /*if(attachmentIndex >= m_clearValues.size())
         m_clearValues.resize(attachmentIndex+1, VkClearValue{});
 
     m_clearValues[attachmentIndex].color        = {color.r, color.g, color.b, color.a};
-    m_clearValues[attachmentIndex].depthStencil = {depth.x, static_cast<uint32_t>(depth.y)};
+    m_clearValues[attachmentIndex].depthStencil = {depth.x, static_cast<uint32_t>(depth.y)};*/
+    m_renderTarget.setClearValue(attachmentIndex, color, depth);
 }
 
 /*void FullRenderPass::setAttachments(size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
@@ -186,10 +189,14 @@ void FullRenderPass::addAttachments(const std::vector<VFramebufferAttachment> &a
                                     VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp,
                                     bool fromUniform)
 {
-    m_attachmentsLoadOp.push_back({loadOp, fromUniform});
-    m_attachmentsStoreOp.push_back({storeOp, false});
-    //m_attachmentsLoadOp.push_back(loadOp);
-    m_attachments.push_back(attachments);
+    m_renderPass.addAttachmentType(attachments.front().type, storeOp, false, loadOp, fromUniform);
+
+    if(attachments.front().type.layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        m_isFinalPass = true;
+    //m_attachmentsLoadOp.push_back({loadOp, fromUniform});
+    //m_attachmentsStoreOp.push_back({storeOp, false});
+    m_renderTarget.addAttachments(attachments);
+    //m_attachments.push_back(attachments);
 }
 
 void FullRenderPass::addUniforms(const std::vector<VFramebufferAttachment> &attachments)
@@ -209,28 +216,30 @@ void FullRenderPass::addUniforms(const std::vector<VkImageView> &views)
 
 void FullRenderPass::setAttachmentsLoadOp(size_t attachmentIndex, VkAttachmentLoadOp loadOp, bool fromUniform)
 {
-    m_attachmentsLoadOp[attachmentIndex] = {loadOp, fromUniform};
+    m_renderPass.setAttachmentsLoadOp(attachmentIndex, loadOp, fromUniform);
+    //m_attachmentsLoadOp[attachmentIndex] = {loadOp, fromUniform};
 }
 
 void FullRenderPass::setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform)
 {
-    m_attachmentsStoreOp[attachmentIndex] = {storeOp, toUniform};
+    m_renderPass.setAttachmentsStoreOp(attachmentIndex, storeOp, toUniform);
+    //m_attachmentsStoreOp[attachmentIndex] = {storeOp, toUniform};
 }
 
 
 VkFlags FullRenderPass::getCmbUsage()
 {
-    return m_cmbUsage;
+    return m_renderTarget.getCmbUsage();
 }
 
 VkExtent2D FullRenderPass::getExtent()
 {
-    return m_extent;
+    return m_renderTarget.getExtent();
 }
 
 VkRenderPass FullRenderPass::getVkRenderPass()
 {
-    return m_vkRenderPass;
+    return m_renderPass.getVkRenderPass();
 }
 
 bool FullRenderPass::isFinalPass()
@@ -240,14 +249,16 @@ bool FullRenderPass::isFinalPass()
 
 size_t FullRenderPass::getColorAttachmentsCount()
 {
-    size_t c = 0;
+    /*size_t c = 0;
 
     for(auto &attachment : m_attachments)
-        if(attachment[0].layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-        || attachment[0].layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        if(attachment[0].type.layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        || attachment[0].type.layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             c++;
 
-    return c;
+    return c;*/
+
+    return m_renderPass.getColorAttachmentsCount();
 }
 
 const  std::vector<VkPipelineStageFlags> &FullRenderPass::getWaitSemaphoresStages()
@@ -267,9 +278,10 @@ const  std::vector<VkSemaphore> &FullRenderPass::getSignalSemaphores(size_t fram
 
 const  std::vector<VFramebufferAttachment> &FullRenderPass::getAttachments(size_t attachmentsIndex)
 {
-    if(attachmentsIndex >= m_attachments.size())
+    /*if(attachmentsIndex >= m_attachments.size())
         throw std::runtime_error("Cannot get attachment");
-    return m_attachments[attachmentsIndex];
+    return m_attachments[attachmentsIndex];*/
+    return m_renderTarget.getAttachments(attachmentsIndex);
 }
 
 /*VkSemaphore FullRenderPass::getSignalSemaphore(size_t frameIndex)
@@ -281,8 +293,9 @@ const  std::vector<VFramebufferAttachment> &FullRenderPass::getAttachments(size_
 
 const VkCommandBuffer *FullRenderPass::getPrimaryCmb(size_t imageIndex, size_t frameIndex)
 {
-    size_t cmbIndex = (m_cmbUsage == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? frameIndex : imageIndex;
-    return &m_primaryCmb[cmbIndex];
+    size_t cmbIndex = (m_renderTarget.getCmbUsage() == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? frameIndex : imageIndex;
+    return m_renderTarget.getPrimaryCmb(cmbIndex);
+    //return &m_primaryCmb[cmbIndex];
 }
 
 VkDescriptorSetLayout FullRenderPass::getDescriptorLayout()
@@ -300,8 +313,13 @@ VkDescriptorSet FullRenderPass::getDescriptorSet(size_t imageIndex)
 
 bool FullRenderPass::createRenderPass()
 {
-    std::vector<VkAttachmentDescription> attachments(m_attachments.size(), VkAttachmentDescription{});
+    /*for(auto attachment : m_renderTarget.getAttachments())
+        if(attachment.front().type.layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            m_isFinalPass = true;*/
 
+    return m_renderPass.init();
+
+    /*std::vector<VkAttachmentDescription> attachments(m_attachments.size(), VkAttachmentDescription{});
 
     std::vector<VkAttachmentReference> colorAttachmentRef;
 
@@ -310,10 +328,10 @@ bool FullRenderPass::createRenderPass()
 
     for(size_t i = 0 ; i < attachments.size() ; ++i)
     {
-        VkImageLayout layout = m_attachments[i][0].layout;
+        VkImageLayout layout = m_attachments[i][0].type.layout;
 
         ///Could add verification here
-        attachments[i].format = m_attachments[i][0].format;
+        attachments[i].format = m_attachments[i][0].type.format;
 
         attachments[i].samples          = VK_SAMPLE_COUNT_1_BIT;
         attachments[i].loadOp           = m_attachmentsLoadOp[i].first;
@@ -371,7 +389,7 @@ bool FullRenderPass::createRenderPass()
     dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dstAccessMask =  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     dependencies[2].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -388,7 +406,7 @@ bool FullRenderPass::createRenderPass()
     dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = /*VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].srcAccessMask =  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -409,10 +427,16 @@ bool FullRenderPass::createRenderPass()
     renderPassInfo.dependencyCount  = static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies    = dependencies.data();
 
-    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_vkRenderPass) == VK_SUCCESS);
+    return (vkCreateRenderPass(VInstance::device(), &renderPassInfo, nullptr, &m_vkRenderPass) == VK_SUCCESS);*/
 }
 
-bool FullRenderPass::createFramebuffers()
+
+bool FullRenderPass::createRenderTarget()
+{
+    return m_renderTarget.init(m_imagesCount, m_cmbCount, &m_renderPass);
+}
+
+/*bool FullRenderPass::createFramebuffers()
 {
     m_framebuffers.resize(m_imagesCount);
 
@@ -425,7 +449,7 @@ bool FullRenderPass::createFramebuffers()
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass      = m_vkRenderPass;
+        framebufferInfo.renderPass      = m_renderPass.getVkRenderPass();
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments    = attachments.data();
         framebufferInfo.width           = m_extent.width;
@@ -454,7 +478,7 @@ bool FullRenderPass::createCmb()
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_primaryCmb.size());
 
     return (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) == VK_SUCCESS);
-}
+}*/
 
 bool FullRenderPass::createDescriptorSetLayout()
 {

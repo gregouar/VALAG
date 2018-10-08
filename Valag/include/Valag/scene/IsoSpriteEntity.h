@@ -2,6 +2,7 @@
 #define ISOSPRITEENTITY_H
 
 #include "Valag/scene/SceneEntity.h"
+#include "Valag/scene/ShadowCaster.h"
 #include "Valag/scene/IsoSpriteModel.h"
 
 #include "Valag/vulkanImpl/vulkanImpl.h"
@@ -30,7 +31,7 @@ struct IsoSpriteDatum
 };
 
 
-class IsoSpriteEntity : public SceneEntity
+class IsoSpriteEntity : public ShadowCaster
 {
     //friend class SceneRenderer;
     friend class SceneNode;

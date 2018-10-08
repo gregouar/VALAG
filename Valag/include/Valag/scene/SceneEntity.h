@@ -3,6 +3,8 @@
 
 #include "Valag/scene/SceneObject.h"
 
+/** Any scene object that can be rendered on screen **/
+
 namespace vlg
 {
 
@@ -16,11 +18,13 @@ class SceneEntity : public SceneObject
         SceneEntity();
         virtual ~SceneEntity();
 
+        bool isVisible();
+        void setVisible(bool = true);
+
         virtual void draw(SceneRenderer *renderer) = 0;
 
     protected:
-
-    private:
+        bool m_isVisible;
 };
 
 }

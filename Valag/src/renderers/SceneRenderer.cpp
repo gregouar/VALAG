@@ -452,8 +452,8 @@ bool SceneRenderer::createAttachments()
         return (false);
 
     //We put the attachment in read only for the first pass
-    VulkanHelpers::transitionImageLayout(m_ssgiAccuBentNormalsAttachment.image.vkImage, 0, VK_FORMAT_R16G16B16A16_SNORM,
-                                         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    /*VulkanHelpers::transitionImageLayout(m_ssgiAccuBentNormalsAttachment.image.vkImage, 0, VK_FORMAT_R16G16B16A16_SNORM,
+                                         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);*/
 
     if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiAccuLightingAttachment))
@@ -511,7 +511,7 @@ void SceneRenderer::prepareSsgiBNRenderPasses()
     m_ssgiBNPass = m_renderGraph.addRenderPass();
 
     m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiAccuBentNormalsAttachment,
-                                    VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_LOAD);
+                                    VK_ATTACHMENT_STORE_OP_STORE/*, VK_ATTACHMENT_LOAD_OP_LOAD*/);
 
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiCollisionsAttachments[i]);
@@ -643,7 +643,7 @@ bool SceneRenderer::createDeferredSpritesPipeline()
 
     m_deferredSpritesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_deferredSpritesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_deferredSpritesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_deferredSpritesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -685,7 +685,7 @@ bool SceneRenderer::createDeferredMeshesPipeline()
 
     m_deferredMeshesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
 
-    m_deferredMeshesPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -714,7 +714,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
 
     m_alphaDetectPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDetectPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaDetectPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -751,7 +751,7 @@ bool SceneRenderer::createAlphaDeferredPipeline()
 
     m_alphaDeferredPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDeferredPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaDeferredPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDeferredPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -794,7 +794,7 @@ bool SceneRenderer::createSsgiBNPipelines()
         m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
         m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        m_ssgiBNPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+        m_ssgiBNPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
         m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
         m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNPass));
@@ -844,7 +844,7 @@ bool SceneRenderer::createSsgiBNPipelines()
 
         m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
 
-        m_ssgiBNBlurPipelines[i].setDefaultExtent(m_targetWindow->getSwapchainExtent());
+        m_ssgiBNBlurPipelines[i].setStaticExtent(m_targetWindow->getSwapchainExtent());
 
         m_ssgiBNBlurPipelines[i].attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNBlurPasses[i]));
 
@@ -873,7 +873,7 @@ bool SceneRenderer::createLightingPipeline()
 
     m_lightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_lightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_lightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
@@ -902,7 +902,7 @@ bool SceneRenderer::createAlphaLightingPipeline()
 
     m_alphaLightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_alphaLightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaLightingPass));
@@ -938,7 +938,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
     m_ambientLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_ambientLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_ambientLightingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_ambientLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
@@ -961,7 +961,7 @@ bool SceneRenderer::createToneMappingPipeline()
     m_toneMappingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_toneMappingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_toneMappingPipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_toneMappingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
 
     m_toneMappingPipeline.setBlendMode(BlendMode_None);
 

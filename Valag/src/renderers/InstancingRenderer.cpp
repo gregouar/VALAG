@@ -189,7 +189,7 @@ bool InstancingRenderer::createGraphicsPipeline()
 
     m_pipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_pipeline.setDefaultExtent(m_targetWindow->getSwapchainExtent());
+    m_pipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
     m_pipeline.setBlendMode(BlendMode_Alpha);
 
     m_pipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());

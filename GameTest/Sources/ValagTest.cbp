@@ -90,6 +90,7 @@
 		<Unit filename="../../Valag/include/Valag/renderers/InstancingRenderer.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/PBRToolbox.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderGraph.h" />
+		<Unit filename="../../Valag/include/Valag/renderers/RenderTarget.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderView.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/RenderWindow.h" />
 		<Unit filename="../../Valag/include/Valag/renderers/SceneRenderer.h" />
@@ -102,6 +103,7 @@
 		<Unit filename="../../Valag/include/Valag/scene/SceneEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/SceneNode.h" />
 		<Unit filename="../../Valag/include/Valag/scene/SceneObject.h" />
+		<Unit filename="../../Valag/include/Valag/scene/ShadowCaster.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Clock.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Logger.h" />
 		<Unit filename="../../Valag/include/Valag/utils/Parser.h" />
@@ -116,6 +118,7 @@
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VInstance.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMemoryAllocator.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VMesh.h" />
+		<Unit filename="../../Valag/include/Valag/vulkanImpl/VRenderPass.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexture.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VTexturesManager.h" />
 		<Unit filename="../../Valag/include/Valag/vulkanImpl/VulkanExtProxies.h" />
@@ -170,6 +173,7 @@
 		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/PBRToolbox.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderGraph.cpp" />
+		<Unit filename="../../Valag/src/renderers/RenderTarget.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderView.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderWindow.cpp" />
 		<Unit filename="../../Valag/src/renderers/SceneRenderer.cpp" />
@@ -182,6 +186,7 @@
 		<Unit filename="../../Valag/src/scene/SceneEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/SceneNode.cpp" />
 		<Unit filename="../../Valag/src/scene/SceneObject.cpp" />
+		<Unit filename="../../Valag/src/scene/ShadowCaster.cpp" />
 		<Unit filename="../../Valag/src/utils/Clock.cpp" />
 		<Unit filename="../../Valag/src/utils/Logger.cpp" />
 		<Unit filename="../../Valag/src/utils/Parser.cpp" />
@@ -195,6 +200,7 @@
 		<Unit filename="../../Valag/src/vulkanImpl/VInstance.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VMemoryAllocator.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VMesh.cpp" />
+		<Unit filename="../../Valag/src/vulkanImpl/VRenderPass.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexture.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VTexturesManager.cpp" />
 		<Unit filename="../../Valag/src/vulkanImpl/VulkanExtProxies.cpp" />

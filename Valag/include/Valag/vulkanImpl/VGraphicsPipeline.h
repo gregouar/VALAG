@@ -27,7 +27,8 @@ class VGraphicsPipeline
 
         void setInputAssembly(VkPrimitiveTopology topology, bool restart = false);
 
-        void setDefaultExtent(VkExtent2D extent);
+        ///Putting {0,0} (default value) will allow to dynamically change the viewport and scissor
+        void setStaticExtent(VkExtent2D extent);
 
         void setCullMode(VkCullModeFlagBits cullMode);
 
@@ -63,7 +64,7 @@ class VGraphicsPipeline
         std::vector<VkSpecializationInfo>       m_specializationInfos;
         VkPipelineVertexInputStateCreateInfo    m_vertexInput;
         VkPipelineInputAssemblyStateCreateInfo  m_inputAssembly;
-        VkExtent2D          m_defaultExtent;
+        VkExtent2D          m_staticExtent;
         VkCullModeFlagBits  m_cullMode;
         std::vector<BlendMode>                              m_blendModes;
         std::vector<VkFlags >                               m_writeMasks;

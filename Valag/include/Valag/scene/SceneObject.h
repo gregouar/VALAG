@@ -4,6 +4,8 @@
 #include "Valag/Types.h"
 #include "Valag/core/NotificationListener.h"
 
+/** Any object that can be put in a scene : instance of sprite or mesh, ligth source, camera, ambient sound, ... **/
+
 namespace vlg
 {
 
@@ -23,9 +25,6 @@ class SceneObject : public NotificationListener
         bool isAnEntity();
         bool isAShadowCaster();
 
-        bool isVisible();
-        void setVisible(bool = true);
-
         virtual void update(const Time &elapsedTime);
         virtual void notify(NotificationSender*, NotificationType);
 
@@ -36,7 +35,6 @@ class SceneObject : public NotificationListener
         bool m_isALight;
         bool m_isAnEntity;
         bool m_isAShadowCaster;
-        bool m_isVisible;
 
     private:
 };

@@ -597,9 +597,10 @@ void SceneNode::render(SceneRenderer *renderer)
         if(entity->isVisible())
             entity->draw(renderer);
 
-    for(auto light : m_attachedLights)
+    //Lights are now entities
+    /*for(auto light : m_attachedLights)
         if(light->isVisible())
-            light->draw(renderer);
+            light->draw(renderer);*/
 
     for(auto node : m_childs)
         node.second->render(renderer);

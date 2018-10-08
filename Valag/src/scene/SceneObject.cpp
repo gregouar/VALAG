@@ -12,7 +12,6 @@ SceneObject::SceneObject()
     m_isALight          = false;
     m_isAnEntity        = false;
     m_isAShadowCaster   = false;
-    m_isVisible = true;
 }
 
 SceneObject::~SceneObject()
@@ -53,16 +52,6 @@ bool SceneObject::isAnEntity()
 bool SceneObject::isAShadowCaster()
 {
     return m_isAShadowCaster;
-}
-
-bool SceneObject::isVisible()
-{
-    return m_isVisible;
-}
-
-void SceneObject::setVisible(bool visible)
-{
-    m_isVisible = visible;
 }
 
 

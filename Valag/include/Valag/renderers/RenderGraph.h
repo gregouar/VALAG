@@ -26,7 +26,6 @@ class RenderGraph
         size_t  addRenderPass(VkFlags usage = 0);
         void    connectRenderPasses(size_t src, size_t dst);
 
-        ///Will automatically connect both renderPasses
         void    transferAttachmentsToAttachments(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex,
                                     VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE);
         void    transferAttachmentsToUniforms(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex);

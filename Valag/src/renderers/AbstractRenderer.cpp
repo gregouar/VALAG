@@ -122,7 +122,7 @@ bool AbstractRenderer::init()
 
 void AbstractRenderer::cleanup()
 {
-    VkDevice device = VInstance::device();
+    //VkDevice device = VInstance::device();
 
     m_renderView.destroy();
 

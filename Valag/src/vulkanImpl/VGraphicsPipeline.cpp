@@ -21,8 +21,8 @@ VGraphicsPipeline::VGraphicsPipeline() :
     m_inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     m_inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    m_defaultExtent.width = 1.0;
-    m_defaultExtent.height = 1.0;
+    m_staticExtent.width = 0.0;
+    m_staticExtent.height = 0.0;
     m_cullMode = VK_CULL_MODE_NONE;
 
     m_depthStencil = {};
@@ -72,9 +72,9 @@ void VGraphicsPipeline::setInputAssembly(VkPrimitiveTopology topology, bool rest
     m_inputAssembly.primitiveRestartEnable = restart ? VK_TRUE : VK_FALSE;// static_cast<VkBool32>(restart);
 }
 
-void VGraphicsPipeline::setDefaultExtent(VkExtent2D extent)
+void VGraphicsPipeline::setStaticExtent(VkExtent2D extent)
 {
-    m_defaultExtent = extent;
+    m_staticExtent = extent;
 }
 
 void VGraphicsPipeline::setCullMode(VkCullModeFlagBits cullMode)
@@ -160,18 +160,17 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
         ++s;
     }
 
-    ///I should switch to dynamic
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) m_defaultExtent.width;
-    viewport.height = (float) m_defaultExtent.height;
+    viewport.width = (float) m_staticExtent.width;
+    viewport.height = (float) m_staticExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
-    scissor.extent = m_defaultExtent;
+    scissor.extent = m_staticExtent;
 
     VkPipelineViewportStateCreateInfo viewportState = {};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -283,6 +282,17 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
         return (false);
     }
 
+    ///Could add this as option (or probably remove it as option).
+    VkDynamicState dynamicStates[] = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamicState = {};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount =  2;
+    dynamicState.pDynamicStates = dynamicStates;
+
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
@@ -294,7 +304,7 @@ bool VGraphicsPipeline::init(VkRenderPass renderPass, uint32_t subpass, size_t a
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &m_depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr; // Optional
+    pipelineInfo.pDynamicState = (m_staticExtent.height == 0 && m_staticExtent.width == 0) ? &dynamicState : nullptr;
     pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = subpass;

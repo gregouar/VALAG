@@ -1,7 +1,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "Valag/scene/SceneObject.h"
+#include "Valag/scene/SceneEntity.h"
 #include "Valag/vulkanImpl/VulkanImpl.h"
 #include "Valag/Types.h"
 
@@ -22,8 +22,9 @@ struct LightDatum
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 };
 
-///Now that light is somehow renderable, maybe it should be an entity
-class Light : public SceneObject //, public NotificationListener
+/// I could try to compute an accurate englobing sphere and use early z-testing to discard pixels
+
+class Light : public SceneEntity //, public NotificationListener
 {
     friend class SceneNode;
 
@@ -46,10 +47,11 @@ class Light : public SceneObject //, public NotificationListener
         void setRadius(float);
         void setIntensity(float);
 
-        /*void setShadowMapSize(unsigned int x, unsigned int y );
-        void setShadowMapSize(sf::Vector2u );
         void enableShadowCasting();
         void disableShadowCasting();
+
+        /*void setShadowMapSize(unsigned int x, unsigned int y );
+        void setShadowMapSize(sf::Vector2u );
 
         const sf::Texture& GetShadowMap();
         const sf::IntRect& GetShadowMaxShift();
@@ -83,8 +85,8 @@ class Light : public SceneObject //, public NotificationListener
 
         LightDatum  m_datum;
 
-        /*bool m_castShadow;
-        sf::RenderTexture m_shadowMap;
+        bool m_castShadow;
+        /*sf::RenderTexture m_shadowMap;
         sf::IntRect m_shadowMaxShift;
         bool m_requireShadowComputation;
 

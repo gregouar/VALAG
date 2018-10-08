@@ -108,7 +108,7 @@ VkExtent2D RenderWindow::getSwapchainExtent()
 
 VkFormat RenderWindow::getSwapchainImageFormat()
 {
-    return m_swapchainAttachments[0].format;
+    return m_swapchainAttachments[0].type.format;
 }
 
 const std::vector<VFramebufferAttachment> &RenderWindow::getSwapchainAttachments()
@@ -388,13 +388,13 @@ bool RenderWindow::createSwapchain()
     for(size_t i = 0 ; i < tempSwapchainImages.size() ; ++i)
     {
         m_swapchainAttachments[i].extent = swapchainExtent;
-        m_swapchainAttachments[i].format = surfaceFormat.format;
+        m_swapchainAttachments[i].type.format = surfaceFormat.format;
         m_swapchainAttachments[i].image.vkImage  = tempSwapchainImages[i];
         m_swapchainAttachments[i].image.memory  = {};
         m_swapchainAttachments[i].view =
                 VulkanHelpers::createImageView(m_swapchainAttachments[i].image.vkImage,surfaceFormat.format,
                                                VK_IMAGE_ASPECT_COLOR_BIT,1);
-        m_swapchainAttachments[i].layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        m_swapchainAttachments[i].type.layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VulkanHelpers::createAttachment(swapchainExtent.width, swapchainExtent.height, VK_FORMAT_D24_UNORM_S8_UINT,
                                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_depthStencilAttachments[i]);

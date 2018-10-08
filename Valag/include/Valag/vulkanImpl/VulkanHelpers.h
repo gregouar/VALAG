@@ -19,13 +19,18 @@ struct VImage
     VkImage vkImage;
 };
 
+struct VFramebufferAttachmentType
+{
+    VkFormat        format;
+    VkImageLayout   layout;
+};
+
 struct VFramebufferAttachment
 {
     VImage          image;
     VkImageView     view;
-    VkFormat        format;
     VkExtent2D      extent;
-    VkImageLayout   layout;
+    VFramebufferAttachmentType type;
 };
 
 class VulkanHelpers
