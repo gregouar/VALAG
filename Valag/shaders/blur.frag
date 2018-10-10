@@ -15,6 +15,8 @@ void main()
 {
     vec2 offset = vec2(1-int(vertical), int(vertical)) * radius;
 
+    //I could do smart blur by cheking frag pos distance
+
     outColor =     (texture(srcSampler, gl_FragCoord.xy + offset * 1.0)	* 0.06 +
                     texture(srcSampler, gl_FragCoord.xy + offset * 0.75)	* 0.09 +
                     texture(srcSampler, gl_FragCoord.xy + offset * 0.5)	* 0.12 +

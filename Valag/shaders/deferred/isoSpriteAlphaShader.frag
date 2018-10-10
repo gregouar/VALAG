@@ -48,7 +48,10 @@ void main()
 
     outPosition         = vec4(fragWorldPos.xy, fragHeight, 1.0);
 
-    if(outAlbedo.a < .05 || outAlbedo.a >= .99f)
+    if(outAlbedo.a < .05)
+        discard;
+
+    if(outAlbedo.a >= .99f)
     {
         float opacHeight = texture(samplerOpacPosition, gl_FragCoord.xy).z;
         float depth = (opacHeight-fragHeight)/2.0;

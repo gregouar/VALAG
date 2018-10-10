@@ -41,21 +41,23 @@ void TestingState::init()
 
     m_scene = new vlg::Scene();
 
+    vlg::AssetLoadType loadType = vlg::LoadType_InThread;
+
     vlg::TexturesHandler* textureHandler =  vlg::TexturesHandler::instance();
 
     vlg::AssetTypeId tex[10];
-    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",vlg::LoadType_InThread)->getId();
-    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",vlg::LoadType_InThread)->getId();
-    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",vlg::LoadType_InThread)->getId();
+    tex[0] = textureHandler->loadAssetFromFile("../data/sand_color.png",loadType)->getId();
+    tex[1] = textureHandler->loadAssetFromFile("../data/sand_height.png",loadType)->getId();
+    tex[2] = textureHandler->loadAssetFromFile("../data/sand_normal.png",loadType)->getId();
 
-    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png",vlg::LoadType_InThread)->getId();
-    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",vlg::LoadType_InThread)->getId();
-    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",vlg::LoadType_InThread)->getId();
+    tex[3] = textureHandler->loadAssetFromFile("../data/abbey_albedo.png",loadType)->getId();
+    tex[4] = textureHandler->loadAssetFromFile("../data/abbey_height.png",loadType)->getId();
+    tex[5] = textureHandler->loadAssetFromFile("../data/abbey_normal.png",loadType)->getId();
 
-    tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",vlg::LoadType_InThread)->getId();
-    tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getId();
-    tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",vlg::LoadType_InThread)->getId();
-    tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",vlg::LoadType_InThread)->getId();
+    tex[6] = textureHandler->loadAssetFromFile("../data/tree_albedo.png",loadType)->getId();
+    tex[7] = textureHandler->loadAssetFromFile("../data/tree_height.png",loadType)->getId();
+    tex[8] = textureHandler->loadAssetFromFile("../data/tree_height.png",loadType)->getId();
+    tex[9] = textureHandler->loadAssetFromFile("../data/tree_rmt.png",loadType)->getId();
 
 
     m_testingSprites.resize(2);
@@ -90,11 +92,11 @@ void TestingState::init()
     //m_scene->setAmbientLight({0.4,0.4,1.0,0.2});
     m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96.0/255.0});
    // m_scene->setAmbientLight({1.0,1.0,1.0,0.5});
-    //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.exr",vlg::LoadType_InThread));
-    m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/panorama.jpg",vlg::LoadType_InThread));
+    //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.exr",loadType));
+    m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/panorama.jpg",loadType));
 
-    vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt",vlg::LoadType_InThread);
-    vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt",vlg::LoadType_InThread);
+    vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt",loadType);
+    vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt",loadType);
 
     m_treeModel.setMaterial(treeMaterial);
     m_treeModel.setSize({512.0,512.0});
@@ -115,8 +117,16 @@ void TestingState::init()
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
 
-    //m_treeEntity.setColor({0.0,1.0,0.0,0.5});
+    m_treeEntity.setColor({0.0,1.0,0.0,1.0});
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
+
+    for(size_t x = 0 ; x < 0 ; x++)
+    for(size_t y = 0 ; y < 0 ; y++)
+    {
+        m_forestEntities.push_back(vlg::IsoSpriteEntity());
+        m_forestEntities.back().setSpriteModel(&m_treeModel);
+        m_scene->getRootNode()->createChildNode({x*50,y*50,-90})->attachObject(&m_forestEntities.back());
+    }
 
     m_camera = m_scene->createCamera();
     m_cameraNode = m_scene->getRootNode()->createChildNode(1500,1500,1500);
@@ -125,7 +135,7 @@ void TestingState::init()
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
                           glm::pi<float>()/6.0f); //30
 
-    m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt",vlg::LoadType_InThread);
+    m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt",loadType);
 
     m_quackEntities.push_back(vlg::MeshEntity());
     m_quackEntities.back().setMesh(m_quackMesh);
@@ -134,7 +144,7 @@ void TestingState::init()
     m_quackNode->scale(5.0f);
 
 
-    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/wetSandXML.txt",vlg::LoadType_InThread);
+    vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/wetSandXML.txt",loadType);
     vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{4.0,4.0});
     m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(&m_groundSand);
@@ -169,7 +179,7 @@ void TestingState::init()
     }
 
 
-    for(size_t i = 0 ; i < 8 ; ++i)
+  /*  for(size_t i = 0 ; i < 8 ; ++i)
     {
         //vec3(.4,0,.8)
         glm::vec3 v;
@@ -178,9 +188,6 @@ void TestingState::init()
         v.z = glm::linearRand(0,100)/100.0;
         v = glm::normalize(v);
         v *= glm::linearRand(10,100)/100.0;
-       /* float s = (float)i/16.0;
-        s = 0.1 + s * s * 0.9;
-        v *= s;*/
 
         std::ostringstream buf;
         buf<<"vec3("<<v.x<<","<<v.y<<","<<v.z<<"),";
@@ -192,7 +199,7 @@ void TestingState::init()
         std::ostringstream buf2;
         buf2<<"vec3("<<v.x<<","<<v.y<<","<<v.z<<"),";
         Logger::write(buf2);
-    }
+    }*/
 }
 
 void TestingState::entered()
@@ -273,8 +280,8 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        (++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
-        (++m_testingSprites.begin())->setSize({256,256});
+        /*(++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
+        (++m_testingSprites.begin())->setSize({256,256});*/
         m_treeNode->setPosition(worldMousePos);
     }
 
@@ -284,15 +291,14 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_quackNode->setPosition(worldMousePos);
     }
 
-    if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
+    /*if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))
         for(size_t j = 0 ; j < 1000 ; ++j)
     {
         m_testingSprites.resize(m_testingSprites.size() + 1);
         (--m_testingSprites.end())->setPosition(glm::vec3(eventsManager->mousePosition()+glm::vec2(j,j%100), j));
         (--m_testingSprites.end())->setSize(glm::vec2(100,100));
-        (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",vlg::LoadType_InThread)->getId());
-        //m_testingSpritesBatch.addSprite(&(*(--m_testingSprites.end())));
-    }
+        (--m_testingSprites.end())->setTexture(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/tree_normal.png",loadType)->getId());
+    }*/
 
 }
 

@@ -3,6 +3,8 @@
 
 //1.0/pi ~ 0.31830988618
 
+layout(early_fragment_tests) in;
+
 layout (set = 1, binding = 0) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 1) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 2) uniform sampler2D samplerNormal;
@@ -107,7 +109,8 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         lightDirection      = normalize(lightDirection);
         vec3 halfwayVector  = normalize(viewDirection + lightDirection);
         float NdotL         = max(dot(fragNormal, lightDirection), 0.0);
-        float BNdotL        = max(dot(fragBentNormal.xyz, lightDirection), 0.0);
+        float BNdotL        = clamp(dot(normalize(fragBentNormal.xyz), lightDirection)/*+0.25*/, 0.0, 1.0);
+        //float BNdotL        = min(dot(fragBentNormal.xyz, lightDirection), 0.0);
 
         vec3 radiance   = attenuation*lightColor.rgb;
         float NDF   = DistributionGGX(fragNormal, halfwayVector, fragRmt.r);
@@ -117,16 +120,24 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         vec3 kD     = vec3(1.0) - kS;
         kD         *= 1.0 - fragRmt.g;
 
-        float ao = 0.25 * fragBentNormal.a + (1.0 - (1.0 - BNdotL) * (1.0 - fragBentNormal.a))*0.75;
+        //float ao = 0.25 * fragBentNormal.a + (1.0 - (1.0 - BNdotL) /* + BNdotL*/ * (1.0 - fragBentNormal.a))*0.75;
+        //ao = pow(ao,6.0);
+        float ao  = fragBentNormal.a;
+        ao = pow(ao, 2.0);
+        float gio =  1.0 - (1.0 - BNdotL) * (1.0 - length(fragBentNormal.xyz));
+        gio = pow(gio, 10.0);
+        float occlusion = min(ao, gio);
+
+        return vec4((1.0 - length(fragBentNormal.xyz)),1.0-ao,0.0,0.0);
 
         vec3 nominator      = NDF * G * F;
         float denominator   = 4.0 * max(dot(fragNormal, viewDirection), 0.0) * NdotL;
         vec3 specular       = nominator / max(denominator, 0.01);
-        lighting.rgb       += (kD * fragAlbedo.rgb * 0.31830988618 + specular)  * NdotL * radiance * pow(ao,6.0);
+        lighting.rgb       += (kD * fragAlbedo.rgb * 0.31830988618 + specular)  * NdotL * radiance * occlusion;
 
         //Translucency
         float t         = fragRmt.b;
-        lighting.rgb   -= (kD * fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t;
+        lighting.rgb   -= (kD * fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t* occlusion;
 
     }
 

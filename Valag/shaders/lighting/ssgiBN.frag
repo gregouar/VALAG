@@ -113,7 +113,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
 {
     uint nbrSteps   = 4;
 
-    vec3 screenRayStep  = vec3(vec4(viewUbo.view * vec4(ray ,0.0)).xy, ray.z)/float(nbrSteps);
+    vec3 screenRayStep  = vec3(vec4(viewUbo.view * vec4(ray ,0.0)).xy, ray.z) /*/float(nbrSteps)*/;
     vec3 curPos         = screenStart;
 
     bool wasUnder   = false;
@@ -121,7 +121,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
 
     for(uint i = 0 ; i < nbrSteps ; ++i)
     {
-        curPos += screenRayStep;
+        curPos += screenRayStep*(i*0.5+1);
         float dstFragHeight = texture(samplerPosition, curPos.xy).z;
 
         if(curPos.z < dstFragHeight)
@@ -129,8 +129,8 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
         else
             isUnder = false;
 
-        if(isUnder != wasUnder && abs(curPos.z - dstFragHeight) < 15)
-            return vec3(curPos.xy,nbrSteps-i);
+        if(isUnder != wasUnder && (curPos.z - dstFragHeight) > (1-2*int(isUnder)) * 20 /**(i+1)*/)
+            return vec3(curPos.xy,/*abs(curPos.z - dstFragHeight)/15.0*/i);
 
         wasUnder = isUnder;
     }
@@ -163,10 +163,16 @@ void main()
     outCollision3 = vec4(0.0);
     outCollision4 = vec4(0.0);
 
+    /** I could do à la Starcraft : use half rays for close (with indpt averaging) and half for longer shots, yay**/
+    //store in outBentNormal.a the local SSAO value and in |xyz| the GI value !
+
+    float ao    = 1.0;
+    float gio   = 1.0;
+
     uint j = 0;
     for(uint i = 0 ; i < 16 ; ++i)
     {
-        vec3 ray = 100.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
+        vec3 ray = 25.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
         vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
@@ -179,7 +185,10 @@ void main()
             if(j == 2) outCollision3 = vec4(c, 0.0);
             if(j == 3) outCollision4 = vec4(c, 0.0);
 
-            outBentNormal.a -= 1.0/16.0;
+            ao  -= 1.0/16.0 * max(1.0-c.z, 0.0);
+            gio -= (4.0-c.z)/(4.0 * 16.0);
+
+            //outBentNormal.a -= /*(1.0-c.z)* */(1.0/16.0)*(c.z/4.0);
             j++;
         }
         else
@@ -194,7 +203,8 @@ void main()
             outBentNormal.xyz += normalize(ray)*0.8/4.0;*/ //This is not very accurate
     }
 
-    outBentNormal.xyz = normalize(outBentNormal.xyz);
+    outBentNormal.xyz = normalize(outBentNormal.xyz) * (gio*0.9 + 0.1);
+    outBentNormal.a = ao;
 
 }
 

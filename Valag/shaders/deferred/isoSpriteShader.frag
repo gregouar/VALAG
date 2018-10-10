@@ -31,6 +31,36 @@ void main()
     outAlbedo = fragColor * texture(sampler2DArray(textures[fragAlbedoTexId.x], samp),
                                     vec3(fragTexCoord,fragAlbedoTexId.y));
 
+
+    vec4 heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp),
+                               vec3(fragTexCoord,fragHeightTexId.y));
+
+    float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
+    float fragHeight = screenPosAndHeight.z + height * screenPosAndHeight.w;
+
+    vec2 fragWorldPos = screenPosAndHeight.xy;
+    fragWorldPos.y -= (fragHeight - viewUbo.viewInv[3][2]) * viewUbo.view[2][1];
+    fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
+
+    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
+
+    outPosition = vec4(fragWorldPos.xy, fragHeight, 1.0);
+
+    vec3 normal = vec3(0.5,0.5,1.0);
+    if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
+        normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
+    normal = 2.0*normal - vec3(1.0);
+    normal = vec4(vec4(normal,1.0)*viewUbo.view).xyz;
+    outNormal = vec4(normal,1.0);
+
+    outRmt = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
+
+    if(outAlbedo.a < .99f)
+        discard;
+
+    /*outAlbedo = fragColor * texture(sampler2DArray(textures[fragAlbedoTexId.x], samp),
+                                    vec3(fragTexCoord,fragAlbedoTexId.y));
+
     if(outAlbedo.a < .99f)
         discard;
 
@@ -44,16 +74,17 @@ void main()
     fragWorldPos.y -= (fragHeight - viewUbo.viewInv[3][2]) * viewUbo.view[2][1];
     fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
 
+    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
+
     vec3 normal = vec3(0.5,0.5,1.0);
     if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
         normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
     normal = 2.0*normal - vec3(1.0);
     normal = vec4(vec4(normal,1.0)*viewUbo.view).xyz;
 
-    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
 
     outPosition     = vec4(fragWorldPos.xy, fragHeight, 1.0);
     outNormal       = vec4(normal,1.0);
-    outRmt          = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
+    outRmt          = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);*/
 }
 

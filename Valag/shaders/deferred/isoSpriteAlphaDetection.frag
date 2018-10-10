@@ -27,9 +27,9 @@ void main()
     if(fragColorA > .99f  && heightPixel.a < 1.0f )
         discard;
 
-    float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
+   /// float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
 
-    gl_FragDepth = gl_FragCoord.z + height * depthFactor;
+   /// gl_FragDepth = gl_FragCoord.z + height * depthFactor;
 
     ///I would need to use a different depthBuffer to do that properly
     //outAlpha = heightPixel.a;

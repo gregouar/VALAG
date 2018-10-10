@@ -51,6 +51,8 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         std::list<vlg::MeshEntity>  m_quackEntities;
         vlg::SceneNode      *m_treeNode, *m_abbeyNode, *m_quackNode;
 
+        std::list<vlg::IsoSpriteEntity> m_forestEntities;
+
         vlg::Light      m_cursorLight,
                         m_sunLight;
         vlg::SceneNode *m_cursorLightNode;

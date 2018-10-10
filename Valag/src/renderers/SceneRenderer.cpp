@@ -488,7 +488,7 @@ void SceneRenderer::prepareAlphaDetectRenderPass()
     m_alphaDetectPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
     m_renderGraph.addNewAttachments(m_alphaDetectPass, m_alphaDetectAttachments, VK_ATTACHMENT_STORE_OP_STORE);
-    m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDetectPass, 4);
+    ///m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDetectPass, 4);
 }
 
 void SceneRenderer::prepareAlphaDeferredRenderPass()
@@ -499,7 +499,8 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     m_renderGraph.addNewAttachments(m_alphaDeferredPass, m_positionAttachments[1]);
     m_renderGraph.addNewAttachments(m_alphaDeferredPass, m_normalAttachments[1]);
     m_renderGraph.addNewAttachments(m_alphaDeferredPass, m_rmtAttachments[1]);
-    m_renderGraph.transferAttachmentsToAttachments(m_alphaDetectPass, m_alphaDeferredPass, 1);
+    ///m_renderGraph.transferAttachmentsToAttachments(m_alphaDetectPass, m_alphaDeferredPass, 1);
+    m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDeferredPass, 4);
 
     m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_alphaDeferredPass, 1);
@@ -717,7 +718,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
-    m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
+   /// m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
 
     /*VkStencilOpState stencil = {};
     stencil.compareOp   = VK_COMPARE_OP_ALWAYS;

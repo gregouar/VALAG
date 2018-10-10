@@ -4,12 +4,13 @@
 #include "Valag/vulkanImpl/VTexture.h"
 
 #include "Valag/core/Config.h"
+#include "Valag/utils/Logger.h"
 
 namespace vlg
 {
 
 const size_t VTexturesManager::MAX_TEXTURES_ARRAY_SIZE = 128; //Number of texture2DArray
-const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 64; //Number of layers in each texture2DArray
+const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 16; //Number of layers in each texture2DArray
 
 VTexturesManager::VTexturesManager()
 {
@@ -58,7 +59,7 @@ bool VTexturesManager::allocTextureImpl(uint32_t width, uint32_t height, VBuffer
 
     texture2DArray->mutex.lock();
 
-    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_FORMAT_R8G8B8A8_UNORM, /*VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,//*/VK_IMAGE_LAYOUT_UNDEFINED,
                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,cmdPoolName);
         VBuffersAllocator::copyBufferToImage(source, texture2DArray->image,
                                          width, height,chosenLayer,cmdPoolName);
