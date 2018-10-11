@@ -54,7 +54,7 @@ void main()
     normal = 2.0*normal - vec3(1.0);
     normal = fragTBN*normal;
 
-    outNormal = vec4(normal,1.0);
+    outNormal = vec4(normal,0.0);
     outRmt    = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp),
                              vec3(fragUV,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
 

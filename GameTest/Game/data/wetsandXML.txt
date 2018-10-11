@@ -3,7 +3,7 @@
 	<name>Wet sand</name>
 	<height>5</height>
 	<texture type="albedo">wetsand_albedo.png</texture>
-	<texture type="normal2">wetsand_normal.png</texture>
+	<texture type="normal">wetsand_normal.png</texture>
 	<texture type="height">wetsand_height.png</texture>
 	<texture type="rmt">wetsand_rmt.png</texture>
 </texture3D>

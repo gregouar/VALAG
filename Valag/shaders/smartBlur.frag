@@ -44,6 +44,7 @@ void main()
     float weight = gauss[0];
     vec2 p;
     float diffZ;
+    vec4 sampleColor;
 
     for(uint i = 1 ; i < 5 ; ++i)
     {
@@ -53,7 +54,9 @@ void main()
         //diffZ = step(diffZ, 1.0);
 
         {
-            outColor += texture(srcSampler, p)	* gauss[i] * diffZ;
+            sampleColor = texture(srcSampler, p)	* gauss[i] * diffZ;
+            sampleColor.z = sign(outColor.z) * abs(sampleColor.z);
+            outColor += sampleColor;
             weight   += gauss[i] * diffZ;
         }
 
@@ -63,7 +66,9 @@ void main()
         //diffZ = step(diffZ, 1.0);
 
         {
-            outColor += texture(srcSampler, p)	* gauss[i] * diffZ;
+            sampleColor = texture(srcSampler, p)	* gauss[i] * diffZ;
+            sampleColor.z = sign(outColor.z) * abs(sampleColor.z);
+            outColor += sampleColor;
             weight   += gauss[i] * diffZ;
         }
     }

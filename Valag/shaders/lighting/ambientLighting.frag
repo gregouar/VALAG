@@ -51,7 +51,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
+vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
 {
 
     vec3 ambientLighting = ubo.ambientLight.rgb * ubo.ambientLight.a;
@@ -59,7 +59,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4
     //Change this for better random (use pregenerated)
     vec3 rVec = hash(fragPos);
     vec3 viewDirection = normalize(ubo.viewPos.xyz - fragPos);
-    float NdotV = max(dot(fragNormal, viewDirection), 0.0);
+    float NdotV = max(dot(fragNormal.xyz, viewDirection), 0.0);
 
     //vec3 ortho_viewDirection = vec3(<<cos(45*PI/180)*cos(30*PI/180)<<,
     //                                <<sin(45*PI/180)*cos(30*PI/180)<<,
@@ -72,9 +72,10 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4
     vec3 kS = F;
     vec3 kD = (1.0 - F)*(1.0 - fragRmt.g);
     //kD *= pow(fragBentNormal.a,2.0);
-    vec3 irradiance = ambientLighting * fragBentNormal.a;
+    vec3 irradiance = ambientLighting;
+    float occlusion = max(min(pow(fragBentNormal.a,1), pow(1.0-abs(fragBentNormal.z),1.0)), fragNormal.w); //We dont want to occlude truly transparent fragments
 
-    vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal);
+    vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal.xyz);
     reflectionView += mix(vec3(0.0),rVec,fragRmt.r*.25);
     vec3 reflectionColor = ambientLighting;
     //if(enable_map_environmental == true)
@@ -89,14 +90,15 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4
     vec2 envBRDF  = texture(sampler2D(brdflut,samp), vec2(NdotV, fragRmt.r)).rg;
     vec3 specular = reflectionColor  * (F * envBRDF.x + envBRDF.y);
 
-    return vec4(fragAlbedo.rgb * irradiance * kD + specular, fragAlbedo.a);
+    return vec4(fragAlbedo.rgb * irradiance * occlusion * kD + specular, fragAlbedo.a);
 }
 
 void main()
 {
     vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy);
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
-    vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
+    vec4 fragNormal = texture(samplerNormal, gl_FragCoord.xy);
+    fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
     vec4 fragBentNormal = texture(samplerBentNormals, gl_FragCoord.xy);
 
@@ -106,7 +108,8 @@ void main()
 
     fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
     fragPos    = texture(samplerAlphaPosition, gl_FragCoord.xy).xyz;
-    fragNormal = normalize(texture(samplerAlphaNormal, gl_FragCoord.xy).xyz);
+    fragNormal = texture(samplerAlphaNormal, gl_FragCoord.xy);
+    fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
     fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
 
     outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);

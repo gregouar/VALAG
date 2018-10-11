@@ -5,6 +5,9 @@
 
 layout(early_fragment_tests) in;
 
+layout (constant_id = 0) const float const_aoIntensity = 1;
+layout (constant_id = 1) const float const_gioIntensity = 1;
+
 layout (set = 1, binding = 0) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 1) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 2) uniform sampler2D samplerNormal;
@@ -71,7 +74,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
+vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
 {
     vec4 lighting = vec4(0.0);
 
@@ -107,42 +110,40 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         //Compute attenuation from shadows here
 
         float gio = abs(fragBentNormal.z);
-        //fragBentNormal.xyz = normalize(fragBentNormal.xyz);
-        fragBentNormal.xyz = vec3(fragBentNormal.xy, sign(fragBentNormal.z) * sqrt(1.0 - fragBentNormal.x*fragBentNormal.x - fragBentNormal.y*fragBentNormal.y));
+        fragBentNormal.xyz = vec3(fragBentNormal.xy, /*sign(fragBentNormal.z) * */ sqrt(1.0 - fragBentNormal.x*fragBentNormal.x - fragBentNormal.y*fragBentNormal.y));
 
         lightDirection      = normalize(lightDirection);
         vec3 halfwayVector  = normalize(viewDirection + lightDirection);
-        float NdotL         = max(dot(fragNormal, lightDirection), 0.0);
-        float BNdotL        = clamp(dot(normalize(fragBentNormal.xyz), lightDirection)/*+0.25*/, 0.0, 1.0);
+        float NdotL         = max(dot(fragNormal.xyz, lightDirection), 0.0);
+        float BNdotL        = clamp(dot(fragBentNormal.xyz, lightDirection)/*+0.25*/, 0.0, 1.0);
         //float BNdotL        = min(dot(fragBentNormal.xyz, lightDirection), 0.0);
 
         vec3 radiance   = attenuation*lightColor.rgb;
-        float NDF   = DistributionGGX(fragNormal, halfwayVector, fragRmt.r);
-        float G     = GeometrySmith(fragNormal, viewDirection, lightDirection, fragRmt.r);
+        float NDF   = DistributionGGX(fragNormal.xyz, halfwayVector, fragRmt.r);
+        float G     = GeometrySmith(fragNormal.xyz, viewDirection, lightDirection, fragRmt.r);
         vec3 F      = FresnelSchlick(max(dot(halfwayVector, viewDirection), 0.0), surfaceReflection0);
         vec3 kS     = F;
         vec3 kD     = vec3(1.0) - kS;
         kD         *= 1.0 - fragRmt.g;
 
 
-        //float ao = 0.25 * fragBentNormal.a + (1.0 - (1.0 - BNdotL) /* + BNdotL*/ * (1.0 - fragBentNormal.a))*0.75;
-        //ao = pow(ao,6.0);
         float ao  = fragBentNormal.a;
-        ao = pow(ao, 2.0);
-        //return vec4((1.0 - gio),1.0-ao,0.0,0.0);
-        gio =  1.0 - (1.0 - BNdotL) * gio;
-        gio = pow(gio, 4.0);
-        float occlusion = min(ao, gio);
+        ao = pow(ao, const_aoIntensity);
+
+        gio =  1.0 - max((1.0 - BNdotL) * gio, (gio-0.5));
+        gio = pow(gio, const_gioIntensity);
+
+        float occlusion = max(min(ao, gio),fragNormal.w);  //We dont want to occlude truly transparent fragments
 
 
         vec3 nominator      = NDF * G * F;
-        float denominator   = 4.0 * max(dot(fragNormal, viewDirection), 0.0) * NdotL;
+        float denominator   = 4.0 * max(dot(fragNormal.xyz, viewDirection), 0.0) * NdotL;
         vec3 specular       = nominator / max(denominator, 0.01);
         lighting.rgb       += (kD * fragAlbedo.rgb * 0.31830988618 + specular)  * NdotL * radiance * occlusion;
 
         //Translucency
         float t         = fragRmt.b;
-        lighting.rgb   -= (kD * fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal, lightDirection), 0.0)*t* occlusion;
+        lighting.rgb   -= (kD * fragAlbedo.rgb*0.31830988618) * radiance * min(dot(fragNormal.xyz, lightDirection), 0.0)*t* occlusion;
 
     }
 
@@ -153,7 +154,8 @@ void main()
 {
     vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy);
     vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
-    vec3 fragNormal = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
+    vec4 fragNormal = texture(samplerNormal, gl_FragCoord.xy);
+    fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
     vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
     vec4 fragBentNormal = texture(samplerBentNormal, gl_FragCoord.xy);
 

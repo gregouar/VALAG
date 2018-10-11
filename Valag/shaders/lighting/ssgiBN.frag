@@ -1,6 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout (constant_id = 0) const float const_rayLength          = 25.0;
+layout (constant_id = 1) const float const_rayLengthFactor    = 0.0;
+layout (constant_id = 2) const float const_rayThreshold        = 15.0;
+layout (constant_id = 3) const float const_rayThresholdFactor  = 0.0;
 
 layout(set = 0, binding = 0) uniform ViewUBO {
     mat4 view;
@@ -121,7 +125,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
 
     for(uint i = 0 ; i < nbrSteps ; ++i)
     {
-        curPos += screenRayStep*(i*0.5+1);
+        curPos += screenRayStep*(i*const_rayLengthFactor+1);
         float dstFragHeight = texture(samplerPosition, curPos.xy).z;
 
         if(curPos.z < dstFragHeight)
@@ -130,7 +134,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
             isUnder = false;
 
         if(isUnder != wasUnder
-        && (curPos.z - dstFragHeight) > (1-2*int(isUnder)) * 15 *(i*2.0+1.0)
+        && (curPos.z - dstFragHeight) > (1-2*int(isUnder)) * const_rayThreshold *(i*const_rayThresholdFactor+1.0)
         && (curPos.z - dstFragHeight) < (1-2*int(isUnder)) * -.01)
             return vec3(curPos.xy,/*abs(curPos.z - dstFragHeight)/15.0*/i);
 
@@ -175,7 +179,7 @@ void main()
     uint j = 0;
     for(uint i = 0 ; i < 16 ; ++i)
     {
-        vec3 ray = 25.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
+        vec3 ray = const_rayLength * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
         vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
@@ -194,12 +198,15 @@ void main()
             j++;
         }
         else
-            outBentNormal.xyz += normalize(ray)*10.0;
+            outBentNormal.xyz += normalize(ray)*6.0;
     }
 
-    gio = gio*0.9 + 0.1;
+    gio = 0.01+gio*0.99;
 
-    outBentNormal.xy = normalize(outBentNormal.xyz).xy; // * (gio*0.9 + 0.1);
+    if(outBentNormal.z == 0)
+        outBentNormal.z = 0.0001;
+
+    outBentNormal.xyz = normalize(outBentNormal.xyz); // * (gio*0.9 + 0.1);
     outBentNormal.z = (1.0-gio) * sign(outBentNormal.z);
     outBentNormal.a = ao;
 

@@ -797,6 +797,11 @@ bool SceneRenderer::createSsgiBNPipelines()
         vertShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_VERTSHADERFILE;
         fragShaderPath << VApp::DEFAULT_SHADERPATH << SSGI_BN_FRAGSHADERFILE;
 
+        m_ssgiBNPipeline.addSpecializationDatum(15.0f, 1); //Ray length
+        m_ssgiBNPipeline.addSpecializationDatum(1.0f, 1); //Ray length factor
+        m_ssgiBNPipeline.addSpecializationDatum(20.0f, 1); //Ray threshold
+        m_ssgiBNPipeline.addSpecializationDatum(2.0f, 1); //Ray threshold factor
+
         m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
         m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -884,6 +889,9 @@ bool SceneRenderer::createLightingPipeline()
     m_lightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_lightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
+    m_lightingPipeline.addSpecializationDatum(2.0f, 1); //SSAO intensity
+    m_lightingPipeline.addSpecializationDatum(4.0f, 1); //GIAO intensity
+
     auto bindingDescription = LightDatum::getBindingDescription();
     auto attributeDescriptions = LightDatum::getAttributeDescriptions();
     m_lightingPipeline.setVertexInput(1, &bindingDescription,
@@ -911,6 +919,9 @@ bool SceneRenderer::createAlphaLightingPipeline()
 
     m_alphaLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_alphaLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    m_alphaLightingPipeline.addSpecializationDatum(2.0f, 1); //SSAO intensity
+    m_alphaLightingPipeline.addSpecializationDatum(4.0f, 1); //GIAO intensity
 
     auto bindingDescription = LightDatum::getBindingDescription();
     auto attributeDescriptions = LightDatum::getAttributeDescriptions();
