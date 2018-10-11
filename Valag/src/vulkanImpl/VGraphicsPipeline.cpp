@@ -57,6 +57,38 @@ void VGraphicsPipeline::setSpecializationInfo(VkSpecializationInfo &specializati
     m_specializationInfos[shaderNbr] = specializationInfo;
 }
 
+void VGraphicsPipeline::addSpecializationDatum(float value, size_t shaderNbr)
+{
+    this->addSpecializationDatum(sizeof(float), (char*)&value, shaderNbr);
+}
+
+void VGraphicsPipeline::addSpecializationDatum(bool value, size_t shaderNbr)
+{
+    this->addSpecializationDatum(sizeof(bool), (char*)&value, shaderNbr);
+}
+
+void VGraphicsPipeline::addSpecializationDatum(size_t size, char* data, size_t shaderNbr)
+{
+    if(m_specializationData.size() < shaderNbr)
+        m_specializationData.resize(shaderNbr+1);
+
+    if(m_specializationMapEntries.size() < shaderNbr)
+        m_specializationMapEntries.resize(shaderNbr+1);
+
+    VkSpecializationMapEntry mapEntry{};
+    mapEntry.constantID = m_specializationMapEntries[shaderNbr].size();
+    mapEntry.size       = size;
+    if(m_specializationMapEntries[shaderNbr].size() > 0)
+        mapEntry.offset = m_specializationMapEntries[shaderNbr].back().offset
+                            + m_specializationMapEntries[shaderNbr].back().size;
+
+    char *d = new char[size];
+    for(size_t i = 0 ; i < size ; ++i)
+        *(d+i) = *(data+i);
+    m_specializationData[shaderNbr].push_back(d);
+    m_specializationMapEntries[shaderNbr].push_back(mapEntry);
+}
+
 void VGraphicsPipeline::setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,
                                         size_t vertexAttributeCount, VkVertexInputAttributeDescription* vertexAttributes)
 {
@@ -144,6 +176,34 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
     std::vector<VkShaderModule> shaders;
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
+    if(m_specializationInfos.size() < m_specializationData.size())
+        m_specializationInfos.resize(m_specializationData.size());
+
+    std::vector<char*> totalSpecData;
+    totalSpecData.resize(m_specializationData.size());
+
+    for(size_t i = 0 ; i < m_specializationData.size() ; ++i)
+    {
+        if(!m_specializationData[i].empty())
+        {
+            size_t totalSize = 0;
+            for(auto entry : m_specializationMapEntries[i])
+                totalSize += entry.size;
+
+            totalSpecData[i] = new char[totalSize];
+
+            size_t offset = 0;
+            for(size_t j = 0 ; j <  m_specializationMapEntries[i].size() ; ++j)
+                for(size_t k = 0 ; k < m_specializationMapEntries[i][j].size ; ++k)
+                    totalSpecData[i][offset++] = m_specializationData[i][j][k];
+
+            m_specializationInfos[i].dataSize = totalSize;
+            m_specializationInfos[i].pData = totalSpecData[i];
+            m_specializationInfos[i].mapEntryCount = static_cast<uint32_t>(m_specializationMapEntries[i].size());
+            m_specializationInfos[i].pMapEntries = m_specializationMapEntries[i].data();
+        }
+    }
+
     size_t s = 0;
     for(auto shader : m_attachedShaders)
     {
@@ -157,6 +217,7 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
         shaderStages.back().pName = "main";
         if(s < m_specializationInfos.size())
             shaderStages.back().pSpecializationInfo = &m_specializationInfos[s];
+
         ++s;
     }
 
@@ -318,6 +379,9 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
     for(auto shader : shaders)
         vkDestroyShaderModule(device, shader, nullptr);
 
+    for(auto data : totalSpecData)
+        delete[] data;
+
     return (true);
 }
 
@@ -345,6 +409,13 @@ void VGraphicsPipeline::destroy()
     if(m_pipelineLayout != VK_NULL_HANDLE)
         vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
     m_pipelineLayout = VK_NULL_HANDLE;
+
+
+    for(auto vect : m_specializationData)
+        for(auto p : vect)
+            delete[] p;
+
+    m_specializationData.clear();
 }
 
 }

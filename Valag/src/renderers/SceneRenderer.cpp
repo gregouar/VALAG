@@ -816,7 +816,7 @@ bool SceneRenderer::createSsgiBNPipelines()
     ///Horizontal and vertical blur
     for(size_t i = 0 ; i < 2 ; ++i)
     {
-        struct SpecializationData {
+        /*struct SpecializationData {
             float radius;
             float smartThresold;
             bool  vertical;
@@ -839,11 +839,15 @@ bool SceneRenderer::createSsgiBNPipelines()
 		specializationMapEntries[2].size = sizeof(specializationData.vertical);
 		specializationMapEntries[2].offset = offsetof(SpecializationData, vertical);
 
-		VkSpecializationInfo specializationInfo{};
+		std::cout<<"old:"<<std::endl;
+		for(size_t i = 0 ; i < 3 ; ++i)
+            std::cout<<specializationMapEntries[i].offset<<" "<<specializationMapEntries[i].size<<std::endl;*/
+
+		/*VkSpecializationInfo specializationInfo{};
 		specializationInfo.dataSize = sizeof(specializationData);
 		specializationInfo.mapEntryCount = static_cast<uint32_t>(specializationMapEntries.size());
 		specializationInfo.pMapEntries = specializationMapEntries.data();
-        specializationInfo.pData = &specializationData;
+        specializationInfo.pData = &specializationData;*/
 
 
         std::ostringstream vertShaderPath,fragShaderPath;
@@ -853,7 +857,11 @@ bool SceneRenderer::createSsgiBNPipelines()
         m_ssgiBNBlurPipelines[i].createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
         m_ssgiBNBlurPipelines[i].createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
+        //m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
+
+        m_ssgiBNBlurPipelines[i].addSpecializationDatum(4.0f ,1); //Radius
+        m_ssgiBNBlurPipelines[i].addSpecializationDatum(15.0f,1); //Smart thresold
+        m_ssgiBNBlurPipelines[i].addSpecializationDatum(static_cast<bool>(i),1); //Vertical
 
         m_ssgiBNBlurPipelines[i].setStaticExtent(m_targetWindow->getSwapchainExtent());
 

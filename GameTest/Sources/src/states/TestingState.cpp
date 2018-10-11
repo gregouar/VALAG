@@ -111,13 +111,13 @@ void TestingState::init()
     m_treeEntity.setSpriteModel(&m_treeModel);
     m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
-    m_treeNode  =  m_scene->getRootNode()->createChildNode({0,0,-90});
+    m_treeNode  =  m_scene->getRootNode()->createChildNode({900,400,-90});
     m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
 
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
 
-    m_treeEntity.setColor({0.0,1.0,0.0,1.0});
+   // m_treeEntity.setColor({0.0,1.0,0.0,1.0});
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
 
     for(size_t x = 0 ; x < 0 ; x++)
@@ -129,7 +129,7 @@ void TestingState::init()
     }
 
     m_camera = m_scene->createCamera();
-    m_cameraNode = m_scene->getRootNode()->createChildNode(1500,1500,1500);
+    m_cameraNode = m_scene->getRootNode()->createChildNode(2000,2000,1500);
     m_cameraNode->attachObject(m_camera);
     m_scene->setCurrentCamera(m_camera);
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
@@ -139,7 +139,7 @@ void TestingState::init()
 
     m_quackEntities.push_back(vlg::MeshEntity());
     m_quackEntities.back().setMesh(m_quackMesh);
-    m_quackNode = m_scene->getRootNode()->createChildNode();
+    m_quackNode = m_scene->getRootNode()->createChildNode(250,450);
     m_quackNode->attachObject(&m_quackEntities.back());
     m_quackNode->scale(5.0f);
 

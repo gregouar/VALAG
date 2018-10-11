@@ -131,7 +131,7 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         ao = pow(ao, 2.0);
         //return vec4((1.0 - gio),1.0-ao,0.0,0.0);
         gio =  1.0 - (1.0 - BNdotL) * gio;
-        gio = pow(gio, 6.0);
+        gio = pow(gio, 4.0);
         float occlusion = min(ao, gio);
 
 

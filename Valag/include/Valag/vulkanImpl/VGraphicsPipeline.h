@@ -22,6 +22,9 @@ class VGraphicsPipeline
 
         ///I could do something more high level here heh
         void setSpecializationInfo(VkSpecializationInfo &specializationInfo, size_t shaderNbr);
+        void addSpecializationDatum(bool value, size_t shaderNbr); //Need to add more
+        void addSpecializationDatum(float value, size_t shaderNbr);
+        void addSpecializationDatum(size_t size, char* data, size_t shaderNbr);
 
         void setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,
                             size_t vertexAttributeCount, VkVertexInputAttributeDescription* vertexAttributes);
@@ -73,6 +76,9 @@ class VGraphicsPipeline
         std::vector<VkDescriptorSetLayout>      m_attachedDescriptorSetLayouts;
         std::vector<VkPushConstantRange>        m_attachedPushConstants;
         VkPipelineDepthStencilStateCreateInfo   m_depthStencil;
+
+        std::vector<std::vector<char*> >                     m_specializationData;
+        std::vector<std::vector<VkSpecializationMapEntry> >  m_specializationMapEntries;
 
         /*std::vector<VkDescriptorSetLayout> m_createdDescriptorSetLayouts;
         VkDescriptorPool m_descriptorPool;
