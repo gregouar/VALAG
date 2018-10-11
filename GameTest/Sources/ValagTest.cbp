@@ -149,6 +149,8 @@
 		<Unit filename="../../Valag/shaders/lighting/lighting.vert" />
 		<Unit filename="../../Valag/shaders/lighting/ssgiBN.frag" />
 		<Unit filename="../../Valag/shaders/lighting/ssgiBN.vert" />
+		<Unit filename="../../Valag/shaders/smartBlur.frag" />
+		<Unit filename="../../Valag/shaders/smartBlur.vert" />
 		<Unit filename="../../Valag/shaders/toneMapping.frag" />
 		<Unit filename="../../Valag/shaders/toneMapping.vert" />
 		<Unit filename="../../Valag/src/assets/Asset.cpp" />

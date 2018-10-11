@@ -93,10 +93,10 @@ class SceneRenderer : public AbstractRenderer
 
         std::vector<VFramebufferAttachment> m_deferredDepthAttachments;
         std::vector<VFramebufferAttachment> m_albedoAttachments[NBR_ALPHA_LAYERS],
-                                            m_positionAttachments[NBR_ALPHA_LAYERS],
-                                            m_normalAttachments[NBR_ALPHA_LAYERS],
+                                            m_positionAttachments[NBR_ALPHA_LAYERS], //The opac.a contains existence of truly trasparent frag, the alpha.a contains alphaAlbedo.a
+                                            m_normalAttachments[NBR_ALPHA_LAYERS], //The alpha.a contains existence of truly transparent frag
                                             m_rmtAttachments[NBR_ALPHA_LAYERS];
-        std::vector<VFramebufferAttachment> m_alphaDetectAttachments;
+       // std::vector<VFramebufferAttachment> m_alphaDetectAttachments; //This could be stored in opacPosition.a
         std::vector<VFramebufferAttachment> m_hdrAttachements[NBR_ALPHA_LAYERS];
 
 

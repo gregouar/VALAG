@@ -30,8 +30,8 @@ const char *SceneRenderer::AMBIENTLIGHTING_VERTSHADERFILE = "lighting/ambientLig
 const char *SceneRenderer::AMBIENTLIGHTING_FRAGSHADERFILE = "lighting/ambientLighting.frag.spv";
 const char *SceneRenderer::TONEMAPPING_VERTSHADERFILE = "toneMapping.vert.spv";
 const char *SceneRenderer::TONEMAPPING_FRAGSHADERFILE = "toneMapping.frag.spv";
-const char *SceneRenderer::BLUR_VERTSHADERFILE = "blur.vert.spv";
-const char *SceneRenderer::BLUR_FRAGSHADERFILE = "blur.frag.spv";
+const char *SceneRenderer::BLUR_VERTSHADERFILE = "smartBlur.vert.spv";
+const char *SceneRenderer::BLUR_FRAGSHADERFILE = "smartBlur.frag.spv";
 
 
 SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
@@ -408,7 +408,7 @@ bool SceneRenderer::createAttachments()
     uint32_t height     = m_targetWindow->getSwapchainExtent().height;
 
     m_deferredDepthAttachments.resize(imagesCount);
-    m_alphaDetectAttachments.resize(imagesCount);
+    //m_alphaDetectAttachments.resize(imagesCount);
 
     for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
     {
@@ -426,9 +426,9 @@ bool SceneRenderer::createAttachments()
                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_deferredDepthAttachments[i]))
                     return (false);
 
-                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8_UNORM,
+                /*if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8_UNORM,
                                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_alphaDetectAttachments[i]))
-                    return (false);
+                    return (false);*/
             }
 
             if(!
@@ -487,7 +487,8 @@ void SceneRenderer::prepareAlphaDetectRenderPass()
 {
     m_alphaDetectPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-    m_renderGraph.addNewAttachments(m_alphaDetectPass, m_alphaDetectAttachments, VK_ATTACHMENT_STORE_OP_STORE);
+    m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDetectPass, 1); //We will store existence of truly transparent pixel in position.a
+    //m_renderGraph.addNewAttachments(m_alphaDetectPass, m_alphaDetectAttachments, VK_ATTACHMENT_STORE_OP_STORE);//
     ///m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDetectPass, 4);
 }
 
@@ -502,8 +503,8 @@ void SceneRenderer::prepareAlphaDeferredRenderPass()
     ///m_renderGraph.transferAttachmentsToAttachments(m_alphaDetectPass, m_alphaDeferredPass, 1);
     m_renderGraph.transferAttachmentsToAttachments(m_deferredPass, m_alphaDeferredPass, 4);
 
-    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0);
-    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_alphaDeferredPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_alphaDeferredPass, 0); //This contains opac position in xyz and truly trans in w
+    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_alphaDeferredPass, 1);
 }
 
 void SceneRenderer::prepareSsgiBNRenderPasses()
@@ -517,20 +518,24 @@ void SceneRenderer::prepareSsgiBNRenderPasses()
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiCollisionsAttachments[i]);
 
-    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 1);
-    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 2);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_ssgiBNPass, 0); //Position
+    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ssgiBNPass, 2); //Normal
 
     /// blur horizontal
     m_ssgiBNBlurPasses[0] = m_renderGraph.addRenderPass();
 
     m_renderGraph.addNewAttachments(m_ssgiBNBlurPasses[0], m_SSGIBlurBentNormalsAttachments[0]);
-    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNPass, m_ssgiBNBlurPasses[0], 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNPass        , m_ssgiBNBlurPasses[0], 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass   , m_ssgiBNBlurPasses[0], 0); //Position
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass , m_ssgiBNBlurPasses[0], 1); //Position
 
     /// blur vertical
     m_ssgiBNBlurPasses[1] = m_renderGraph.addRenderPass();
 
     m_renderGraph.addNewAttachments(m_ssgiBNBlurPasses[1], m_SSGIBlurBentNormalsAttachments[1]);
     m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[0], m_ssgiBNBlurPasses[1], 0);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass    , m_ssgiBNBlurPasses[1], 0); //Position
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDeferredPass  , m_ssgiBNBlurPasses[1], 1); //Position
 
 }
 
@@ -542,7 +547,8 @@ void SceneRenderer::prepareLightingRenderPass()
     //m_renderGraph.addNewAttachments(m_lightingPass, m_hdrAttachements[1]);
 
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 0);
-    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 1);
+    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_lightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_lightingPass, 3);
 
@@ -600,7 +606,8 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
     m_renderGraph.transferAttachmentsToAttachments(m_alphaLightingPass, m_ambientLightingPass, 0);
 
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 0);
-    m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 1);
+    //m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 1);
+    m_renderGraph.transferAttachmentsToUniforms(m_alphaDetectPass, m_ambientLightingPass, 0);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 2);
     m_renderGraph.transferAttachmentsToUniforms(m_deferredPass, m_ambientLightingPass, 3);
 
@@ -718,6 +725,8 @@ bool SceneRenderer::createAlphaDetectPipeline()
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
+    m_alphaDetectPipeline.setWriteMask(VK_COLOR_COMPONENT_A_BIT);
+
    /// m_alphaDetectPipeline.setDepthTest(false, true, VK_COMPARE_OP_GREATER);
 
     /*VkStencilOpState stencil = {};
@@ -809,20 +818,26 @@ bool SceneRenderer::createSsgiBNPipelines()
     {
         struct SpecializationData {
             float radius;
+            float smartThresold;
             bool  vertical;
         } specializationData;
 
         specializationData.radius = 4.0;
+        specializationData.smartThresold = 15.0;
         specializationData.vertical = static_cast<bool>(i);
 
-		std::array<VkSpecializationMapEntry, 2> specializationMapEntries;
+		std::array<VkSpecializationMapEntry, 3> specializationMapEntries;
 		specializationMapEntries[0].constantID = 0;
 		specializationMapEntries[0].size = sizeof(specializationData.radius);
 		specializationMapEntries[0].offset = 0;
 
 		specializationMapEntries[1].constantID = 1;
-		specializationMapEntries[1].size = sizeof(specializationData.vertical);
-		specializationMapEntries[1].offset = offsetof(SpecializationData, vertical);
+		specializationMapEntries[1].size = sizeof(specializationData.smartThresold);
+		specializationMapEntries[1].offset = offsetof(SpecializationData, smartThresold);
+
+		specializationMapEntries[2].constantID = 2;
+		specializationMapEntries[2].size = sizeof(specializationData.vertical);
+		specializationMapEntries[2].offset = offsetof(SpecializationData, vertical);
 
 		VkSpecializationInfo specializationInfo{};
 		specializationInfo.dataSize = sizeof(specializationData);
@@ -980,9 +995,9 @@ void SceneRenderer::cleanup()
         VulkanHelpers::destroyAttachment(attachement);
     m_deferredDepthAttachments.clear();
 
-    for(auto attachement : m_alphaDetectAttachments)
+    /*for(auto attachement : m_alphaDetectAttachments)
         VulkanHelpers::destroyAttachment(attachement);
-    m_alphaDetectAttachments.clear();
+    m_alphaDetectAttachments.clear();*/
 
     for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
     {

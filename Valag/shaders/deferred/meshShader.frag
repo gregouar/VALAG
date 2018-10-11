@@ -44,7 +44,7 @@ void main()
 
     gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight*viewUbo.depthOffsetAndFactor.y;
 
-    outPosition     = vec4(fragWorldPos.xy, fragHeight, 1.0);
+    outPosition     = vec4(fragWorldPos.xy, fragHeight, 0.0);
 
     //I could add GS to improve quality of normal mapping
 

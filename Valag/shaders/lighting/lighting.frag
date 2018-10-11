@@ -106,6 +106,10 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
 
         //Compute attenuation from shadows here
 
+        float gio = abs(fragBentNormal.z);
+        //fragBentNormal.xyz = normalize(fragBentNormal.xyz);
+        fragBentNormal.xyz = vec3(fragBentNormal.xy, sign(fragBentNormal.z) * sqrt(1.0 - fragBentNormal.x*fragBentNormal.x - fragBentNormal.y*fragBentNormal.y));
+
         lightDirection      = normalize(lightDirection);
         vec3 halfwayVector  = normalize(viewDirection + lightDirection);
         float NdotL         = max(dot(fragNormal, lightDirection), 0.0);
@@ -120,15 +124,16 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec3 fragNormal, vec4 fragBe
         vec3 kD     = vec3(1.0) - kS;
         kD         *= 1.0 - fragRmt.g;
 
+
         //float ao = 0.25 * fragBentNormal.a + (1.0 - (1.0 - BNdotL) /* + BNdotL*/ * (1.0 - fragBentNormal.a))*0.75;
         //ao = pow(ao,6.0);
         float ao  = fragBentNormal.a;
         ao = pow(ao, 2.0);
-        float gio =  1.0 - (1.0 - BNdotL) * (1.0 - length(fragBentNormal.xyz));
-        gio = pow(gio, 10.0);
+        //return vec4((1.0 - gio),1.0-ao,0.0,0.0);
+        gio =  1.0 - (1.0 - BNdotL) * gio;
+        gio = pow(gio, 6.0);
         float occlusion = min(ao, gio);
 
-        return vec4((1.0 - length(fragBentNormal.xyz)),1.0-ao,0.0,0.0);
 
         vec3 nominator      = NDF * G * F;
         float denominator   = 4.0 * max(dot(fragNormal, viewDirection), 0.0) * NdotL;

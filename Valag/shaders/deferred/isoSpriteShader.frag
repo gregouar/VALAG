@@ -44,7 +44,7 @@ void main()
 
     gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
 
-    outPosition = vec4(fragWorldPos.xy, fragHeight, 1.0);
+    outPosition = vec4(fragWorldPos.xy, fragHeight, 0.0);
 
     vec3 normal = vec3(0.5,0.5,1.0);
     if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))

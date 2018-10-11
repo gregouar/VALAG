@@ -121,7 +121,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
 
     for(uint i = 0 ; i < nbrSteps ; ++i)
     {
-        curPos += screenRayStep*(i*0.5+1);
+        curPos += screenRayStep*(i*1.0+1);
         float dstFragHeight = texture(samplerPosition, curPos.xy).z;
 
         if(curPos.z < dstFragHeight)
@@ -129,10 +129,10 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
         else
             isUnder = false;
 
-        if(isUnder != wasUnder && (curPos.z - dstFragHeight) > (1-2*int(isUnder)) * 20 /**(i+1)*/)
+        if(isUnder != wasUnder && (curPos.z - dstFragHeight) > (1-2*int(isUnder)) * 25 *(i*2.0+1.0))
             return vec3(curPos.xy,/*abs(curPos.z - dstFragHeight)/15.0*/i);
 
-        wasUnder = isUnder;
+        //wasUnder = isUnder;
     }
 
     return vec3(-1);
@@ -172,27 +172,27 @@ void main()
     uint j = 0;
     for(uint i = 0 ; i < 16 ; ++i)
     {
-        vec3 ray = 25.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
+        vec3 ray = 15.0 * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
         vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
 
         if(c.z != -1)
         {
-            //outBentNormal.xyz += normalize(ray)/c.z;
+            outBentNormal.xyz += normalize(ray)*c.z;
             if(j == 0) outCollision1 = vec4(c, 0.0);
             if(j == 1) outCollision2 = vec4(c, 0.0);
             if(j == 2) outCollision3 = vec4(c, 0.0);
             if(j == 3) outCollision4 = vec4(c, 0.0);
 
             ao  -= 1.0/16.0 * max(1.0-c.z, 0.0);
-            gio -= (4.0-c.z)/(4.0 * 16.0);
+            gio -= 1.0/16.0;//(4.0-c.z)/(4.0 * 16.0);
 
             //outBentNormal.a -= /*(1.0-c.z)* */(1.0/16.0)*(c.z/4.0);
             j++;
         }
         else
-            outBentNormal.xyz += normalize(ray);
+            outBentNormal.xyz += normalize(ray)*6.0;
 
         /*vec2 screenShift = vec4(viewUbo.view * vec4(ray ,0.0)).xy;
         float dstFragHeight = texture(samplerPosition, gl_FragCoord.xy + screenShift).z;
@@ -203,7 +203,10 @@ void main()
             outBentNormal.xyz += normalize(ray)*0.8/4.0;*/ //This is not very accurate
     }
 
-    outBentNormal.xyz = normalize(outBentNormal.xyz) * (gio*0.9 + 0.1);
+    gio = gio*0.9 + 0.1;
+
+    outBentNormal.xy = normalize(outBentNormal.xyz).xy; // * (gio*0.9 + 0.1);
+    outBentNormal.z = (1.0-gio) * sign(outBentNormal.z);
     outBentNormal.a = ao;
 
 }

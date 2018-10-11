@@ -10,7 +10,7 @@ layout(location = 2) flat in uvec2 fragAlbedoTexId;
 layout(location = 3) flat in uvec2 fragHeightTexId;
 layout(location = 4) flat in float depthFactor;
 
-layout(location = 0) out float outAlpha;
+layout(location = 0) out vec4 outAlpha;
 
 void main()
 {
@@ -27,13 +27,15 @@ void main()
     if(fragColorA > .99f  && heightPixel.a < 1.0f )
         discard;
 
+    heightPixel.a = 1.0;
+
    /// float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
 
    /// gl_FragDepth = gl_FragCoord.z + height * depthFactor;
 
     ///I would need to use a different depthBuffer to do that properly
     //outAlpha = heightPixel.a;
-    outAlpha = heightPixel.a;
+    outAlpha.a = heightPixel.a;
 
 }
 
