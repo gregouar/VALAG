@@ -53,13 +53,6 @@ TextureAsset::~TextureAsset()
 bool TextureAsset::loadFromFile(const std::string &filePath)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-
-    if (!pixels)
-    {
-        Logger::error("Cannot load texture from file: "+m_filePath);
-        return (false);
-    }
 
     CommandPoolName commandPoolName;
     if(m_loadType == LoadType_Now)
@@ -67,9 +60,32 @@ bool TextureAsset::loadFromFile(const std::string &filePath)
     else
         commandPoolName = COMMANDPOOL_TEXTURESLOADING;
 
-    m_vtexture.generateTexture(pixels, texWidth, texHeight,commandPoolName);
+    if(stbi_is_hdr(filePath.c_str()))
+    {
+        float* pixels = stbi_loadf(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
-    stbi_image_free(pixels);
+        if (!pixels)
+        {
+            Logger::error("Cannot load texture from file: "+m_filePath);
+            return (false);
+        }
+
+        m_vtexture.generateTexture(texWidth, texHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   (unsigned char*)pixels,commandPoolName);
+        stbi_image_free(pixels);
+    } else {
+        stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+        if (!pixels)
+        {
+            Logger::error("Cannot load texture from file: "+m_filePath);
+            return (false);
+        }
+
+        m_vtexture.generateTexture(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
+                                   pixels,commandPoolName);
+        stbi_image_free(pixels);
+    }
 
     Logger::write("Texture loaded from file: "+filePath);
 

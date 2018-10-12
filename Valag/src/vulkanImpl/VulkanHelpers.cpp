@@ -99,26 +99,33 @@ bool VulkanHelpers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
     return (true);
 }
 
+bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerCount,
+                                VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                                VkMemoryPropertyFlags properties, VImage &image)
+{
+    return VulkanHelpers::createImage(width, height, layerCount, 1, format, tiling, usage, properties, image);
+}
 
-bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                 VkMemoryPropertyFlags properties, VImage &image/*VkImage& image, VkDeviceMemory& imageMemory*/)
+bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerCount , uint32_t mipsCount,
+                                VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                                VkMemoryPropertyFlags properties, VImage &image)
 {
     VkDevice device = VInstance::device();
 
     VkImageCreateInfo imageInfo = {};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = width;
+    imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width  = width;
     imageInfo.extent.height = height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = layerCount; //layer count
-    imageInfo.format = format;
-    imageInfo.tiling = tiling;
+    imageInfo.extent.depth  = 1;
+    imageInfo.mipLevels     = mipsCount;
+    imageInfo.arrayLayers   = layerCount; //layer count
+    imageInfo.format        = format;
+    imageInfo.tiling        = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.usage         = usage;
+    imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
     if (vkCreateImage(device, &imageInfo, nullptr, &image.vkImage) != VK_SUCCESS)
     {
@@ -133,6 +140,10 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerC
         return (false);
 
     vkBindImageMemory(device, image.vkImage, image.memory.vkMemory, image.memory.offset);
+
+    image.format        = format;
+    image.layerCount    = layerCount;
+    image.mipsCount     = mipsCount;
 
     return (true);
 }
@@ -193,9 +204,24 @@ void VulkanHelpers::destroyImage(VImage image)
 }
 
 
- void VulkanHelpers::transitionImageLayout(VkImage image, uint32_t layer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
-                                           CommandPoolName commandPoolName)
- {
+void VulkanHelpers::transitionImageLayout(VImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                      CommandPoolName commandPoolName)
+{
+    VulkanHelpers::transitionImageLayout(image.vkImage, 0, image.mipsCount,
+                                         image.format, oldLayout, newLayout, commandPoolName);
+}
+
+void VulkanHelpers::transitionImageLayout(VImage image, uint32_t layer, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                      CommandPoolName commandPoolName)
+{
+    VulkanHelpers::transitionImageLayout(image.vkImage, layer, image.mipsCount,
+                                         image.format, oldLayout, newLayout, commandPoolName);
+}
+
+void VulkanHelpers::transitionImageLayout(VkImage image, uint32_t layer, uint32_t mipsCount,
+                                          VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                          CommandPoolName commandPoolName)
+{
     VkCommandBuffer commandBuffer = VInstance::instance()->beginSingleTimeCommands(commandPoolName);
 
     VkImageMemoryBarrier barrier = {};
@@ -217,7 +243,7 @@ void VulkanHelpers::destroyImage(VImage image)
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
     barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.levelCount = mipsCount;
     barrier.subresourceRange.baseArrayLayer = layer;
     barrier.subresourceRange.layerCount = 1;
 
@@ -287,7 +313,18 @@ void VulkanHelpers::destroyImage(VImage image)
     VInstance::instance()->endSingleTimeCommands(commandBuffer);
 }
 
-VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount)
+VkImageView VulkanHelpers::createImageView(VImage image, VkImageAspectFlags aspectFlags)
+{
+    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, image.mipsCount, 0);
+}
+
+VkImageView VulkanHelpers::createImageView(VImage image, uint32_t mipLevel, VkImageAspectFlags aspectFlags)
+{
+    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, 1, mipLevel);
+}
+
+VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
+                                           uint32_t layerCount, uint32_t mipsCount, uint32_t mipLevel)
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -298,8 +335,8 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkIma
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspectFlags;//VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseMipLevel = mipLevel;
+    viewInfo.subresourceRange.levelCount = mipsCount;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = layerCount;
 
@@ -315,7 +352,14 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkIma
     return imageView;
 }
 
-bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment)
+bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height,
+                                     VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment)
+{
+    return VulkanHelpers::createAttachment(width, height, 1, format, usage,attachment);
+}
+
+bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, uint32_t mipsCount,
+                                     VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment)
 {
     VkImageAspectFlags aspectMask = 0;
     VkImageLayout imageLayout;
@@ -340,13 +384,17 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
     if(aspectMask == 0)
         return (false);
 
-    if(!VulkanHelpers::createImage(width, height, 1, format, VK_IMAGE_TILING_OPTIMAL, usage | VK_IMAGE_USAGE_SAMPLED_BIT,
+    if(!VulkanHelpers::createImage(width, height, 1, mipsCount, format, VK_IMAGE_TILING_OPTIMAL, usage | VK_IMAGE_USAGE_SAMPLED_BIT,
                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,attachment.image))
         return (false);
 
-    attachment.view = VulkanHelpers::createImageView(attachment.image.vkImage, format, aspectMask, 1);
+    attachment.views.resize(mipsCount);
+    for(size_t i = 0 ; i < mipsCount ; ++i)
+        attachment.views[i] = VulkanHelpers::createImageView(attachment.image, i, aspectMask);
 
-    VulkanHelpers::transitionImageLayout(attachment.image.vkImage, 0, format, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
+    attachment.view = attachment.views.front();//VulkanHelpers::createImageView(attachment.image.vkImage, format, aspectMask, 1);
+
+    VulkanHelpers::transitionImageLayout(attachment.image, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
     attachment.type.layout = imageLayout;
 
@@ -356,8 +404,11 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, VkFormat f
 void VulkanHelpers::destroyAttachment(VFramebufferAttachment attachment)
 {
     VulkanHelpers::destroyImage(attachment.image);
-    if(attachment.view != VK_NULL_HANDLE)
-        vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
+    for(auto view : attachment.views)
+        vkDestroyImageView(VInstance::device(),view, nullptr);
+    attachment.views.clear();
+   // if(attachment.view != VK_NULL_HANDLE)
+     //   vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
 }
 
 
@@ -484,15 +535,6 @@ void VulkanHelpers::takeScreenshot(const VFramebufferAttachment &source, const s
 
     for(size_t i = 0 ; i < (size_t)width*(size_t)height ; ++i)
     {
-        /*Color tempColor = { data[i*4+2],
-                            data[i*4+1],
-                            data[i*4],
-                            data[i*4+3]};
-
-        data[i*4] = tempColor.r;
-        data[i*4+1] = tempColor.g;
-        data[i*4+2] = tempColor.b;
-        data[i*4+3] = tempColor.a;*/
         char temp = data[i*4+2];
         data[i*4+2] = data[i*4];
         data[i*4] = temp;

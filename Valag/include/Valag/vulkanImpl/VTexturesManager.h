@@ -7,18 +7,32 @@
 #include <map>
 #include <list>
 
-/** I could try to work with multiple arrays... and create new descriptor sets **/
-
 namespace vlg
 {
 
+struct VTexture2DArrayFormat
+{
+    uint32_t width;
+    uint32_t height;
+    VkFormat vkFormat;
+
+    bool operator<( VTexture2DArrayFormat const& rhs ) const
+    {
+        if(vkFormat < rhs.vkFormat)
+            return (true);
+        if(height < rhs.height)
+            return (true);
+        if(width < rhs.width)
+            return (true);
+        return (false);
+    }
+};
+
 struct VTexture2DArray
 {
-    VkImage         image;
-    VkDeviceMemory  memory;
-    VkImageView     view;
+    VImage      image;
+    VkImageView view;
 
-    size_t      layerCount;
     VkExtent2D  extent;
 
     std::mutex  mutex;
@@ -35,7 +49,10 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         void checkUpdateDescriptorSets(size_t frameIndex, size_t imageIndex);
 
-        static bool allocTexture(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        static bool allocTexture(uint32_t width, uint32_t height, VkFormat format,
+                                 VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        static bool allocTexture(uint32_t width, uint32_t height,
+                                 VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         static void freeTexture(VTexture &texture);
 
 
@@ -49,9 +66,8 @@ class VTexturesManager : public Singleton<VTexturesManager>
     protected:
         VTexturesManager();
         virtual ~VTexturesManager();
-
-        bool allocTextureImpl(uint32_t width, uint32_t height, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
-        size_t createTextureArray(uint32_t width, uint32_t height);
+        bool allocTextureImpl(VTexture2DArrayFormat format, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        size_t createTextureArray(VTexture2DArrayFormat format);
 
         void freeTextureImpl(VTexture &texture);
 
@@ -75,7 +91,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
         size_t                  getImgDescriptorSetVersion(size_t imageIndex);
 
     private:
-        std::multimap<std::pair<uint32_t,uint32_t>, size_t> m_extentToArray;
+        std::multimap<VTexture2DArrayFormat, size_t> m_formatToArray;
         std::vector<VTexture2DArray*>       m_allocatedTextureArrays;
         std::vector<VkDescriptorImageInfo>  m_imageInfos;
 

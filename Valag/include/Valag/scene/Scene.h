@@ -26,8 +26,8 @@ class Scene : public NotificationListener
 
         virtual void cleanAll();
 
-        /**virtual bool initRenderer(sf::Vector2u);**/
         virtual void update(const Time &elapsedTime);
+
         /**virtual void computeRenderQueue();
         virtual sf::View generateView(Camera*);
         virtual void processRenderQueue(sf::RenderTarget*);
@@ -101,9 +101,11 @@ class Scene : public NotificationListener
         ObjectTypeId m_curNewId;
 
         bool m_needToUpdateRenderQueue;
+        bool m_needToUpdateEnvMap;
 
-        TextureAsset       *m_envMap;
-        AmbientLightingData m_ambientLightingData;
+        TextureAsset           *m_envMapAsset;
+        VFramebufferAttachment  m_filteredEnvMap;
+        AmbientLightingData     m_ambientLightingData;
 
         ///static const sf::Vector2u DEFAULT_SHADOWMAP_SIZE;
 };

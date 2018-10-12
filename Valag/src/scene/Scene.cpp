@@ -2,6 +2,7 @@
 
 #include "Valag/utils/Logger.h"
 #include "Valag/renderers/SceneRenderer.h"
+#include "Valag/renderers/PBRToolbox.h"
 #include "Valag/scene/SceneObject.h"
 #include "Valag/assets/TextureAsset.h"
 
@@ -17,6 +18,7 @@ Scene::Scene() :
     m_rootNode.setPosition(0,0,0);
     m_curNewId = 0;
     m_needToUpdateRenderQueue = false;
+    m_needToUpdateEnvMap      = false;
     ///m_last_target = nullptr;
     ///m_currentCamera = nullptr;
 
@@ -26,7 +28,7 @@ Scene::Scene() :
     ///m_shadowCastingOption = NoShadow;
     ///m_enableSRGB = false;
 
-    m_envMap = nullptr;
+    m_envMapAsset = nullptr;
 
     this->setViewAngle(0,0);
 }
@@ -40,6 +42,7 @@ void Scene::cleanAll()
 {
     m_rootNode.removeAndDestroyAllChilds();
     this->destroyAllCreatedObjects();
+    VulkanHelpers::destroyAttachment(m_filteredEnvMap);
 }
 
 
@@ -52,6 +55,8 @@ void Scene::update(const Time &elapsedTime)
 {
     m_rootNode.update(elapsedTime);
 
+    if(m_needToUpdateEnvMap)
+        this->updateEnvMap();
 
     /**if(m_needToUpdateRenderQueue)
     {
@@ -458,10 +463,10 @@ void Scene::setAmbientLight(Color light)
 
 void Scene::setEnvironmentMap(TextureAsset *texture)
 {
-    this->stopListeningTo(m_envMap);
-    m_envMap = texture;
-    this->startListeningTo(m_envMap);
-    this->updateEnvMap();
+    this->stopListeningTo(m_envMapAsset);
+    m_envMapAsset = texture;
+    this->startListeningTo(m_envMapAsset);
+    m_needToUpdateEnvMap = true;
 }
 
 
@@ -469,8 +474,8 @@ void Scene::notify(NotificationSender *sender, NotificationType notification)
 {
     if(notification == Notification_AssetLoaded)
     {
-        if(sender == m_envMap)
-            this->updateEnvMap();
+        if(sender == m_envMapAsset)
+            m_needToUpdateEnvMap = true;
     }
 }
 
@@ -494,11 +499,21 @@ void Scene::DisableGammaCorrection()
 
 void Scene::updateEnvMap()
 {
-    if(m_envMap != nullptr && m_envMap->isLoaded())
-        m_ambientLightingData.envMap = {m_envMap->getVTexture().getTextureId(),
-                                        m_envMap->getVTexture().getTextureLayer()};
+    if(m_envMapAsset != nullptr && m_envMapAsset->isLoaded())
+    {
+        //Should wait somehow to finish rendering before destroying
+        //Maybe I could worj with a cleaning list ?
+        VulkanHelpers::destroyAttachment(m_filteredEnvMap);
+
+        m_filteredEnvMap = PBRToolbox::generateFilteredEnvMap(m_envMapAsset->getVTexture());
+
+        m_ambientLightingData.envMap = {m_envMapAsset->getVTexture().getTextureId(),
+                                        m_envMapAsset->getVTexture().getTextureLayer()};
+    }
     else
         m_ambientLightingData.envMap = {0,0};
+
+    m_needToUpdateEnvMap = false;
 }
 
 ObjectTypeId Scene::generateObjectId()

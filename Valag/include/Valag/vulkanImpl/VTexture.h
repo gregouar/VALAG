@@ -15,17 +15,22 @@ class VTexture
         VTexture();
         virtual ~VTexture();
 
-        bool generateTexture(unsigned char* pixels, int texWidth, int texHeight, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+        bool generateTexture(int texWidth, int texHeight,
+                             unsigned char* pixels, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+        bool generateTexture(int texWidth, int texHeight, VkFormat format,
+                             unsigned char* pixels, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
         uint32_t    getTextureId();
         uint32_t    getTextureLayer();
         VkExtent2D  getExtent();
+        VkFormat    getFormat();
 
     protected:
         uint32_t m_textureId;
         uint32_t m_textureLayer;
 
-        VkExtent2D m_extent;
+        VkExtent2D  m_extent;
+        VkFormat    m_format;
 
 };
 

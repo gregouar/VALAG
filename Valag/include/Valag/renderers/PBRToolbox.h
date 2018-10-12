@@ -14,6 +14,8 @@ class PBRToolbox : public Singleton<PBRToolbox>
 
         static VFramebufferAttachment getBrdflut();
 
+        static VFramebufferAttachment generateFilteredEnvMap(VTexture src);
+
         void cleanup();
 
     protected:
@@ -29,6 +31,9 @@ class PBRToolbox : public Singleton<PBRToolbox>
     public:
         static const char *BRDFLUT_VERTSHADERFILE;
         static const char *BRDFLUT_FRAGSHADERFILE;
+
+        static const int   ENVMAP_FILTERINGMIPSCOUNT;
+
 };
 
 }

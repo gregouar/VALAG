@@ -15,6 +15,8 @@ namespace vlg
 
 struct VMemory
 {
+    VMemory() : vkMemory(VK_NULL_HANDLE){}
+
     VkDeviceMemory          vkMemory;
     VkDeviceSize            offset;
 

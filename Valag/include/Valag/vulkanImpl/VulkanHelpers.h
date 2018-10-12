@@ -15,8 +15,12 @@ namespace vlg
 
 struct VImage
 {
+    VImage() : vkImage(VK_NULL_HANDLE){}
     VMemory memory;
     VkImage vkImage;
+    uint32_t layerCount;
+    uint32_t mipsCount;
+    VkFormat format;
 };
 
 struct VFramebufferAttachmentType
@@ -27,10 +31,11 @@ struct VFramebufferAttachmentType
 
 struct VFramebufferAttachment
 {
-    VImage          image;
-    VkImageView     view;
-    VkExtent2D      extent;
-    VFramebufferAttachmentType type;
+    VImage                      image;
+    VkImageView                 view; //First of view
+    std::vector<VkImageView>    views;
+    VkExtent2D                  extent;
+    VFramebufferAttachmentType  type;
 };
 
 class VulkanHelpers
@@ -46,19 +51,35 @@ public:
     static bool copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
 
-    static bool createImage(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                            VkMemoryPropertyFlags properties, VImage &image/*VkImage& image, VkDeviceMemory& imageMemory*/);
-    static bool createImage(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+    static bool createImage(uint32_t width, uint32_t height, uint32_t layerCount,
+                            VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                            VkMemoryPropertyFlags properties, VImage &image);
+    static bool createImage(uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipsCount,
+                            VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                            VkMemoryPropertyFlags properties, VImage &image);
+    static bool createImage(uint32_t width, uint32_t height, uint32_t layerCount,
+                            VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                             VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     static void destroyImage(VImage image);
 
-    static void transitionImageLayout(VkImage image, uint32_t layer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+    static void transitionImageLayout(VImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                      CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+    static void transitionImageLayout(VImage image, uint32_t layer, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                      CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
+    static void transitionImageLayout(VkImage image, uint32_t layer, uint32_t mipsCount, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
                                       CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
 
-    static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount);
+    static VkImageView createImageView(VImage image, VkImageAspectFlags aspectFlags);
+    static VkImageView createImageView(VImage image, VkImageAspectFlags aspectFlags, uint32_t mipLevel);
+    static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
+                                       uint32_t layerCount = 1, uint32_t mipsCount = 1, uint32_t mipLevel = 0);
 
-    static bool createAttachment(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment);
+    static bool createAttachment(uint32_t width, uint32_t height, uint32_t mipsCount,
+                                 VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment);
+    static bool createAttachment(uint32_t width, uint32_t height,
+                                 VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment);
+
     static void destroyAttachment(VFramebufferAttachment attachment);
 
     static VkShaderModule createShaderModule(const std::vector<char>& code);

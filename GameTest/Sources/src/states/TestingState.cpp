@@ -29,8 +29,7 @@ TestingState::TestingState() :
 
 TestingState::~TestingState()
 {
-    if(m_scene != nullptr)
-        delete m_scene;
+    this->leaving();
 }
 
 void TestingState::init()
@@ -92,7 +91,7 @@ void TestingState::init()
     m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96.0/255.0});
     //m_scene->setAmbientLight({16/255.0,32/255.0,255/255.0,96.0/255.0});
 
-    //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.exr",loadType));
+    //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.hdr",loadType));
     m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/panorama.jpg",loadType));
 
     vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt",loadType);
@@ -219,6 +218,9 @@ void TestingState::entered()
 
 void TestingState::leaving()
 {
+    if(m_scene != nullptr)
+        delete m_scene;
+    m_scene = nullptr;
 }
 
 void TestingState::revealed()
@@ -239,6 +241,8 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     if(eventsManager->isAskingToClose())
         m_manager->stop();
 
+    if(m_scene == nullptr)
+        return;
 
     glm::vec2 worldMousePos = m_scene->convertScreenToWorldCoord(eventsManager->centeredMousePosition(), m_camera);
 

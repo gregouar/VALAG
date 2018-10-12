@@ -393,7 +393,7 @@ bool RenderWindow::createSwapchain()
         m_swapchainAttachments[i].image.memory  = {};
         m_swapchainAttachments[i].view =
                 VulkanHelpers::createImageView(m_swapchainAttachments[i].image.vkImage,surfaceFormat.format,
-                                               VK_IMAGE_ASPECT_COLOR_BIT,1);
+                                               VK_IMAGE_ASPECT_COLOR_BIT);
         m_swapchainAttachments[i].type.layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VulkanHelpers::createAttachment(swapchainExtent.width, swapchainExtent.height, VK_FORMAT_D24_UNORM_S8_UINT,
