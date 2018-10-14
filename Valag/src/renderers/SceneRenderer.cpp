@@ -39,12 +39,18 @@ SceneRenderer::SceneRenderer(RenderWindow *targetWindow, RendererName name, Rend
     //m_sampler(VK_NULL_HANDLE),
     //m_ambientLightingDescriptorLayout(VK_NULL_HANDLE)
 {
+    //m_useDynamicView = true;
     this->init();
 }
 
 SceneRenderer::~SceneRenderer()
 {
     this->cleanup();
+}
+
+void SceneRenderer::addRenderingInstance(const SceneRenderingInstance &renderingInstance)
+{
+    m_renderingInstances.push_back(renderingInstance);
 }
 
 void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
@@ -58,7 +64,6 @@ void SceneRenderer::addToMeshesVbo(VMesh* mesh, const MeshDatum &datum)
     if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
         foundedVbo = m_meshesVbos[m_curFrameIndex].insert(foundedVbo, {mesh, DynamicVBO<MeshDatum>(4)});
     foundedVbo->second.push_back(datum);
-    //m_spritesVbos[m_curFrameIndex].push_back(datum);
 }
 
 void SceneRenderer::addToLightsVbo(const LightDatum &datum)
@@ -66,10 +71,29 @@ void SceneRenderer::addToLightsVbo(const LightDatum &datum)
     m_lightsVbos[m_curFrameIndex].push_back(datum);
 }
 
-void SceneRenderer::setAmbientLightingData(const AmbientLightingData &data)
+/*void SceneRenderer::setAmbientLightingData(const AmbientLightingData &data)
 {
     m_ambientLightingData = data;
+}*/
+
+size_t SceneRenderer::getSpritesVboSize()
+{
+    return m_spritesVbos[m_curFrameIndex].getSize();
 }
+
+size_t SceneRenderer::getMeshesVboSize(VMesh *mesh)
+{
+    auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
+    if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
+        return (0);
+    return foundedVbo->second.getSize();
+}
+
+size_t SceneRenderer::getLightsVboSize()
+{
+    return m_lightsVbos[m_curFrameIndex].getSize();
+}
+
 
 bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 {
@@ -90,7 +114,7 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
     ///Probably it should be put elsewhere...
-    this->updateUbos(imageIndex);
+    //this->updateUbos(imageIndex);
 
     size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
     VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
@@ -118,7 +142,6 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_deferredSpritesPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
-
         m_deferredMeshesPipeline.bind(cmb);
 
         size_t j = 0;
@@ -140,7 +163,15 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
                 vkCmdBindIndexBuffer(cmb, indexBuffer.buffer,
                                           indexBuffer.offset, VK_INDEX_TYPE_UINT16);
 
-                vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), meshesVboSize[j], 0, 0, 0);
+                for(auto renderingInstance : m_renderingInstances)
+                {
+                    m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                    renderingInstance.pushCamPosAndZoom(cmb, m_deferredMeshesPipeline.getLayout());
+
+                    vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), renderingInstance.getMeshesVboSize(mesh.first),
+                                     0, 0, renderingInstance.getMeshesVboOffset(mesh.first));
+                }
+                //vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), meshesVboSize[j], 0, 0, 0);
             }
 
             j++;
@@ -152,7 +183,16 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
             m_deferredSpritesPipeline.bind(cmb);
 
-            vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
+            for(auto renderingInstance : m_renderingInstances)
+            {
+                m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                renderingInstance.pushCamPosAndZoom(cmb, m_deferredSpritesPipeline.getLayout(),
+                                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+                vkCmdDraw(cmb, 4, renderingInstance.getSpritesVboSize(),
+                               0, renderingInstance.getSpritesVboOffset());
+            }
+            //vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
 
     if(!m_renderGraph.endRecording(m_deferredPass))
@@ -171,12 +211,20 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
             m_alphaDetectPipeline.bind(cmb);
 
-            vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
+            for(auto renderingInstance : m_renderingInstances)
+            {
+                m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                renderingInstance.pushCamPosAndZoom(cmb, m_alphaDetectPipeline.getLayout());
+
+                vkCmdDraw(cmb, 4, renderingInstance.getSpritesVboSize(),
+                               0, renderingInstance.getSpritesVboOffset());
+            }
+
+            //vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
 
     if(!m_renderGraph.endRecording(m_alphaDetectPass))
         return (false);
-
 
     VkDescriptorSet descriptorSetsBis[] = { m_renderView.getDescriptorSet(m_curFrameIndex),
                                             VTexturesManager::descriptorSet(m_curFrameIndex),
@@ -194,7 +242,16 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
             m_alphaDeferredPipeline.bind(cmb);
 
-            vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
+            for(auto renderingInstance : m_renderingInstances)
+            {
+                m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                renderingInstance.pushCamPosAndZoom(cmb, m_alphaDeferredPipeline.getLayout(),
+                                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+                vkCmdDraw(cmb, 4, renderingInstance.getSpritesVboSize(),
+                               0, renderingInstance.getSpritesVboOffset());
+            }
+            //vkCmdDraw(cmb, 4, spritesVboSize, 0, 0);
         }
 
     if(!m_renderGraph.endRecording(m_alphaDeferredPass))
@@ -221,7 +278,16 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
             m_lightingPipeline.bind(cmb);
 
-            vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
+            for(auto renderingInstance : m_renderingInstances)
+            {
+                m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                renderingInstance.pushCamPosAndZoom(cmb, m_lightingPipeline.getLayout(),
+                                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+                vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, renderingInstance.getLightsVboSize(),
+                               0, renderingInstance.getLightsVboOffset());
+            }
+            //vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
         }
 
     if(!m_renderGraph.endRecording(m_lightingPass))
@@ -244,14 +310,25 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
             m_alphaLightingPipeline.bind(cmb);
 
-            vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
+            for(auto renderingInstance : m_renderingInstances)
+            {
+                m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+                renderingInstance.pushCamPosAndZoom(cmb, m_alphaLightingPipeline.getLayout(),
+                                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+                vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, renderingInstance.getLightsVboSize(),
+                               0, renderingInstance.getLightsVboOffset());
+            }
+            //vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, lightsVboSize, 0, 0);
         }
 
     if(!m_renderGraph.endRecording(m_alphaLightingPass))
         return (false);
 
-    if(m_ambientLightingDescVersion[imageIndex] != VTexturesManager::imgDescriptorSetVersion(imageIndex))
+    //if(m_ambientLightingDescVersion[imageIndex] != VTexturesManager::imgDescriptorSetVersion(imageIndex))
         this->recordAmbientLightingCmb(imageIndex);
+
+    m_renderingInstances.clear();
 
     return (true);
 }
@@ -263,7 +340,7 @@ bool SceneRenderer::recordSsgiCmb(uint32_t imageIndex)
         m_ssgiBNPipeline.bind(cmb);
 
         ///m_renderView set shouldnt be by IMAGE !!! Need to update renderView or split set in two !!
-        VkDescriptorSet descSets[] = {  m_renderView.getDescriptorSet(0),
+        VkDescriptorSet descSets[] = {  m_renderView.getDescriptorSet(m_curFrameIndex),
                                         m_renderGraph.getDescriptorSet(m_ssgiBNPass,imageIndex)};
 
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ssgiBNPipeline.getLayout(),
@@ -306,30 +383,39 @@ bool SceneRenderer::recordAmbientLightingCmb(uint32_t imageIndex)
 
         m_ambientLightingPipeline.bind(cmb);
 
-        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex),
-                                      VTexturesManager::imgDescriptorSet(imageIndex)};
-        m_ambientLightingDescVersion[imageIndex] = VTexturesManager::imgDescriptorSetVersion(imageIndex);
+        VkDescriptorSet descSets[] = {m_renderGraph.getDescriptorSet(m_ambientLightingPass,imageIndex)//,
+                                      /*VTexturesManager::descriptorSet(m_curFrameIndex)*/};
+        //m_ambientLightingDescVersion[imageIndex] = VTexturesManager::imgDescriptorSetVersion(imageIndex);
 
         vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
-                                0, 2, descSets, 0, NULL);
-        vkCmdDraw(cmb, 3, 1, 0, 0);
+                                0, 1, descSets, 0, NULL);
+
+        for(auto renderingInstance : m_renderingInstances)
+        {
+            ///Change pushConstant (cam pos) depending on renderingInstance and change descSet depending on renderingData
+
+            m_renderView.setupViewport(renderingInstance.getViewInfo(), cmb);
+            renderingInstance.pushCamPosAndZoom(cmb, m_ambientLightingPipeline.getLayout(),
+                                                VK_SHADER_STAGE_FRAGMENT_BIT);
+
+            VkDescriptorSet descSetsBis[] = {renderingInstance.getRenderingData()->getAmbientLightingDescSet(m_curFrameIndex)};
+
+            vkCmdBindDescriptorSets(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ambientLightingPipeline.getLayout(),
+                                    1, 1, descSetsBis, 0, NULL);
+
+            vkCmdDraw(cmb, 3, 1, 0, 0);
+        }
 
     return m_renderGraph.endRecording(m_ambientLightingPass);
 }
 
-bool SceneRenderer::updateUbos(uint32_t imageIndex)
+/*bool SceneRenderer::updateUbos(uint32_t imageIndex)
 {
-    /*m_ambientLightingUbo[imageIndex].viewPos = glm::vec4(m_renderView.getTranslate(),0.0);
-
-    std::cout<<m_ambientLightingUbo[imageIndex].viewPos.x<<" "
-            <<m_ambientLightingUbo[imageIndex].viewPos.y<<" "
-            <<m_ambientLightingUbo[imageIndex].viewPos.z<<std::endl;*/
-
     VBuffersAllocator::writeBuffer(m_ambientLightingUbo[imageIndex],
                                   &m_ambientLightingData,
                                    sizeof(AmbientLightingData));
     return (true);
-}
+}*/
 
 bool SceneRenderer::init()
 {
@@ -351,11 +437,11 @@ bool SceneRenderer::init()
     if(!AbstractRenderer::init())
         return (false);
 
-    m_ambientLightingDescVersion.resize(m_targetWindow->getSwapchainSize());
+   // m_ambientLightingDescVersion.resize(m_targetWindow->getSwapchainSize());
     for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
     {
         this->recordSsgiCmb(i);
-        this->recordAmbientLightingCmb(i);
+        //this->recordAmbientLightingCmb(i);
         this->recordToneMappingCmb(i);
     }
 
@@ -561,15 +647,15 @@ void SceneRenderer::prepareLightingRenderPass()
 
 
     ///This should be elsewhere
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
+    /*size_t imagesCount = m_targetWindow->getSwapchainSize();
     m_ambientLightingUbo.resize(imagesCount);
     for(auto &buffer : m_ambientLightingUbo)
     {
         VBuffersAllocator::allocBuffer(sizeof(AmbientLightingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                        buffer);
-    }
-    m_renderGraph.addNewUniforms(m_lightingPass, m_ambientLightingUbo);
+    }*/
+   // m_renderGraph.addNewUniforms(m_lightingPass, m_ambientLightingUbo);
 }
 
 void SceneRenderer::prepareAlphaLightingRenderPass()
@@ -586,7 +672,7 @@ void SceneRenderer::prepareAlphaLightingRenderPass()
 
     m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[1], m_alphaLightingPass, 0);
 
-    m_renderGraph.addNewUniforms(m_alphaLightingPass, m_ambientLightingUbo);
+    //m_renderGraph.addNewUniforms(m_alphaLightingPass, m_ambientLightingUbo);
 }
 
 void SceneRenderer::prepareSsgiLightingRenderPass()
@@ -596,7 +682,7 @@ void SceneRenderer::prepareSsgiLightingRenderPass()
 
 void SceneRenderer::prepareAmbientLightingRenderPass()
 {
-    m_ambientLightingPass = m_renderGraph.addRenderPass(0);
+    m_ambientLightingPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
     //m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[0]);
     //m_renderGraph.addNewAttachments(m_ambientLightingPass, m_hdrAttachements[1]);
@@ -618,10 +704,10 @@ void SceneRenderer::prepareAmbientLightingRenderPass()
 
     m_renderGraph.transferAttachmentsToUniforms(m_ssgiBNBlurPasses[1], m_ambientLightingPass, 0);
 
-    m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
+   // m_renderGraph.addNewUniforms(m_ambientLightingPass, m_ambientLightingUbo);
 
-    size_t imagesCount = m_targetWindow->getSwapchainSize();
-    std::vector<VkImageView> brdflut(imagesCount, PBRToolbox::getBrdflut().view);
+    size_t texturesCount = /*m_targetWindow->getFramesCount();*/m_targetWindow->getSwapchainSize();
+    std::vector<VkImageView> brdflut(texturesCount, PBRToolbox::getBrdflut().view);
     m_renderGraph.addNewUniforms(m_ambientLightingPass, brdflut);
 }
 
@@ -651,10 +737,12 @@ bool SceneRenderer::createDeferredSpritesPipeline()
 
     m_deferredSpritesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_deferredSpritesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_deferredSpritesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_deferredSpritesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_deferredSpritesPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4));
 
     m_deferredSpritesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
@@ -692,10 +780,12 @@ bool SceneRenderer::createDeferredMeshesPipeline()
 
     m_deferredMeshesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
 
-    m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_deferredMeshesPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4));
 
     m_deferredMeshesPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
@@ -720,10 +810,13 @@ bool SceneRenderer::createAlphaDetectPipeline()
 
     m_alphaDetectPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDetectPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaDetectPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_alphaDetectPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4));
+
 
     m_alphaDetectPipeline.setWriteMask(VK_COLOR_COMPONENT_A_BIT);
 
@@ -758,11 +851,13 @@ bool SceneRenderer::createAlphaDeferredPipeline()
 
     m_alphaDeferredPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDeferredPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaDeferredPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDeferredPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaDeferredPass));
+
+    m_alphaDeferredPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4));
 
     m_alphaDeferredPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
@@ -821,40 +916,6 @@ bool SceneRenderer::createSsgiBNPipelines()
     ///Horizontal and vertical blur
     for(size_t i = 0 ; i < 2 ; ++i)
     {
-        /*struct SpecializationData {
-            float radius;
-            float smartThresold;
-            bool  vertical;
-        } specializationData;
-
-        specializationData.radius = 4.0;
-        specializationData.smartThresold = 15.0;
-        specializationData.vertical = static_cast<bool>(i);
-
-		std::array<VkSpecializationMapEntry, 3> specializationMapEntries;
-		specializationMapEntries[0].constantID = 0;
-		specializationMapEntries[0].size = sizeof(specializationData.radius);
-		specializationMapEntries[0].offset = 0;
-
-		specializationMapEntries[1].constantID = 1;
-		specializationMapEntries[1].size = sizeof(specializationData.smartThresold);
-		specializationMapEntries[1].offset = offsetof(SpecializationData, smartThresold);
-
-		specializationMapEntries[2].constantID = 2;
-		specializationMapEntries[2].size = sizeof(specializationData.vertical);
-		specializationMapEntries[2].offset = offsetof(SpecializationData, vertical);
-
-		std::cout<<"old:"<<std::endl;
-		for(size_t i = 0 ; i < 3 ; ++i)
-            std::cout<<specializationMapEntries[i].offset<<" "<<specializationMapEntries[i].size<<std::endl;*/
-
-		/*VkSpecializationInfo specializationInfo{};
-		specializationInfo.dataSize = sizeof(specializationData);
-		specializationInfo.mapEntryCount = static_cast<uint32_t>(specializationMapEntries.size());
-		specializationInfo.pMapEntries = specializationMapEntries.data();
-        specializationInfo.pData = &specializationData;*/
-
-
         std::ostringstream vertShaderPath,fragShaderPath;
         vertShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_VERTSHADERFILE;
         fragShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_FRAGSHADERFILE;
@@ -899,11 +960,13 @@ bool SceneRenderer::createLightingPipeline()
 
     m_lightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_lightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
     //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_lightingPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4));
 
     m_lightingPipeline.setBlendMode(BlendMode_Add,0);
     //m_lightingPipeline.setBlendMode(BlendMode_Add,1);
@@ -930,11 +993,13 @@ bool SceneRenderer::createAlphaLightingPipeline()
 
     m_alphaLightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaLightingPass));
     //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_alphaLightingPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4));
 
     m_alphaLightingPipeline.setBlendMode(BlendMode_Add,0);
 
@@ -962,15 +1027,18 @@ bool SceneRenderer::createAmbientLightingPipeline()
     vertShaderPath << VApp::DEFAULT_SHADERPATH << AMBIENTLIGHTING_VERTSHADERFILE;
     fragShaderPath << VApp::DEFAULT_SHADERPATH << AMBIENTLIGHTING_FRAGSHADERFILE;
 
+    m_ambientLightingPipeline.addSpecializationDatum(PBRToolbox::ENVMAP_FILTERINGMIPSCOUNT, 1);
+
     m_ambientLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_ambientLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_ambientLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+    m_ambientLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
-    //m_ambientLightingPipeline.attachDescriptorSetLayout(m_deferredDescriptorSetLayout);
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
-    m_ambientLightingPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
-    //m_ambientLightingPipeline.attachDescriptorSetLayout(m_ambientLightingDescriptorLayout);
+    m_ambientLightingPipeline.attachDescriptorSetLayout(SceneRenderingData::ambientLightingDescSetLayout());
+    //m_ambientLightingPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_ambientLightingPipeline.attachPushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4));
 
     m_ambientLightingPipeline.setBlendMode(BlendMode_Add,0);
     m_ambientLightingPipeline.setBlendMode(BlendMode_Add,1);
@@ -1002,21 +1070,9 @@ void SceneRenderer::cleanup()
     m_spritesVbos.clear();
     m_meshesVbos.clear();
 
-    /*if(m_sampler != VK_NULL_HANDLE)
-        vkDestroySampler(device, m_attachmentsSampler, nullptr);
-    m_sampler = VK_NULL_HANDLE;*/
-
-/*    if(m_ambientLightingDescriptorLayout != VK_NULL_HANDLE)
-        vkDestroyDescriptorSetLayout(VInstance::device(), m_ambientLightingDescriptorLayout, nullptr);
-    m_ambientLightingDescriptorLayout = VK_NULL_HANDLE;*/
-
     for(auto attachement : m_deferredDepthAttachments)
         VulkanHelpers::destroyAttachment(attachement);
     m_deferredDepthAttachments.clear();
-
-    /*for(auto attachement : m_alphaDetectAttachments)
-        VulkanHelpers::destroyAttachment(attachement);
-    m_alphaDetectAttachments.clear();*/
 
     for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
     {
@@ -1057,6 +1113,8 @@ void SceneRenderer::cleanup()
     m_ssgiLightingPipeline.destroy();
     m_ambientLightingPipeline.destroy();
     m_toneMappingPipeline.destroy();
+
+    SceneRenderingData::cleanStatic();
 
     AbstractRenderer::cleanup();
 }

@@ -176,13 +176,22 @@ IsoSpriteDatum IsoSpriteEntity::getIsoSpriteDatum()
 }
 
 
-void IsoSpriteEntity::draw(SceneRenderer *renderer)
+/*void IsoSpriteEntity::draw(SceneRenderer *renderer)
 {
     if(m_spriteModel == nullptr || m_parentNode == nullptr)
         return;
 
     if(m_spriteModel->isReady())
         renderer->addToSpritesVbo(this->getIsoSpriteDatum());
+}*/
+
+void IsoSpriteEntity::generateRenderingData(SceneRenderingInstance *renderingInstance)
+{
+    if(m_spriteModel == nullptr || m_parentNode == nullptr)
+        return;
+
+    if(m_spriteModel->isReady())
+        renderingInstance->addToSpritesVbo(this->getIsoSpriteDatum());
 }
 
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)

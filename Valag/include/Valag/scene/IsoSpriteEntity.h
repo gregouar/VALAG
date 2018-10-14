@@ -50,7 +50,8 @@ class IsoSpriteEntity : public ShadowCaster
         glm::vec3 getRmt();
 
         IsoSpriteDatum getIsoSpriteDatum();
-        virtual void draw(SceneRenderer *renderer);
+        //virtual void draw(SceneRenderer *renderer);
+        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
 
         virtual void notify(NotificationSender *sender, NotificationType notification);
 

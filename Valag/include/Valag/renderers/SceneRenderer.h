@@ -26,11 +26,17 @@ class SceneRenderer : public AbstractRenderer
         SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
+        void addRenderingInstance(const SceneRenderingInstance &renderingInstance);
+
         void addToSpritesVbo(const IsoSpriteDatum &datum);
         void addToMeshesVbo(VMesh *mesh, const MeshDatum &datum);
         void addToLightsVbo(const LightDatum &datum);
 
-        void setAmbientLightingData(const AmbientLightingData &);
+        size_t getSpritesVboSize();
+        size_t getMeshesVboSize(VMesh *mesh);
+        size_t getLightsVboSize();
+
+        //void setAmbientLightingData(const AmbientLightingData &);
 
     protected:
         virtual bool init();
@@ -72,12 +78,13 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
-        virtual bool    updateUbos(uint32_t imageIndex);
+        //virtual bool    updateUbos(uint32_t imageIndex);
 
     private:
-        AmbientLightingData     m_ambientLightingData;
-        std::vector<VBuffer>    m_ambientLightingUbo;
-        std::vector<size_t>     m_ambientLightingDescVersion;
+        //AmbientLightingData     m_ambientLightingData;
+        //std::vector<VBuffer>    m_ambientLightingUbo;
+        //std::vector<size_t>     m_ambientLightingDescVersion;
+
 
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,
@@ -123,6 +130,8 @@ class SceneRenderer : public AbstractRenderer
         std::vector<DynamicVBO<IsoSpriteDatum> >                m_spritesVbos;
         std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
         std::vector<DynamicVBO<LightDatum> >                    m_lightsVbos;
+
+        std::list<SceneRenderingInstance> m_renderingInstances;
 
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;

@@ -9,6 +9,7 @@ namespace vlg
 {
 
 AbstractRenderer::AbstractRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order) :
+    //m_useDynamicView(false),
     m_targetWindow(targetWindow),
     m_renderGraph(targetWindow->getSwapchainSize(),
                   targetWindow->getFramesCount()),
@@ -26,6 +27,7 @@ AbstractRenderer::~AbstractRenderer()
 
 void AbstractRenderer::update(size_t frameIndex)
 {
+    //if(!m_useDynamicView)
     m_renderView.update(frameIndex);
 }
 
@@ -39,14 +41,19 @@ void AbstractRenderer::render(uint32_t imageIndex)
     m_curFrameIndex = (m_curFrameIndex + 1) % m_targetWindow->getFramesCount();
 }
 
-void AbstractRenderer::setView(glm::mat4 view, glm::mat4 viewInv)
+void AbstractRenderer::setView(ViewInfo viewInfo)
 {
-    m_renderView.setView(view, viewInv);
+    m_renderView.setView(viewInfo.view, viewInfo.viewInv);
 }
 
 std::vector<FullRenderPass*> AbstractRenderer::getFinalPasses()
 {
     return m_finalPasses;
+}
+
+size_t AbstractRenderer::getFramesCount()
+{
+    return m_targetWindow->getFramesCount();
 }
 
 RendererName AbstractRenderer::getName()
@@ -74,7 +81,7 @@ bool AbstractRenderer::createRenderView()
     m_renderView.setExtent({m_targetWindow->getSwapchainExtent().width,
                             m_targetWindow->getSwapchainExtent().height});
 
-    return m_renderView.create(m_targetWindow->getFramesCount());
+    return m_renderView.create(m_targetWindow->getFramesCount()/*, m_useDynamicView*/);
 }
 
 bool AbstractRenderer::init()

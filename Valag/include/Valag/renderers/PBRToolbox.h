@@ -32,6 +32,9 @@ class PBRToolbox : public Singleton<PBRToolbox>
         static const char *BRDFLUT_VERTSHADERFILE;
         static const char *BRDFLUT_FRAGSHADERFILE;
 
+        static const char *IBLFILTERING_VERTSHADERFILE;
+        static const char *IBLFILTERING_FRAGSHADERFILE;
+
         static const int   ENVMAP_FILTERINGMIPSCOUNT;
 
 };

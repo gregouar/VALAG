@@ -3,7 +3,7 @@
 	<name>QuackMaterial</name>
 	<height>0</height>
 	<texture type="albedo">quack.jpg</texture>
-	<roughness>.2</roughness>
+	<roughness>.3</roughness>
 	<metalness>1</metalness>
 	<translucency>0</translucency>
 </material>

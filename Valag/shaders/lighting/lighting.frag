@@ -19,11 +19,17 @@ layout (set = 1, binding = 5) uniform sampler2D samplerAlphaPosition;
 layout (set = 1, binding = 6) uniform sampler2D samplerAlphaNormal;
 layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
 
-layout(set = 1, binding = 5) uniform AmbientLightingUbo {
-    vec4 viewPos;
+/*layout(set = 1, binding = 5) uniform AmbientLightingUbo {
+    //vec4 viewPos;
     vec4 ambientLight;
-    uvec2 envMap;
-} ubo;
+    bool enableEnvMap;
+    //uvec2 envMap;
+} ubo;*/
+
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
 
 
 //layout(binding = 0, set = 1) uniform sampler samp;
@@ -87,7 +93,7 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
     vec3 surfaceReflection0 = vec3(0.04);
     surfaceReflection0 = mix(surfaceReflection0, fragAlbedo.rgb, fragRmt.g);
 
-    vec3 viewDirection = normalize(ubo.viewPos.xyz - fragPos);
+    vec3 viewDirection = normalize(pc.camPosAndZoom.xyz - fragPos);
 
     if(lightPos.w == 0.0)
     {

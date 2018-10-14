@@ -563,7 +563,7 @@ bool FullRenderPass::createDescriptorSets(VkDescriptorPool pool, VkSampler sampl
             descriptorWrites[j].pBufferInfo     = &bufferInfos[j];
             descriptorWrites[j].dstSet          = m_descriptorSets[i];
 
-            imageInfos[j] = {};
+            imageInfos[j]  = {};
             bufferInfos[j] = {};
         }
 

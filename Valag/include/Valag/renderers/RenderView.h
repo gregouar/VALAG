@@ -14,6 +14,16 @@ struct ViewUBO {
     glm::vec2 depthOffsetAndFactor;
 };
 
+struct ViewInfo {
+    ViewInfo() : viewportOffset(0.0,0.0),
+                 viewportExtent(1.0,1.0){}
+
+    glm::mat4 view;
+    glm::mat4 viewInv;
+    glm::vec2 viewportOffset;
+    glm::vec2 viewportExtent;
+};
+
 class RenderView
 {
     public:
@@ -23,7 +33,8 @@ class RenderView
         bool create(size_t imagesCount);
         void destroy();
 
-        void update(size_t imageIndex);
+        void update(size_t imageIndex, VkCommandBuffer cmb = VK_NULL_HANDLE);
+        void setupViewport(const ViewInfo &viewInfo, VkCommandBuffer cmb);
 
         void setDepthFactor(float depthFactor);
 
@@ -46,6 +57,9 @@ class RenderView
         bool createDescriptorSets(size_t framesCount);
 
     private:
+        size_t  m_curBufferIndex;
+
+        glm::vec2 m_extent;
         ViewUBO   m_viewUbo;
         glm::vec3 m_position;
         glm::vec3 m_lookAt;
@@ -55,8 +69,8 @@ class RenderView
         VkDescriptorSetLayout           m_descriptorSetLayout; ///Could be static...
         std::vector<VkDescriptorSet>    m_descriptorSets;
 
-        std::vector<bool>               m_needToUpdateBuffers;
-        std::vector<VBuffer>            m_buffers;
+        std::vector<bool>       m_needToUpdateBuffers;
+        std::vector<VBuffer>    m_buffers;
 };
 
 }

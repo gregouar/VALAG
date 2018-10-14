@@ -9,6 +9,11 @@ layout(binding = 0, set = 0) uniform ViewUBO {
     vec2 depthOffsetAndFactor;
 } viewUbo;
 
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
+
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in float inRotation;
 layout(location = 2) in vec3 inSize;
@@ -47,7 +52,7 @@ out gl_PerVertex
 
 void main()
 {
-    vec4 spriteViewCenter = viewUbo.view*vec4(inPos,1.0);
+    vec4 spriteViewCenter = viewUbo.view*vec4(inPos-pc.camPosAndZoom.xyz,1.0);
     //spriteViewCenter = vec4(spriteViewCenter.xyz/spriteViewCenter.w,1.0);
     spriteViewCenter.z = inPos.z;
 

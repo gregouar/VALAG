@@ -5,16 +5,11 @@
 #include "Valag/core/NotificationListener.h"
 #include "Valag/scene/SceneNode.h"
 #include "Valag/scene/CameraObject.h"
+#include "Valag/renderers/SceneRenderingData.h"
 
 namespace vlg
 {
 
-struct AmbientLightingData
-{
-    glm::vec4 viewPos;
-    glm::vec4 ambientLight;
-    glm::uvec2 envMap;
-};
 
 
 /// I need to reimplement methods to create objects (light, sprites, etc)
@@ -36,7 +31,7 @@ class Scene : public NotificationListener
                                     int = -1); // -1 is GL_MAX_LIGHTS
         virtual void renderEntity(sf::RenderTarget* ,SceneEntity*);**/
 
-        virtual void render(SceneRenderer *renderer);
+        virtual void render(SceneRenderer *renderer, CameraObject *camera);
 
         ///This should probably be removed
         void askToComputeRenderQueue();
@@ -67,7 +62,7 @@ class Scene : public NotificationListener
         virtual void generateViewAngle();
 
         virtual void setViewAngle(float zAngle, float xyAngle);
-        virtual void setCurrentCamera(CameraObject *);
+        //virtual void setCurrentCamera(CameraObject *);
 
         void notify(NotificationSender *sender, NotificationType notification);
 
@@ -79,7 +74,7 @@ class Scene : public NotificationListener
 
         ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 
-        CameraObject *m_currentCamera;
+        //CameraObject *m_currentCamera;
         SceneNode m_rootNode;
 
         /**
@@ -101,11 +96,13 @@ class Scene : public NotificationListener
         ObjectTypeId m_curNewId;
 
         bool m_needToUpdateRenderQueue;
-        bool m_needToUpdateEnvMap;
+        //bool m_needToUpdateEnvMap;
 
         TextureAsset           *m_envMapAsset;
-        VFramebufferAttachment  m_filteredEnvMap;
-        AmbientLightingData     m_ambientLightingData;
+        /*VFramebufferAttachment  m_filteredEnvMap;
+        AmbientLightingData     m_ambientLightingData;*/
+
+        SceneRenderingData      m_renderingData;
 
         ///static const sf::Vector2u DEFAULT_SHADOWMAP_SIZE;
 };

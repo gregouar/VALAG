@@ -23,6 +23,8 @@ VGraphicsPipeline::VGraphicsPipeline() :
 
     m_staticExtent.width = 0.0;
     m_staticExtent.height = 0.0;
+    m_onlyScissorIsStatic = false;
+
     m_cullMode = VK_CULL_MODE_NONE;
 
     m_depthStencil = {};
@@ -67,6 +69,11 @@ void VGraphicsPipeline::addSpecializationDatum(bool value, size_t shaderNbr)
     this->addSpecializationDatum(sizeof(bool), (char*)&value, shaderNbr);
 }
 
+void VGraphicsPipeline::addSpecializationDatum(int value, size_t shaderNbr)
+{
+    this->addSpecializationDatum(sizeof(int), (char*)&value, shaderNbr);
+}
+
 void VGraphicsPipeline::addSpecializationDatum(size_t size, char* data, size_t shaderNbr)
 {
     if(m_specializationData.size() < shaderNbr)
@@ -104,9 +111,10 @@ void VGraphicsPipeline::setInputAssembly(VkPrimitiveTopology topology, bool rest
     m_inputAssembly.primitiveRestartEnable = restart ? VK_TRUE : VK_FALSE;// static_cast<VkBool32>(restart);
 }
 
-void VGraphicsPipeline::setStaticExtent(VkExtent2D extent)
+void VGraphicsPipeline::setStaticExtent(VkExtent2D extent, bool onlyScissor)
 {
     m_staticExtent = extent;
+    m_onlyScissorIsStatic = onlyScissor;
 }
 
 void VGraphicsPipeline::setCullMode(VkCullModeFlagBits cullMode)
@@ -142,12 +150,12 @@ void VGraphicsPipeline::attachDescriptorSetLayout(VkDescriptorSetLayout setLayou
 }
 //void createDescriptorSetLayout(VkDescriptorType descType, VkShaderStageFlagBits shaderStage);
 
-void VGraphicsPipeline::attachPushConstant(VkShaderStageFlagBits shaderStageBit, uint32_t size, uint32_t offset)
+void VGraphicsPipeline::attachPushConstant(VkFlags shaderStageBits, uint32_t size, uint32_t offset)
 {
     m_attachedPushConstants.push_back(VkPushConstantRange{});
     m_attachedPushConstants.back().offset       = offset;
     m_attachedPushConstants.back().size         = size;
-    m_attachedPushConstants.back().stageFlags   = shaderStageBit;
+    m_attachedPushConstants.back().stageFlags   = shaderStageBits;
 }
 
 void VGraphicsPipeline::setDepthTest(bool enableWrite, bool enableTest, VkCompareOp compareOp)
@@ -352,7 +360,7 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
 
     VkPipelineDynamicStateCreateInfo dynamicState = {};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount =  2;
+    dynamicState.dynamicStateCount =  1 + !m_onlyScissorIsStatic;
     dynamicState.pDynamicStates = dynamicStates;
 
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
@@ -366,7 +374,9 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &m_depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = (m_staticExtent.height == 0 && m_staticExtent.width == 0) ? &dynamicState : nullptr;
+    pipelineInfo.pDynamicState = nullptr;
+    if(m_onlyScissorIsStatic || (m_staticExtent.height == 0 && m_staticExtent.width == 0))
+        pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.renderPass = renderPass->getVkRenderPass();
     pipelineInfo.subpass = subpass;

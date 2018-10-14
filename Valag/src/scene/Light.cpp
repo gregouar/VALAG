@@ -59,9 +59,15 @@ Light::~Light()
     //dtor
 }
 
-void Light::draw(SceneRenderer *renderer)
+/*void Light::draw(SceneRenderer *renderer)
 {
     renderer->addToLightsVbo(this->getLightDatum());
+}*/
+
+
+void Light::generateRenderingData(SceneRenderingInstance *renderingInstance)
+{
+    renderingInstance->addToLightsVbo(this->getLightDatum());
 }
 
 LightType Light::getType()

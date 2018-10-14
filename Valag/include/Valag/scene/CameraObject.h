@@ -14,14 +14,14 @@ class CameraObject : public SceneObject
         CameraObject();
         virtual ~CameraObject();
 
-        void setViewport(glm::vec2 offset, glm::vec2 extent);
+        void setViewport(glm::vec2 offset, glm::vec2 extent); //Normalized viewport
 
         void setZoom(float zoom);
         void zoom(float zoomFactor);
 
         float getZoom();
-        glm::vec2 getOffset();
-        glm::vec2 getExtent();
+        glm::vec2 getViewportOffset();
+        glm::vec2 getViewportExtent();
 
     protected:
         float m_zoom;

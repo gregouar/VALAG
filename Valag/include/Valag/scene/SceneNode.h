@@ -97,7 +97,8 @@ class SceneNode : public NotificationSender, public NotificationListener
 
         void update(const Time &elapsedTime);
 
-        void render(SceneRenderer *renderer);
+        //void render(SceneRenderer *renderer);
+        void generateRenderingData(SceneRenderingInstance *renderingInstance);
 
         virtual void notify(NotificationSender*, NotificationType);
 

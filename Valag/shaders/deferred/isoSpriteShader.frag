@@ -8,8 +8,14 @@ layout(binding = 0, set = 0) uniform ViewUBO {
     vec2 screenSizeFactor;
     vec2 depthOffsetAndFactor;
 } viewUbo;
+
 layout(binding = 0, set = 1) uniform sampler samp;
 layout(binding = 1, set = 1) uniform texture2DArray textures[128];
+
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
 
 layout(location = 0) flat in vec4 fragColor;
 layout(location = 1) flat in vec3 fragRmt;
@@ -39,8 +45,9 @@ void main()
     float fragHeight = screenPosAndHeight.z + height * screenPosAndHeight.w;
 
     vec2 fragWorldPos = screenPosAndHeight.xy;
-    fragWorldPos.y -= (fragHeight - viewUbo.viewInv[3][2]) * viewUbo.view[2][1];
+    fragWorldPos.y -= (fragHeight - pc.camPosAndZoom.z) * viewUbo.view[2][1];
     fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
+    fragWorldPos += pc.camPosAndZoom.xy;
 
     gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
 
@@ -50,7 +57,8 @@ void main()
     if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
         normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
     normal = 2.0*normal - vec3(1.0);
-    normal = vec4(vec4(normal,1.0)*viewUbo.view).xyz;
+
+    normal = vec4(vec4(normal,0.0)*viewUbo.view).xyz;
     outNormal = vec4(normal,0.0);
 
     outRmt = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);

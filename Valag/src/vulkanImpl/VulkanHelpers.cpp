@@ -194,12 +194,13 @@ bool VulkanHelpers::createImage(uint32_t width, uint32_t height, uint32_t layerC
 }
 
 
-void VulkanHelpers::destroyImage(VImage image)
+void VulkanHelpers::destroyImage(VImage &image)
 {
     if(image.vkImage != VK_NULL_HANDLE)
     {
         vkDestroyImage(VInstance::device(), image.vkImage, nullptr);
         VMemoryAllocator::freeMemory(image.memory);
+        image.vkImage = VK_NULL_HANDLE;
     }
 }
 
@@ -334,11 +335,11 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkIma
     else
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = aspectFlags;//VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = mipLevel;
-    viewInfo.subresourceRange.levelCount = mipsCount;
+    viewInfo.subresourceRange.aspectMask    = aspectFlags;//VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel  = mipLevel;
+    viewInfo.subresourceRange.levelCount    = mipsCount;
     viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = layerCount;
+    viewInfo.subresourceRange.layerCount    = layerCount;
 
     /*viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -388,11 +389,13 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, uint32_t m
                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,attachment.image))
         return (false);
 
-    attachment.views.resize(mipsCount);
+    attachment.mipViews.resize(mipsCount);
     for(size_t i = 0 ; i < mipsCount ; ++i)
-        attachment.views[i] = VulkanHelpers::createImageView(attachment.image, i, aspectMask);
+        attachment.mipViews[i] = VulkanHelpers::createImageView(attachment.image, i, aspectMask);
 
-    attachment.view = attachment.views.front();//VulkanHelpers::createImageView(attachment.image.vkImage, format, aspectMask, 1);
+    //attachment.view = attachment.mipViews.front();//VulkanHelpers::createImageView(attachment.image.vkImage, format, aspectMask, 1);
+    attachment.view = VulkanHelpers::createImageView(attachment.image.vkImage, attachment.image.format,
+                                                     aspectMask, attachment.image.layerCount, attachment.image.mipsCount);
 
     VulkanHelpers::transitionImageLayout(attachment.image, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
@@ -401,14 +404,18 @@ bool VulkanHelpers::createAttachment(uint32_t width, uint32_t height, uint32_t m
     return (true);
 }
 
-void VulkanHelpers::destroyAttachment(VFramebufferAttachment attachment)
+void VulkanHelpers::destroyAttachment(VFramebufferAttachment &attachment)
 {
+    ///Dangerous !
+    VInstance::waitDeviceIdle();
+
     VulkanHelpers::destroyImage(attachment.image);
-    for(auto view : attachment.views)
+    for(auto view : attachment.mipViews)
         vkDestroyImageView(VInstance::device(),view, nullptr);
-    attachment.views.clear();
-   // if(attachment.view != VK_NULL_HANDLE)
-     //   vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
+    attachment.mipViews.clear();
+    if(attachment.view != VK_NULL_HANDLE)
+        vkDestroyImageView(VInstance::device(),attachment.view, nullptr);
+    attachment.view = VK_NULL_HANDLE;
 }
 
 

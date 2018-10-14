@@ -8,7 +8,7 @@
 namespace vlg
 {
 
-class SceneRenderer;
+class SceneRenderingInstance;
 
 
 ///Maybe this should be renamed in EntityObject
@@ -21,7 +21,8 @@ class SceneEntity : public SceneObject
         bool isVisible();
         void setVisible(bool = true);
 
-        virtual void draw(SceneRenderer *renderer) = 0;
+        //virtual void draw(SceneRenderer *renderer) = 0;
+        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance) = 0;
 
     protected:
         bool m_isVisible;

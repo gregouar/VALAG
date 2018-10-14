@@ -31,9 +31,11 @@ struct VFramebufferAttachmentType
 
 struct VFramebufferAttachment
 {
+    VFramebufferAttachment() : view(VK_NULL_HANDLE){}
+
     VImage                      image;
-    VkImageView                 view; //First of view
-    std::vector<VkImageView>    views;
+    VkImageView                 view; //View with all mips (use only for uniform or with mipsCount = 1)
+    std::vector<VkImageView>    mipViews;
     VkExtent2D                  extent;
     VFramebufferAttachmentType  type;
 };
@@ -61,7 +63,7 @@ public:
                             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                             VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
-    static void destroyImage(VImage image);
+    static void destroyImage(VImage &image);
 
     static void transitionImageLayout(VImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
                                       CommandPoolName commandPoolName = COMMANDPOOL_SHORTLIVED);
@@ -80,7 +82,7 @@ public:
     static bool createAttachment(uint32_t width, uint32_t height,
                                  VkFormat format, VkImageUsageFlags usage, VFramebufferAttachment &attachment);
 
-    static void destroyAttachment(VFramebufferAttachment attachment);
+    static void destroyAttachment(VFramebufferAttachment &attachment);
 
     static VkShaderModule createShaderModule(const std::vector<char>& code);
 

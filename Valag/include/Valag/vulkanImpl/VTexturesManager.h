@@ -58,10 +58,13 @@ class VTexturesManager : public Singleton<VTexturesManager>
 
         static VkSampler                sampler();
         static VkDescriptorSetLayout    descriptorSetLayout();
+        static VkDescriptorSet          descriptorSet(); //Use last frame index
         static VkDescriptorSet          descriptorSet(size_t frameIndex);
         static VkDescriptorSet          imgDescriptorSet(size_t imageIndex);
         static size_t                   descriptorSetVersion(size_t frameIndex);
         static size_t                   imgDescriptorSetVersion(size_t imageIndex);
+
+        static VTexture getDummyTexture();
 
     protected:
         VTexturesManager();
@@ -95,11 +98,9 @@ class VTexturesManager : public Singleton<VTexturesManager>
         std::vector<VTexture2DArray*>       m_allocatedTextureArrays;
         std::vector<VkDescriptorImageInfo>  m_imageInfos;
 
-
         VTexture m_dummyTexture;
 
         std::mutex m_createImageMutex;
-
 
         VkSampler                       m_sampler;
         std::vector<bool>               m_needToUpdateDescSet;
@@ -110,6 +111,8 @@ class VTexturesManager : public Singleton<VTexturesManager>
         std::vector<VkDescriptorSet>    m_imgDescriptorSets;
         VkDescriptorSetLayout           m_descriptorSetLayout;
         VkDescriptorPool                m_descriptorPool;
+
+        size_t  m_lastFrameIndex;
 
     public:
         static const size_t MAX_TEXTURES_ARRAY_SIZE;

@@ -9,6 +9,11 @@ layout(binding = 0, set = 0) uniform ViewUBO {
     vec2 depthOffsetAndFactor;
 } viewUbo;
 
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
+
 layout(location = 0) in vec4  inPos;
 layout(location = 1) in vec4  inColor;
 layout(location = 2) in float inRadius;
@@ -39,7 +44,7 @@ out gl_PerVertex
 
 void main()
 {
-    vec4 screenPos = viewUbo.view*inPos;
+    vec4 screenPos = viewUbo.view*(inPos-vec4(pc.camPosAndZoom.xyz,0));
 
     if(inPos.w == 0.0)
     {

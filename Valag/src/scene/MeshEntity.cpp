@@ -155,11 +155,17 @@ MeshDatum MeshEntity::getMeshDatum()
 }
 
 
-void MeshEntity::draw(SceneRenderer *renderer)
+void MeshEntity::generateRenderingData(SceneRenderingInstance *renderingInstance)
+{
+    if(m_mesh != nullptr && m_mesh->isLoaded())
+        renderingInstance->addToMeshesVbo(m_mesh->getMesh(), this->getMeshDatum());
+}
+
+/*void MeshEntity::draw(SceneRenderer *renderer)
 {
     if(m_mesh != nullptr && m_mesh->isLoaded())
         renderer->addToMeshesVbo(m_mesh->getMesh(), this->getMeshDatum());
-}
+}*/
 
 void MeshEntity::notify(NotificationSender *sender, NotificationType notification)
 {

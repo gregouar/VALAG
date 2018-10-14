@@ -9,6 +9,12 @@ layout(binding = 0, set = 0) uniform ViewUBO {
     vec2 depthOffsetAndFactor;
 } viewUbo;
 
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
+
+
 //Mesh vertex
 layout(location = 0) in vec3  inPos;
 layout(location = 1) in vec2  inUV;
@@ -62,7 +68,7 @@ void main()
     vec3 N      = normalize(vec4(inModel * vec4(inNormal,    0.0)).xyz);
     fragTBN     = mat3(T, B, N);
 
-    gl_Position = viewUbo.view*fragWorldPos;
+    gl_Position = viewUbo.view*(fragWorldPos - vec4(pc.camPosAndZoom.xyz,0.0));
     gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, 0.0)
                         + vec3(viewUbo.screenOffset, 0.0);
 

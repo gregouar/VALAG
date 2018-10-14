@@ -47,10 +47,10 @@ class MeshEntity : public SceneEntity
         MeshDatum getMeshDatum();
 
         virtual void notify(NotificationSender *sender, NotificationType notification);
+        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
 
     protected:
         void cleanup();
-        virtual void draw(SceneRenderer *renderer);
         virtual void updateDatum();
 
     protected:

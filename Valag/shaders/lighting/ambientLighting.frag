@@ -1,6 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout (constant_id = 0) const int envMapMipsCount = 1;
+
 layout (set = 0, binding = 0) uniform sampler2D samplerAlbedo;
 layout (set = 0, binding = 1) uniform sampler2D samplerPosition;
 layout (set = 0, binding = 2) uniform sampler2D samplerNormal;
@@ -13,16 +15,22 @@ layout (set = 0, binding = 7) uniform sampler2D samplerAlphaRmt;
 
 layout (set = 0, binding = 8) uniform sampler2D samplerBentNormals;
 
-layout(set = 0, binding = 9) uniform AmbientLightingUbo {
-    vec4 viewPos;
+layout (set = 0, binding = 9) uniform texture2D brdflut;
+
+/*layout(set = 1, binding = 0) uniform sampler samp;
+layout(set = 1, binding = 1) uniform texture2DArray textures[128];*/
+
+layout(set = 1, binding = 0) uniform sampler    samp;
+layout(set = 1, binding = 1) uniform texture2D  texEnvMap;
+layout(set = 1, binding = 2) uniform AmbientLightingUbo {
     vec4 ambientLight;
-    uvec2 envMap;
+    bool enableEnvMap;
 } ubo;
-layout (set = 0, binding = 10) uniform texture2D brdflut;
 
-layout(set = 1, binding = 0) uniform sampler samp;
-layout(set = 1, binding = 1) uniform texture2DArray textures[128];
-
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
 
 layout (location = 0) in vec2 inUV;
 
@@ -58,7 +66,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4
 
     //Change this for better random (use pregenerated)
     vec3 rVec = hash(fragPos);
-    vec3 viewDirection = normalize(ubo.viewPos.xyz - fragPos);
+    vec3 viewDirection = normalize(pc.camPosAndZoom.xyz - fragPos);
     float NdotV = max(dot(fragNormal.xyz, viewDirection), 0.0);
 
     //vec3 ortho_viewDirection = vec3(<<cos(45*PI/180)*cos(30*PI/180)<<,
@@ -76,15 +84,21 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4
     float occlusion = max(min(pow(fragBentNormal.a,1), pow(1.0-abs(fragBentNormal.z),1.0)), fragNormal.w); //We dont want to occlude truly transparent fragments
 
     vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal.xyz);
-    reflectionView += mix(vec3(0.0),rVec,fragRmt.r*.25);
+    //reflectionView += mix(vec3(0.0),rVec,fragRmt.r*.25);
     vec3 reflectionColor = ambientLighting;
     //if(enable_map_environmental == true)
     //    reflectionColor = texture2DLod(map_environmental, uv, fragRmt.r*8.0).rgb;
     vec2 envUV = vec2(0,0);
-    if(!(ubo.envMap.x == 0 && ubo.envMap.y == 0))
+    /*if(!(ubo.envMap.x == 0 && ubo.envMap.y == 0))
     {
         envUV = sampleSphericalMap(normalize(reflectionView));
         reflectionColor = texture(sampler2DArray(textures[ubo.envMap.x], samp),vec3(envUV,ubo.envMap.y)).rgb;
+    }*/
+
+    if(ubo.enableEnvMap == true)
+    {
+        envUV = sampleSphericalMap(normalize(reflectionView));
+        reflectionColor = textureLod(sampler2D(texEnvMap,samp), vec2(envUV), fragRmt.r * envMapMipsCount).rgb;
     }
 
     vec2 envBRDF  = texture(sampler2D(brdflut,samp), vec2(NdotV, fragRmt.r)).rg;

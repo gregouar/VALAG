@@ -591,19 +591,24 @@ void SceneNode::updateModelMatrix()
     this->sendNotification(Notification_SceneNodeMoved);
 }
 
-void SceneNode::render(SceneRenderer *renderer)
+/*void SceneNode::render(SceneRenderer *renderer)
 {
     for(auto entity : m_attachedEntities)
         if(entity->isVisible())
             entity->draw(renderer);
 
-    //Lights are now entities
-    /*for(auto light : m_attachedLights)
-        if(light->isVisible())
-            light->draw(renderer);*/
-
     for(auto node : m_childs)
         node.second->render(renderer);
+}*/
+
+void SceneNode::generateRenderingData(SceneRenderingInstance *renderingInstance)
+{
+    for(auto entity : m_attachedEntities)
+        if(entity->isVisible())
+            entity->generateRenderingData(renderingInstance);
+
+    for(auto node : m_childs)
+        node.second->generateRenderingData(renderingInstance);
 }
 
 void SceneNode::notify(NotificationSender* sender, NotificationType type)

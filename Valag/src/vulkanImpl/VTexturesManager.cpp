@@ -12,7 +12,8 @@ namespace vlg
 const size_t VTexturesManager::MAX_TEXTURES_ARRAY_SIZE = 128; //Number of texture2DArray
 const size_t VTexturesManager::MAX_LAYER_PER_TEXTURE = 16; //Number of layers in each texture2DArray
 
-VTexturesManager::VTexturesManager()
+VTexturesManager::VTexturesManager() :
+    m_lastFrameIndex(0)
 {
 }
 
@@ -153,6 +154,11 @@ VkDescriptorSetLayout VTexturesManager::descriptorSetLayout()
     return VTexturesManager::instance()->getDescriptorSetLayout();
 }
 
+VkDescriptorSet VTexturesManager::descriptorSet()
+{
+    return VTexturesManager::instance()->getDescriptorSet(VTexturesManager::instance()->m_lastFrameIndex);
+}
+
 VkDescriptorSet VTexturesManager::descriptorSet(size_t frameIndex)
 {
     return VTexturesManager::instance()->getDescriptorSet(frameIndex);
@@ -199,12 +205,20 @@ size_t VTexturesManager::getImgDescriptorSetVersion(size_t imageIndex)
     return m_imgDescSetVersion[imageIndex];
 }
 
+VTexture VTexturesManager::getDummyTexture()
+{
+    return VTexturesManager::instance()->m_dummyTexture;
+}
+
+/// Protected ///
+
 void VTexturesManager::checkUpdateDescriptorSets(size_t frameIndex, size_t imageIndex)
 {
     if(m_needToUpdateDescSet[frameIndex] == true)
         this->updateDescriptorSet(frameIndex);
     if(m_needToUpdateImgDescSet[imageIndex] == true)
         this->updateImgDescriptorSet(imageIndex);
+    m_lastFrameIndex = frameIndex;
 }
 
 bool VTexturesManager::createDescriptorSetLayouts()

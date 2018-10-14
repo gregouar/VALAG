@@ -64,7 +64,7 @@ class Light : public SceneEntity //, public NotificationListener
         //static int GetMaxNbrLights();
 
 
-        virtual void draw(SceneRenderer *renderer);
+        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
         LightDatum getLightDatum();
 
         virtual void notify(NotificationSender *sender, NotificationType type);

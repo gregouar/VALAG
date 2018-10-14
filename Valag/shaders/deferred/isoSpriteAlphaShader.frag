@@ -14,6 +14,11 @@ layout(set = 1, binding = 1) uniform texture2DArray textures[128];
 //layout(set = 2, binding = 0) uniform sampler2D samplerTransparent;
 layout(set = 2, binding = 0) uniform sampler2D samplerOpacPosition;
 
+layout(push_constant) uniform PER_OBJECT
+{
+    vec4 camPosAndZoom;
+}pc;
+
 layout(location = 0) flat in vec4 fragColor;
 layout(location = 1) flat in vec3 fragRmt;
 layout(location = 2) in vec2 fragTexCoord;
@@ -43,8 +48,9 @@ void main()
     float fragHeight    = screenPosAndHeight.z + height * screenPosAndHeight.w;
 
     vec2 fragWorldPos = screenPosAndHeight.xy;
-    fragWorldPos.y -= (fragHeight - viewUbo.viewInv[3][2]) * viewUbo.view[2][1];
+    fragWorldPos.y -= (fragHeight - pc.camPosAndZoom.z) * viewUbo.view[2][1];
     fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
+    fragWorldPos.xy += pc.camPosAndZoom.xy;
 
     if(outAlbedo.a < .05)
         discard;

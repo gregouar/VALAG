@@ -4,6 +4,7 @@ namespace vlg
 {
 
 RenderView::RenderView() :
+    m_curBufferIndex(0),
     m_position(0.0f, 0.0f, 0.0f),
     m_lookAt(0.0f, 0.0f, -1.0f),
     m_zoom(1.0f),
@@ -24,8 +25,13 @@ RenderView::~RenderView()
     this->destroy();
 }
 
-bool RenderView::create(size_t framesCount)
+bool RenderView::create(size_t framesCount/*, bool isDynamic*/)
 {
+    //m_isDynamic = isDynamic;
+
+    //if(m_isDynamic)
+      //  framesCount = 1;
+
     if(!this->createBuffers(framesCount))
         return (false);
     if(!this->createDescriptorSetLayout())
@@ -54,13 +60,37 @@ void RenderView::destroy()
     m_descriptorPool = VK_NULL_HANDLE;
 }
 
-void RenderView::update(size_t frameIndex)
+void RenderView::update(size_t frameIndex, VkCommandBuffer cmb)
 {
-    if(m_needToUpdateBuffers[frameIndex])
+    /*if(m_isDynamic)
     {
-        VBuffersAllocator::writeBuffer(m_buffers[frameIndex],&m_viewUbo,sizeof(m_viewUbo));
+        m_curBufferIndex = 0;
+    }
+    else*/ if(m_needToUpdateBuffers[frameIndex])
+    {
+        /*if(m_isDynamic)
+            vkCmdUpdateBuffer(cmb, m_buffers[frameIndex].buffer, m_buffers[frameIndex].offset, sizeof(m_viewUbo), &m_viewUbo);
+        else*/
+            VBuffersAllocator::writeBuffer(m_buffers[frameIndex],&m_viewUbo,sizeof(m_viewUbo));
+
         m_needToUpdateBuffers[frameIndex] = false;
     }
+}
+
+void RenderView::setupViewport(const ViewInfo &viewInfo, VkCommandBuffer cmb)
+{
+    //this->setView(viewInfo.view, viewInfo.viewInv);
+    //this->update(0, cmb);
+
+    VkViewport viewport = {};
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    viewport.x = viewInfo.viewportOffset.x*m_extent.x;
+    viewport.y = viewInfo.viewportOffset.y*m_extent.y;
+    viewport.width  = viewInfo.viewportExtent.x*m_extent.x;
+    viewport.height = viewInfo.viewportExtent.y*m_extent.y;
+
+    vkCmdSetViewport(cmb, 0, 1, &viewport);
 }
 
 void RenderView::setDepthFactor(float depthFactor)
@@ -72,15 +102,19 @@ void RenderView::setDepthFactor(float depthFactor)
 
 void RenderView::setExtent(glm::vec2 extent)
 {
-    if(m_viewUbo.screenSizeFactor.x != 2.0f/extent.x || m_viewUbo.screenSizeFactor.y != 2.0f/extent.y)
+    if(m_viewUbo.screenSizeFactor.x != 2.0f/extent.x
+    || m_viewUbo.screenSizeFactor.y != 2.0f/extent.y)
         for(auto b : m_needToUpdateBuffers) b = true;
     m_viewUbo.screenSizeFactor.x = 2.0f/extent.x;
     m_viewUbo.screenSizeFactor.y = 2.0f/extent.y;
+    m_extent = extent;
 }
 
 void RenderView::setScreenOffset(glm::vec3 offset)
 {
-    if(m_viewUbo.screenOffset.x != offset.x || m_viewUbo.screenOffset.y != offset.y || m_viewUbo.depthOffsetAndFactor.x != offset.z)
+    if(m_viewUbo.screenOffset.x != offset.x
+    || m_viewUbo.screenOffset.y != offset.y
+    || m_viewUbo.depthOffsetAndFactor.x != offset.z)
         for(auto b : m_needToUpdateBuffers) b = true;
     m_viewUbo.screenOffset.x = offset.x;
     m_viewUbo.screenOffset.y = offset.y;
@@ -96,7 +130,8 @@ void RenderView::setLookAt(glm::vec3 position, glm::vec3 lookAt)
 
 void RenderView::setView(glm::mat4 view, glm::mat4 viewInv)
 {
-    for(auto b : m_needToUpdateBuffers) b = true;
+    if(view != m_viewUbo.view)
+        for(auto b : m_needToUpdateBuffers) b = true;
     m_viewUbo.view      = view;
     m_viewUbo.viewInv   = viewInv;
 }
@@ -134,9 +169,18 @@ bool RenderView::createBuffers(size_t framesCount)
 
     for (size_t i = 0 ; i < framesCount ; ++i)
     {
-        if(!VBuffersAllocator::allocBuffer(bufferSize,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                           m_buffers[i]))
+        VkMemoryPropertyFlags properties;
+        VkBufferUsageFlagBits usage{};
+
+        /*if(m_isDynamic)
+        {
+            properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        } else*/
+            properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        if(!VBuffersAllocator::allocBuffer(bufferSize, usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                           properties, m_buffers[i]))
             return (false);
 
         m_needToUpdateBuffers[i] = true;

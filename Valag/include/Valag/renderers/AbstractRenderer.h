@@ -17,9 +17,11 @@ class AbstractRenderer
         virtual void update(size_t frameIndex);
         virtual void render(uint32_t imageIndex);
 
-        virtual void setView(glm::mat4 view, glm::mat4 viewInv);
+        virtual void setView(ViewInfo viewInfo);
 
         virtual std::vector<FullRenderPass*> getFinalPasses();
+
+        size_t getFramesCount();
 
         RendererName    getName();
 
@@ -41,6 +43,8 @@ class AbstractRenderer
 
 
     protected:
+        //bool m_useDynamicView;
+
         RenderWindow   *m_targetWindow;
         RenderView      m_renderView;
         RenderGraph     m_renderGraph;
@@ -50,7 +54,7 @@ class AbstractRenderer
         VkDescriptorPool                    m_descriptorPool;*/
 
         //I should remove it and use targetWindow->getFrameIndex();
-        size_t                          m_curFrameIndex;
+        size_t          m_curFrameIndex;
 
     private:
         RenderereOrder  m_order;

@@ -40,12 +40,12 @@ float CameraObject::getZoom()
     return m_zoom;
 }
 
-glm::vec2 CameraObject::getOffset()
+glm::vec2 CameraObject::getViewportOffset()
 {
     return m_offset;
 }
 
-glm::vec2 CameraObject::getExtent()
+glm::vec2 CameraObject::getViewportExtent()
 {
     return m_extent;
 }

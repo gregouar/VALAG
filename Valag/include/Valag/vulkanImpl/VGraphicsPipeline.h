@@ -22,8 +22,9 @@ class VGraphicsPipeline
 
         ///I could do something more high level here heh
         void setSpecializationInfo(VkSpecializationInfo &specializationInfo, size_t shaderNbr);
-        void addSpecializationDatum(bool value, size_t shaderNbr); //Need to add more
-        void addSpecializationDatum(float value, size_t shaderNbr);
+        void addSpecializationDatum(bool value,     size_t shaderNbr); //Need to add more
+        void addSpecializationDatum(float value,    size_t shaderNbr);
+        void addSpecializationDatum(int value,      size_t shaderNbr);
         void addSpecializationDatum(size_t size, char* data, size_t shaderNbr);
 
         void setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,
@@ -32,7 +33,7 @@ class VGraphicsPipeline
         void setInputAssembly(VkPrimitiveTopology topology, bool restart = false);
 
         ///Putting {0,0} (default value) will allow to dynamically change the viewport and scissor
-        void setStaticExtent(VkExtent2D extent);
+        void setStaticExtent(VkExtent2D extent, bool onlyScissor = false);
 
         void setCullMode(VkCullModeFlagBits cullMode);
 
@@ -43,7 +44,7 @@ class VGraphicsPipeline
         void attachDescriptorSetLayout(VkDescriptorSetLayout setLayout);
         //void createDescriptorSetLayout(VkDescriptorType descType, VkShaderStageFlagBits shaderStage);
 
-        void attachPushConstant(VkShaderStageFlagBits shaderStageBit, uint32_t size, uint32_t offset = 0);
+        void attachPushConstant(VkFlags shaderStageBit, uint32_t size, uint32_t offset = 0);
 
         void setDepthTest(bool enableWrite, bool enableTest, VkCompareOp compareOp = VK_COMPARE_OP_GREATER);
         void setStencilTest(bool enableTest, VkStencilOpState both);
@@ -68,6 +69,7 @@ class VGraphicsPipeline
         std::vector<VkSpecializationInfo>       m_specializationInfos;
         VkPipelineVertexInputStateCreateInfo    m_vertexInput;
         VkPipelineInputAssemblyStateCreateInfo  m_inputAssembly;
+        bool                m_onlyScissorIsStatic;
         VkExtent2D          m_staticExtent;
         VkCullModeFlagBits  m_cullMode;
         std::vector<BlendMode>                              m_blendModes;

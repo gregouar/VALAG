@@ -18,12 +18,10 @@ Scene::Scene() :
     m_rootNode.setPosition(0,0,0);
     m_curNewId = 0;
     m_needToUpdateRenderQueue = false;
-    m_needToUpdateEnvMap      = false;
+    //m_needToUpdateEnvMap      = false;
     ///m_last_target = nullptr;
     ///m_currentCamera = nullptr;
 
-    m_ambientLightingData.viewPos        = glm::vec4(0.0);
-    m_ambientLightingData.ambientLight   = glm::vec4(1.0,1.0,1.0,0.1);
 
     ///m_shadowCastingOption = NoShadow;
     ///m_enableSRGB = false;
@@ -42,7 +40,8 @@ void Scene::cleanAll()
 {
     m_rootNode.removeAndDestroyAllChilds();
     this->destroyAllCreatedObjects();
-    VulkanHelpers::destroyAttachment(m_filteredEnvMap);
+    m_renderingData.cleanup();
+    //VulkanHelpers::destroyAttachment(m_filteredEnvMap);
 }
 
 
@@ -54,9 +53,10 @@ void Scene::cleanAll()
 void Scene::update(const Time &elapsedTime)
 {
     m_rootNode.update(elapsedTime);
+    m_renderingData.update();
 
-    if(m_needToUpdateEnvMap)
-        this->updateEnvMap();
+   /* if(m_needToUpdateEnvMap)
+        this->updateEnvMap();*/
 
     /**if(m_needToUpdateRenderQueue)
     {
@@ -222,24 +222,46 @@ void Scene::RenderShadows(std::multimap<float, Light*> &lightList,const sf::View
     }
 }*/
 
-void Scene::render(SceneRenderer *renderer)
+void Scene::render(SceneRenderer *renderer, CameraObject *camera)
 {
-    if(m_currentCamera != nullptr)
+    if(!m_renderingData.isInitialized())
+        m_renderingData.init(renderer);
+
+    if(camera != nullptr)
     {
-        glm::vec3 camPos = m_currentCamera->getParentNode()->getGlobalPosition();
-       // camPos.z = 0;
+        /*glm::vec3 camPos = camera->getParentNode()->getGlobalPosition();
         glm::mat4 camTranslate = glm::translate(glm::mat4(1.0), -camPos);
         glm::mat4 camTranslateInv = glm::translate(glm::mat4(1.0), camPos);
-        /*glm::mat4 view(1,0,0,-m_currentCamera->getParentNode()->getGlobalPosition().x,
-                       0,1,0,-m_currentCamera->getParentNode()->getGlobalPosition().y,
-                       0,0,1,-m_currentCamera->getParentNode()->getGlobalPosition().z,
-                       0,0,0,1);*/
 
         m_ambientLightingData.viewPos = glm::vec4(camPos, 1.0);
 
         renderer->setAmbientLightingData(m_ambientLightingData);
         renderer->setView(m_viewAngle*camTranslate, camTranslateInv*m_viewAngleInv);
-        m_rootNode.render(renderer);
+        m_rootNode.render(renderer);*/
+
+
+        glm::vec3 camPos          = camera->getParentNode()->getGlobalPosition();
+        glm::mat4 camTranslate    = glm::translate(glm::mat4(1.0), -camPos);
+        glm::mat4 camTranslateInv = glm::translate(glm::mat4(1.0), camPos);
+
+        ViewInfo viewInfo;
+        viewInfo.view     = m_viewAngle;
+        viewInfo.viewInv  = m_viewAngleInv;
+        renderer->setView(viewInfo);
+
+        SceneRenderingInstance renderingInstance(&m_renderingData, renderer);
+        //m_renderingData.createNewInstance(&renderingInstance, renderer);
+        //renderingInstance.renderingData     = &renderingData;
+        viewInfo.view     = m_viewAngle*camTranslate;
+        viewInfo.viewInv  = camTranslateInv*m_viewAngleInv;
+        viewInfo.viewportOffset = camera->getViewportOffset();
+        viewInfo.viewportExtent = camera->getViewportExtent();
+
+        renderingInstance.setViewInfo(viewInfo, camPos, camera->getZoom());
+
+        m_rootNode.generateRenderingData(&renderingInstance);
+
+        renderer->addRenderingInstance(renderingInstance);
     }
 }
 
@@ -384,10 +406,10 @@ glm::vec2 Scene::convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam)
 
 
 
-void Scene::setCurrentCamera(CameraObject *cam)
+/*void Scene::setCurrentCamera(CameraObject *cam)
 {
     m_currentCamera = cam;
-}
+}*/
 
 void Scene::generateViewAngle()
 {
@@ -456,9 +478,9 @@ void Scene::setViewAngle(float zAngle, float xyAngle)
     this->generateViewAngle();
 }
 
-void Scene::setAmbientLight(Color light)
+void Scene::setAmbientLight(Color color)
 {
-    m_ambientLightingData.ambientLight = light;
+    m_renderingData.setAmbientLight(color);
 }
 
 void Scene::setEnvironmentMap(TextureAsset *texture)
@@ -466,7 +488,8 @@ void Scene::setEnvironmentMap(TextureAsset *texture)
     this->stopListeningTo(m_envMapAsset);
     m_envMapAsset = texture;
     this->startListeningTo(m_envMapAsset);
-    m_needToUpdateEnvMap = true;
+    this->updateEnvMap();
+    //m_needToUpdateEnvMap = true;
 }
 
 
@@ -475,7 +498,8 @@ void Scene::notify(NotificationSender *sender, NotificationType notification)
     if(notification == Notification_AssetLoaded)
     {
         if(sender == m_envMapAsset)
-            m_needToUpdateEnvMap = true;
+            this->updateEnvMap();
+           // m_needToUpdateEnvMap = true;
     }
 }
 
@@ -500,21 +524,30 @@ void Scene::DisableGammaCorrection()
 void Scene::updateEnvMap()
 {
     if(m_envMapAsset != nullptr && m_envMapAsset->isLoaded())
+        m_renderingData.setEnvMap(m_envMapAsset->getVTexture());
+}
+
+/*void Scene::updateEnvMap()
+{
+    if(m_envMapAsset != nullptr && m_envMapAsset->isLoaded())
     {
         //Should wait somehow to finish rendering before destroying
-        //Maybe I could worj with a cleaning list ?
+        //Maybe I could work with a cleaning list ?
         VulkanHelpers::destroyAttachment(m_filteredEnvMap);
 
         m_filteredEnvMap = PBRToolbox::generateFilteredEnvMap(m_envMapAsset->getVTexture());
 
-        m_ambientLightingData.envMap = {m_envMapAsset->getVTexture().getTextureId(),
-                                        m_envMapAsset->getVTexture().getTextureLayer()};
+        //m_ambientLightingData.envMap = {m_envMapAsset->getVTexture().getTextureId(),
+          //                              m_envMapAsset->getVTexture().getTextureLayer()};
+
+        m_ambientLightingData.enableEnvMap = true;
     }
     else
-        m_ambientLightingData.envMap = {0,0};
+        m_ambientLightingData.enableEnvMap = false;
+        //m_ambientLightingData.envMap = {0,0};
 
     m_needToUpdateEnvMap = false;
-}
+}*/
 
 ObjectTypeId Scene::generateObjectId()
 {

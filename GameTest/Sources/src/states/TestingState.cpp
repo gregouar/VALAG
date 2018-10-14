@@ -116,7 +116,7 @@ void TestingState::init()
     m_treeNode->attachObject(&m_treeEntity);
     m_abbeyNode->attachObject(&m_abbeyEntity);
 
-   // m_treeEntity.setColor({0.0,1.0,0.0,0.8});
+    m_treeEntity.setColor({0.0,1.0,0.0,0.6});
     //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
 
     for(size_t x = 0 ; x < 0 ; x++)
@@ -130,7 +130,7 @@ void TestingState::init()
     m_camera = m_scene->createCamera();
     m_cameraNode = m_scene->getRootNode()->createChildNode(2000,2000,1500);
     m_cameraNode->attachObject(m_camera);
-    m_scene->setCurrentCamera(m_camera);
+    //m_scene->setCurrentCamera(m_camera);
     m_scene->setViewAngle(glm::pi<float>()/4.0f, //45
                           glm::pi<float>()/6.0f); //30
 
@@ -334,7 +334,7 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
     //m_quackEntities.back().setRmt({5.0*m_totalTime.count(),1.0,1.0});
 
-    //m_quackNode->rotate(elapsedTime.count(), {0,0,1});
+    m_quackNode->rotate(elapsedTime.count(), {0,0,1});
     m_cursorLightNode ->rotate(elapsedTime.count(), {0,0,1});
 
    // m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
@@ -347,7 +347,7 @@ void TestingState::draw(vlg::RenderWindow *renderWindow)
         vlg::SceneRenderer *renderer = dynamic_cast<vlg::SceneRenderer*>(renderWindow->getRenderer(vlg::Renderer_Scene));
         //renderer->draw(&m_abbeyEntity);
         //renderer->draw(&m_treeEntity);
-        m_scene->render(renderer);
+        m_scene->render(renderer, m_camera);
     }
 
     //vlg::DefaultRenderer *renderer = dynamic_cast<vlg::DefaultRenderer*>(renderWindow->getRenderer(vlg::Renderer_Default));
