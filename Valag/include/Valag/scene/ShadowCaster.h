@@ -6,7 +6,8 @@
 namespace vlg
 {
 
-class Light;
+class LightEntity;
+class SceneRenderer;
 
 class ShadowCaster : public SceneEntity
 {
@@ -14,12 +15,22 @@ class ShadowCaster : public SceneEntity
         ShadowCaster();
         virtual ~ShadowCaster();
 
-        void addLightSource();
+        //void addLightSource();
+
+        void setShadowCasting(ShadowCastingType type);
+
+        ShadowCastingType getShadowCastingType();
+
+        virtual void castShadow(SceneRenderer *renderer, LightEntity* light) = 0;
+
+        //virtual void notify(NotificationSender*, NotificationType);
 
     protected:
 
     protected:
-        std::set<Light*> m_lightSources;
+        ShadowCastingType m_shadowCastingType;
+
+       // std::set<Light*> m_lightSources;
 };
 
 }

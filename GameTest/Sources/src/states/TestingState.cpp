@@ -88,7 +88,8 @@ void TestingState::init()
 
     /// SCENE
 
-    m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,96.0/255.0});
+    m_scene->setAmbientLight({96/255.0,127/255.0,196/255.0,128.0/255.0});
+   // m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,128.0/255.0});
     //m_scene->setAmbientLight({16/255.0,32/255.0,255/255.0,96.0/255.0});
 
     //m_scene->setEnvironmentMap(vlg::TexturesHandler::instance()->loadAssetFromFile("../data/HDRenv.hdr",loadType));
@@ -107,27 +108,31 @@ void TestingState::init()
     m_abbeyModel.setTextureRect({0,0},{1,1});
     m_abbeyModel.setTextureCenter({1920/2,1080/2});
 
-    m_treeEntity.setSpriteModel(&m_treeModel);
-    m_abbeyEntity.setSpriteModel(&m_abbeyModel);
+
+    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
+    m_abbeyNode->attachObject(m_scene->createIsoSpriteEntity(&m_abbeyModel));
+
+    //m_treeEntity.setSpriteModel(&m_treeModel);
+    //m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
     m_treeNode  =  m_scene->getRootNode()->createChildNode({900,400,-90});
-    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
-
-    m_treeNode->attachObject(&m_treeEntity);
-    m_abbeyNode->attachObject(&m_abbeyEntity);
-
-    m_treeEntity.setColor({0.0,1.0,0.0,0.6});
-    //m_treeEntity.setRotation(glm::pi<float>()/6.0f);
+    m_treeEntity = m_scene->createIsoSpriteEntity(&m_treeModel);
+    m_treeEntity->setShadowCasting(vlg::ShadowCasting_OnlyDirectionnal);
+    //m_treeEntity->setColor({0.0,1.0,0.0,0.6});
+    m_treeNode->attachObject(m_treeEntity);
 
     for(size_t x = 0 ; x < 0 ; x++)
     for(size_t y = 0 ; y < 0 ; y++)
     {
-        m_forestEntities.push_back(vlg::IsoSpriteEntity());
-        m_forestEntities.back().setSpriteModel(&m_treeModel);
-        m_scene->getRootNode()->createChildNode({x*50,y*50,-90})->attachObject(&m_forestEntities.back());
+        //m_forestEntities.push_back(vlg::IsoSpriteEntity());
+        //m_forestEntities.back().setSpriteModel(&m_treeModel);
+        m_scene ->getRootNode()
+                ->createChildNode({x*50,y*50,-90})
+                ->attachObject(m_scene->createIsoSpriteEntity(&m_treeModel));
     }
 
     m_camera = m_scene->createCamera();
+   // m_camera->setViewport({.2,.3},{.5,.4});
     m_cameraNode = m_scene->getRootNode()->createChildNode(2000,2000,1500);
     m_cameraNode->attachObject(m_camera);
     //m_scene->setCurrentCamera(m_camera);
@@ -136,52 +141,53 @@ void TestingState::init()
 
     m_quackMesh = vlg::MeshesHandler::instance()->loadAssetFromFile("../data/quackXML.txt",loadType);
 
-    m_quackEntities.push_back(vlg::MeshEntity());
-    m_quackEntities.back().setMesh(m_quackMesh);
+    //m_quackEntities.push_back(vlg::MeshEntity());
+    //m_quackEntities.back().setMesh(m_quackMesh);
     m_quackNode = m_scene->getRootNode()->createChildNode(250,450);
-    m_quackNode->attachObject(&m_quackEntities.back());
+    m_quackNode->attachObject(m_scene->createMeshEntity(m_quackMesh));
     m_quackNode->scale(5.0f);
-
 
     vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/wetSandXML.txt",loadType);
     vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{4.0,4.0});
-    m_groundSand.setMesh(groundMesh);
-    m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(&m_groundSand);
+    //m_groundSand.setMesh(groundMesh);
+    m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(m_scene->createMeshEntity(groundMesh));
 
-    m_scene->getRootNode()->attachObject(&m_sunLight);
+    vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directionnal);
+    m_scene->getRootNode()->attachObject(sunLight);
 
     ///Day
-    m_sunLight.setDiffuseColor({1.0,1.0,1.0,1.0});
-    m_sunLight.setIntensity(15.0);
+    sunLight->setDiffuseColor({1.0,1.0,1.0,1.0});
+    sunLight->setIntensity(15.0);
 
     ///Night
     //m_sunLight.setDiffuseColor({0.7,0.7,1.0,1.0});
     //m_sunLight.setIntensity(0.2);
 
-    m_sunLight.setType(vlg::LightType_Directionnal);
+    sunLight->setType(vlg::LightType_Directionnal);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
-    m_sunLight.setDirection({.2 ,-1.0,-1.0});
+    sunLight->setDirection({.2 ,-1.0,-1.0});
+    sunLight->enableShadowCasting();
 
+    vlg::LightEntity *cursorLight = m_scene->createLightEntity();
     m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,60);
-    m_cursorLightNode->attachObject(&m_cursorLight);
-    m_cursorLight.setDiffuseColor({1.0,1.0,1.0,1.0});
-    m_cursorLight.setIntensity(10.0);
-    m_cursorLight.setRadius(400.0);
-    m_cursorLight.setType(vlg::LightType_Omni);
+    m_cursorLightNode->attachObject(cursorLight);
+    cursorLight->setDiffuseColor({1.0,1.0,1.0,1.0});
+    cursorLight->setIntensity(10.0);
+    cursorLight->setRadius(400.0);
+    cursorLight->setType(vlg::LightType_Omni);
 
-    for(size_t i = 0 ; i < 0 ; ++i)
+    for(size_t i = 3 ; i < 3 ; ++i)
     {
-        m_secLights.push_back(vlg::Light());
-        m_secLights.back().setDiffuseColor({glm::linearRand(0,100)/100.0,
-                                            glm::linearRand(0,100)/100.0,
-                                            glm::linearRand(0,100)/100.0});
+        vlg::LightEntity *secLight = m_scene->createLightEntity();
+        secLight->setDiffuseColor({glm::linearRand(0,100)/100.0,
+                                    glm::linearRand(0,100)/100.0,
+                                    glm::linearRand(0,100)/100.0});
 
-        m_secLights.back().setIntensity(glm::linearRand(2.0,20.0));
-        m_secLights.back().setRadius(glm::linearRand(100.0,600.0));
-        m_secLights.back().setType(vlg::LightType_Omni);
+        secLight->setIntensity(glm::linearRand(2.0,20.0));
+        secLight->setRadius(glm::linearRand(100.0,600.0));
         m_cursorLightNode->createChildNode({glm::linearRand(-600,600),
                                             glm::linearRand(-600,600),
-                                            glm::linearRand(-50,300)})->attachObject(&m_secLights.back());
+                                            glm::linearRand(-50,300)})->attachObject(secLight);
     }
 
 
@@ -252,9 +258,9 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     m_cursorLightNode->setPosition(worldMousePos);
 
     if(eventsManager->keyPressed(GLFW_KEY_A))
-        m_treeEntity.setRotation(m_treeEntity.getRotation()+0.1f);
+        m_treeEntity->setRotation(m_treeEntity->getRotation()+0.1f);
     if(eventsManager->keyPressed(GLFW_KEY_Z))
-        m_treeEntity.setRotation(m_treeEntity.getRotation()-0.1f);
+        m_treeEntity->setRotation(m_treeEntity->getRotation()-0.1f);
 
 
     if(eventsManager->keyPressed(GLFW_KEY_Q))
@@ -279,10 +285,10 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         glm::vec3 oldPos = m_quackNode->getPosition();
         glm::vec3 oldRot = m_quackNode->getEulerRotation();
 
-        m_quackEntities.push_back(vlg::MeshEntity());
-        m_quackEntities.back().setMesh(m_quackMesh);
+        //m_quackEntities.push_back(vlg::MeshEntity());
+        //m_quackEntities.back().setMesh(m_quackMesh);
         m_quackNode = m_scene->getRootNode()->createChildNode();
-        m_quackNode->attachObject(&m_quackEntities.back());
+        m_quackNode->attachObject(m_scene->createMeshEntity(m_quackMesh));
         m_quackNode->scale(5.0f);
 
         m_quackNode->setPosition(oldPos);

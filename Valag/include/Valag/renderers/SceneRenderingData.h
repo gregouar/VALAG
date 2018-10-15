@@ -3,7 +3,7 @@
 
 #include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/scene/MeshEntity.h"
-#include "Valag/scene/Light.h"
+#include "Valag/scene/LightEntity.h"
 #include "Valag/renderers/RenderView.h"
 
 namespace vlg
@@ -18,48 +18,6 @@ struct AmbientLightingData
     glm::vec4 ambientLight;
     bool      enableEnvMap;
     //glm::uvec2 envMap;
-};
-
-class SceneRenderingInstance
-{
-    friend class SceneRenderingData;
-
-    public:
-        SceneRenderingInstance(SceneRenderingData*, SceneRenderer*);
-
-        void addToSpritesVbo(const IsoSpriteDatum &datum);
-        void addToMeshesVbo(VMesh *mesh, const MeshDatum &datum);
-        void addToLightsVbo(const LightDatum &datum);
-
-        void setViewInfo(const ViewInfo &viewInfo, glm::vec3 camPos, float camZoom);
-
-        SceneRenderingData *getRenderingData();
-
-        size_t getSpritesVboSize();
-        size_t getSpritesVboOffset();
-        size_t getMeshesVboSize(VMesh *mesh);
-        size_t getMeshesVboOffset(VMesh *mesh);
-        size_t getLightsVboSize();
-        size_t getLightsVboOffset();
-
-        const ViewInfo &getViewInfo();
-        glm::vec4       getCamPosAndZoom();
-
-        void pushCamPosAndZoom(VkCommandBuffer cmb, VkPipelineLayout layout, VkFlags shaderStageBit = VK_SHADER_STAGE_VERTEX_BIT);
-
-    protected:
-        SceneRenderer       *m_renderer;
-        SceneRenderingData  *m_renderingData;
-
-        ViewInfo    m_viewInfo;
-        glm::vec3   m_camPos;
-        float       m_camZoom;
-        size_t      m_spritesVboSize;
-        size_t      m_spritesVboOffset;
-        std::map<VMesh*, size_t>    m_meshesVboSize;
-        std::map<VMesh*, size_t>    m_meshesVboOffset;
-        size_t      m_lightsVboSize;
-        size_t      m_lightsVboOffset;
 };
 
 class SceneRenderingData

@@ -17,7 +17,7 @@ Scene::Scene() :
 {
     m_rootNode.setPosition(0,0,0);
     m_curNewId = 0;
-    m_needToUpdateRenderQueue = false;
+    //m_needToUpdateRenderQueue = false;
     //m_needToUpdateEnvMap      = false;
     ///m_last_target = nullptr;
     ///m_currentCamera = nullptr;
@@ -65,10 +65,10 @@ void Scene::update(const Time &elapsedTime)
     }**/
 }
 
-void Scene::askToComputeRenderQueue()
+/*void Scene::askToComputeRenderQueue()
 {
     m_needToUpdateRenderQueue = true;
-}
+}*/
 
 /**void Scene::ProcessRenderQueue(sf::RenderTarget *w)
 {
@@ -270,41 +270,37 @@ SceneNode *Scene::getRootNode()
     return &m_rootNode;
 }
 
-/**RectEntity* Scene::CreateRectEntity(sf::Vector2f rectSize)
-{
-    RectEntity *e = new RectEntity(rectSize);
-    AddCreatedObject(GenerateObjectId(), e);
-    return e;
-}
-
-SpriteEntity* Scene::CreateSpriteEntity(sf::Vector2i spriteSize)
-{
-    return CreateSpriteEntity(sf::IntRect(0,0,spriteSize.x,spriteSize.y));
-}
-
-SpriteEntity* Scene::CreateSpriteEntity(sf::IntRect textureRect)
-{
-    SpriteEntity *e = new SpriteEntity(textureRect);
-    AddCreatedObject(GenerateObjectId(), e);
-    return e;
-}
-
-Light* Scene::CreateLight(LightType type, sf::Vector3f direction, sf::Color color)
-{
-    Light* light = new Light();
-    light->SetType(type);
-    light->SetDirection(direction);
-    light->SetDiffuseColor(color);
-    light->SetShadowMapSize(DEFAULT_SHADOWMAP_SIZE);
-    AddCreatedObject(GenerateObjectId(), light);
-    return light;
-}**/
-
 CameraObject* Scene::createCamera()
 {
     CameraObject* camera = new CameraObject();
     this->addCreatedObject(this->generateObjectId(), camera);
     return camera;
+}
+
+IsoSpriteEntity *Scene::createIsoSpriteEntity(IsoSpriteModel *model)
+{
+    IsoSpriteEntity *entity = new IsoSpriteEntity();
+    entity->setSpriteModel(model);
+    this->addCreatedObject(this->generateObjectId(), entity);
+    return entity;
+}
+
+MeshEntity *Scene::createMeshEntity(MeshAsset *model)
+{
+    MeshEntity *entity = new MeshEntity();
+    entity->setMesh(model);
+    this->addCreatedObject(this->generateObjectId(), entity);
+    return entity;
+}
+
+LightEntity *Scene::createLightEntity(LightType type, Color color, float intensity)
+{
+    LightEntity *entity = new LightEntity();
+    entity->setType(type);
+    entity->setDiffuseColor(color);
+    entity->setIntensity(intensity);
+    this->addCreatedObject(this->generateObjectId(), entity);
+    return entity;
 }
 
 
@@ -440,7 +436,7 @@ void Scene::generateViewAngle()
                                 0           ,-cos(m_xyAngle)              , 0       , 0,
                                 0           , 0                           , 0       , 1);*/
 
-    m_viewAngle = glm::mat4(cos(m_zAngle)       , sin(m_zAngle)*sin(m_xyAngle)      , sin(m_zAngle)*cos(m_xyAngle)    , 0,
+    m_viewAngle = glm::mat4(    cos(m_zAngle)   , sin(m_zAngle)*sin(m_xyAngle)      , sin(m_zAngle)*cos(m_xyAngle)    , 0,
                                -sin(m_zAngle)   , cos(m_zAngle)*sin(m_xyAngle)      , cos(m_zAngle)*cos(m_xyAngle)    , 0 ,
                                 0               ,-cos(m_xyAngle)                    , sin(m_xyAngle)                  , 0,
                                 0               , 0                                 , 0                               , 1);
@@ -459,6 +455,7 @@ void Scene::generateViewAngle()
                                 0                            , 0                             , 0                , 0,
                                 0                            , 0                             , 0                , 1);
 
+    //The true viewAngle inverse is actually given by the transpose of viexAngle
     /*m_viewAngleInv = glm::mat4( cos(m_zAngle)                , -sin(m_zAngle)                , 0                , 0,
                                 sin(m_zAngle)*sin(m_xyAngle) , cos(m_zAngle)*sin(m_xyAngle)  ,-cos(m_xyAngle)   , 0,
                                 sin(m_zAngle)*cos(m_xyAngle) , cos(m_zAngle)*cos(m_xyAngle)  , sin(m_xyAngle)   , 0,

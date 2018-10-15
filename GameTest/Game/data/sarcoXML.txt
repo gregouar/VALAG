@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<texture3D>
+	<name>Sarco</name>
+	<height>85</height>
+	<texture type="albedo">sarco_albedo.png</texture>
+	<texture type="normal">sarco_normal.png</texture>
+	<texture type="height">sarco_height.png</texture>
+	<material type="roughness">0.4</material>
+	<material type="metalness">0</material>
+	<material type="translucency">0</material>
+</texture3D>

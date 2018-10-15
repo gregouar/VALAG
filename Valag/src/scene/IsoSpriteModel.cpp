@@ -1,5 +1,7 @@
 #include "Valag/scene/IsoSpriteModel.h"
 
+#include <Vulkan/vulkan.hpp>
+
 #include "Valag/assets/MaterialAsset.h"
 #include "Valag/assets/AssetHandler.h"
 
@@ -121,9 +123,21 @@ bool IsoSpriteModel::isReady()
     return m_isReady;
 }
 
+VTexture IsoSpriteModel::getDirectionnalShadow(glm::vec3 direction)
+{
+    auto foundedMap = m_directionnalShadows.find(direction);
+    if(foundedMap == m_directionnalShadows.end())
+        return this->generateDirectionnalShadow(direction);
+    return foundedMap->second.texture;
+}
+
+/// Protected ///
+
 void IsoSpriteModel::cleanup()
 {
-
+    for(auto shadowMap : m_directionnalShadows)
+        VTexturesManager::freeTexture(shadowMap.second);
+    m_directionnalShadows.clear();
 }
 
 void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notification)
@@ -141,6 +155,17 @@ void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notific
             this->sendNotification(Notification_ModelChanged);
         }
     }
+}
+
+VTexture IsoSpriteModel::generateDirectionnalShadow(glm::vec3 direction)
+{
+    VRenderableTexture *renderableTexture = &m_directionnalShadows[direction];
+    VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_R8G8B8A8_UNORM,
+                                             renderableTexture);
+
+    /*do something*/
+
+    return renderableTexture->texture;
 }
 
 

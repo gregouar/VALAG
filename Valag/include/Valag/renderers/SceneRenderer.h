@@ -11,7 +11,7 @@
 #include "Valag/scene/Scene.h"
 #include "Valag/scene/IsoSpriteEntity.h"
 #include "Valag/scene/MeshEntity.h"
-#include "Valag/scene/Light.h"
+#include "Valag/scene/LightEntity.h"
 
 #include "Valag/vulkanImpl/DynamicVBO.h"
 
@@ -73,8 +73,12 @@ class SceneRenderer : public AbstractRenderer
         bool createAmbientLightingPipeline();
         bool createToneMappingPipeline();
 
-        virtual bool    recordPrimaryCmb(uint32_t imageIndex); ///Deferred, Alpha Detect, Alpha deferred
-        virtual bool    recordSsgiCmb(uint32_t imageIndex); ///BN and Lighting
+        virtual bool    recordPrimaryCmb(uint32_t imageIndex) override;
+
+        virtual bool    recordShadowCmb(uint32_t imageIndex);
+        virtual bool    recordDeferredCmb(uint32_t imageIndex);  ///Deferred, Alpha Detect, Alpha deferred
+        virtual bool    recordLightingCmb(uint32_t imageIndex);  ///Lighting, Alpha Lighting
+        virtual bool    recordSsgiCmb(uint32_t imageIndex); ///SSGIBN and SSGILighting
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
@@ -131,7 +135,7 @@ class SceneRenderer : public AbstractRenderer
         std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
         std::vector<DynamicVBO<LightDatum> >                    m_lightsVbos;
 
-        std::list<SceneRenderingInstance> m_renderingInstances;
+        std::list<SceneRenderingInstance>   m_renderingInstances;
 
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;

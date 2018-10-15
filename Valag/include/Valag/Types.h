@@ -82,12 +82,13 @@ enum LightType
     LightType_Spot,
 };
 
+//Could use flag
 enum ShadowCastingType
 {
-    NoShadow,
-    DirectionnalShadow,
-    DynamicShadow,
-    AllShadows,
+    ShadowCasting_None,
+    ShadowCasting_OnlyDirectionnal,
+    ShadowCasting_OnlyDynamic,
+    ShadowCasting_All,
 };
 
 enum ShadowVolumeType

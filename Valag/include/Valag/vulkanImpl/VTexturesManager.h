@@ -10,14 +10,23 @@
 namespace vlg
 {
 
+struct VRenderableTexture
+{
+    VTexture                texture;
+    VFramebufferAttachment  attachment;
+};
+
 struct VTexture2DArrayFormat
 {
     uint32_t width;
     uint32_t height;
     VkFormat vkFormat;
+    bool     renderable;
 
     bool operator<( VTexture2DArrayFormat const& rhs ) const
     {
+        if(renderable < rhs.renderable)
+            return (true);
         if(vkFormat < rhs.vkFormat)
             return (true);
         if(height < rhs.height)
@@ -53,7 +62,10 @@ class VTexturesManager : public Singleton<VTexturesManager>
                                  VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         static bool allocTexture(uint32_t width, uint32_t height,
                                  VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        static bool allocRenderableTexture(uint32_t width, uint32_t height, VkFormat format,
+                                           VRenderableTexture *texture);
         static void freeTexture(VTexture &texture);
+        static void freeTexture(VRenderableTexture &texture);
 
 
         static VkSampler                sampler();
@@ -70,6 +82,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
         VTexturesManager();
         virtual ~VTexturesManager();
         bool allocTextureImpl(VTexture2DArrayFormat format, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        bool allocRenderableTextureImpl(VTexture2DArrayFormat format, CommandPoolName cmdPoolName, VTexture *texture);
         size_t createTextureArray(VTexture2DArrayFormat format);
 
         void freeTextureImpl(VTexture &texture);

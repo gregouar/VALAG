@@ -7,7 +7,8 @@
 
 #include "Valag/Types.h"
 #include "Valag/scene/SceneEntity.h"
-#include "Valag/scene/Light.h"
+#include "Valag/scene/LightEntity.h"
+#include "Valag/scene/ShadowCaster.h"
 
 #include "Valag/core/NotificationListener.h"
 #include "Valag/core/NotificationSender.h"
@@ -130,8 +131,8 @@ class SceneNode : public NotificationSender, public NotificationListener
 
         std::list<SceneObject *>    m_attachedObjects;
         std::list<SceneEntity *>    m_attachedEntities;
-        std::list<Light *>          m_attachedLights;
-        /**std::list<ShadowCaster *> m_shadowCasters;**/
+        std::list<LightEntity *>    m_attachedLights;
+        std::list<ShadowCaster *>   m_attachedShadowCasters;
 
         int m_curNewId;
 };

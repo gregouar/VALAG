@@ -186,11 +186,11 @@ VFramebufferAttachment PBRToolbox::generateFilteredEnvMap(VTexture src)
 
     for(size_t i = 0 ; i < ENVMAP_FILTERINGMIPSCOUNT ; ++i)
     {
-        renderPassBeginInfo.renderArea.extent = {dst.extent.width  * std::pow(0.5, i),
-                                                 dst.extent.height * std::pow(0.5, i)};
+        renderPassBeginInfo.renderArea.extent = {static_cast<uint32_t>((double)dst.extent.width  * std::pow(0.5, i)),
+                                                 static_cast<uint32_t>((double)dst.extent.height * std::pow(0.5, i))};
 
-        viewport.width = (float) renderPassBeginInfo.renderArea.extent.width;
-        viewport.height = (float) renderPassBeginInfo.renderArea.extent.height;
+        viewport.width  = static_cast<float>(renderPassBeginInfo.renderArea.extent.width);
+        viewport.height = static_cast<float>(renderPassBeginInfo.renderArea.extent.height);
 
         scissor.extent = renderPassBeginInfo.renderArea.extent;
 

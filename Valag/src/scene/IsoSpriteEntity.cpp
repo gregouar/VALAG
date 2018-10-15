@@ -194,6 +194,11 @@ void IsoSpriteEntity::generateRenderingData(SceneRenderingInstance *renderingIns
         renderingInstance->addToSpritesVbo(this->getIsoSpriteDatum());
 }
 
+void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
+{
+
+}
+
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)
 {
     if(notification == Notification_AssetLoaded ||

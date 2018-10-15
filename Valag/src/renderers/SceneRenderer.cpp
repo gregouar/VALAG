@@ -113,9 +113,34 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
-    ///Probably it should be put elsewhere...
-    //this->updateUbos(imageIndex);
+    this->recordShadowCmb(imageIndex);
 
+    bool r = true;
+
+    if(!this->recordDeferredCmb(imageIndex))
+        r = false;
+    if(!this->recordLightingCmb(imageIndex))
+        r = false;
+    if(!this->recordAmbientLightingCmb(imageIndex))
+        r = false;
+
+    m_renderingInstances.clear();
+
+    return r;
+}
+
+bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
+{
+    for(auto renderingInstance : m_renderingInstances)
+    {
+
+    }
+
+    return (true);
+}
+
+bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
+{
     size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
     VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
 
@@ -257,7 +282,11 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     if(!m_renderGraph.endRecording(m_alphaDeferredPass))
         return (false);
 
+    return (true);
+}
 
+bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
+{
     size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex].uploadVBO();
     VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex].getBuffer();
 
@@ -265,7 +294,7 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
                                              m_renderGraph.getDescriptorSet(m_lightingPass,imageIndex/*m_curFrameIndex*/) };
 
     /// Lighting of opac fragments
-    cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_lightingPipeline.getLayout(),0,2, lightDescriptorSets, 0, nullptr);
@@ -324,11 +353,6 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
     if(!m_renderGraph.endRecording(m_alphaLightingPass))
         return (false);
-
-    //if(m_ambientLightingDescVersion[imageIndex] != VTexturesManager::imgDescriptorSetVersion(imageIndex))
-        this->recordAmbientLightingCmb(imageIndex);
-
-    m_renderingInstances.clear();
 
     return (true);
 }

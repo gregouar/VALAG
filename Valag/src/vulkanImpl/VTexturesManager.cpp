@@ -25,15 +25,50 @@ VTexturesManager::~VTexturesManager()
 bool VTexturesManager::allocTexture(uint32_t width, uint32_t height,
                                     VBuffer source, CommandPoolName cmdPoolName, VTexture *texture)
 {
-    return VTexturesManager::instance()->allocTextureImpl({width, height, VK_FORMAT_R8G8B8A8_UNORM},
+    return VTexturesManager::instance()->allocTextureImpl({width, height, VK_FORMAT_R8G8B8A8_UNORM, false},
                                                           source, cmdPoolName, texture);
 }
 
 bool VTexturesManager::allocTexture(uint32_t width, uint32_t height, VkFormat format,
                                     VBuffer source, CommandPoolName cmdPoolName, VTexture *texture)
 {
-    return VTexturesManager::instance()->allocTextureImpl({width, height, format},
+    return VTexturesManager::instance()->allocTextureImpl({width, height, format, false},
                                                           source, cmdPoolName, texture);
+}
+
+
+bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, VkFormat format,
+                                              VRenderableTexture *renderableTexture)
+{
+    if(!VTexturesManager::instance()->allocTextureImpl({width, height, format, true},
+                                                          VBuffer{}, COMMANDPOOL_SHORTLIVED, &renderableTexture->texture))
+        return (false);
+
+
+    VkImageAspectFlags aspect;
+    if(format == VK_FORMAT_D24_UNORM_S8_UINT)
+        aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    else if(format == VK_FORMAT_D32_SFLOAT)
+        aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    else
+        aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    renderableTexture->attachment.image =
+            VTexturesManager::instance()->m_allocatedTextureArrays[renderableTexture->texture.getTextureId()]->image;
+    renderableTexture->attachment.view  =
+            VulkanHelpers::createImageView( renderableTexture->attachment.image.vkImage, format,
+                                            aspect, 1, 1, renderableTexture->texture.getTextureLayer(), 0);
+
+    if(renderableTexture->attachment.view == VK_NULL_HANDLE)
+        return (false);
+
+    renderableTexture->attachment.extent.width  = width;
+    renderableTexture->attachment.extent.height = height;
+    renderableTexture->attachment.type.format = format;
+    renderableTexture->attachment.type.layout = (format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT) ?
+                                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    return (true);
 }
 
 
@@ -68,16 +103,19 @@ bool VTexturesManager::allocTextureImpl(VTexture2DArrayFormat format,
     texture->m_textureId = chosenArray;
     texture->m_textureLayer = chosenLayer;
 
-    texture2DArray->mutex.lock();
+    if(source.buffer != VK_NULL_HANDLE)
+    {
+        texture2DArray->mutex.lock();
 
-    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_IMAGE_LAYOUT_UNDEFINED,
-                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,cmdPoolName);
-        VBuffersAllocator::copyBufferToImage(source, texture2DArray->image.vkImage,
-                                         format.width, format.height,chosenLayer,cmdPoolName);
-    VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,cmdPoolName);
+        VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,cmdPoolName);
+            VBuffersAllocator::copyBufferToImage(source, texture2DArray->image.vkImage,
+                                             format.width, format.height,chosenLayer,cmdPoolName);
+        VulkanHelpers::transitionImageLayout(texture2DArray->image,chosenLayer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,cmdPoolName);
 
-    texture2DArray->mutex.unlock();
+        texture2DArray->mutex.unlock();
+    }
 
     return (true);
 }
@@ -99,10 +137,20 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
     texture2DArray->extent.width    = format.width;
     texture2DArray->extent.height   = format.height;
 
+    VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    if(format.renderable)
+    {
+        if(format.vkFormat == VK_FORMAT_D24_UNORM_S8_UINT || format.vkFormat == VK_FORMAT_D32_SFLOAT)
+            usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        else
+            usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+
     if(!VulkanHelpers::createImage(format.width, format.height, MAX_LAYER_PER_TEXTURE, format.vkFormat, VK_IMAGE_TILING_OPTIMAL,
-                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                               texture2DArray->image))
-                               return (false);
+                                   usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                   texture2DArray->image))
+        return (false);
 
     texture2DArray->view = VulkanHelpers::createImageView(texture2DArray->image, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -131,6 +179,15 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
 void VTexturesManager::freeTexture(VTexture &texture)
 {
     VTexturesManager::instance()->freeTextureImpl(texture);
+}
+
+void VTexturesManager::freeTexture(VRenderableTexture &renderableTexture)
+{
+    VTexturesManager::freeTexture(renderableTexture.texture);
+
+    if(renderableTexture.attachment.view != VK_NULL_HANDLE)
+        vkDestroyImageView(VInstance::device(), renderableTexture.attachment.view, nullptr);
+    renderableTexture.attachment.view = VK_NULL_HANDLE;
 }
 
 void VTexturesManager::freeTextureImpl(VTexture &texture)

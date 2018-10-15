@@ -60,8 +60,8 @@ void SceneNode::addChildNode(const NodeTypeId id, SceneNode* node)
         this->askForAllNotifications(node);
     }*/
 
-    if(m_scene != nullptr)
-        m_scene->askToComputeRenderQueue();
+    //if(m_scene != nullptr)
+      //  m_scene->askToComputeRenderQueue();
 }
 
 SceneNode* SceneNode::removeChildNode(const NodeTypeId id)
@@ -89,8 +89,8 @@ SceneNode* SceneNode::removeChildNode(const NodeTypeId id)
 
     m_childs.erase(childsIt);
 
-    if(m_scene != nullptr)
-        m_scene->askToComputeRenderQueue();
+    //if(m_scene != nullptr)
+      //  m_scene->askToComputeRenderQueue();
 
     return node;
 }
@@ -212,8 +212,8 @@ void SceneNode::removeAndDestroyAllChilds(bool destroyNonCreatedChilds)
     m_childs.clear();
     m_createdChildsList.clear();
 
-    if(m_scene != nullptr)
-        m_scene->askToComputeRenderQueue();
+    //if(m_scene != nullptr)
+      //  m_scene->askToComputeRenderQueue();
 }
 
 /**SceneNodeIterator SceneNode::GetChildIterator()
@@ -237,11 +237,10 @@ void SceneNode::attachObject(SceneObject *e)
             m_attachedEntities.push_back(dynamic_cast<SceneEntity*>(e));
 
         if(e->isALight())
-            m_attachedLights.push_back(dynamic_cast<Light*>(e));
+            m_attachedLights.push_back(dynamic_cast<LightEntity*>(e));
 
-        /**if(e->IsAShadowCaster())
-            //m_shadowCasters.push_back(dynamic_cast<ShadowCaster*>(e));
-            m_shadowCasters.push_back((ShadowCaster*)e);**/
+        if(e->isAShadowCaster())
+            m_attachedShadowCasters.push_back(dynamic_cast<ShadowCaster*>(e));
 
         if(e->setParentNode(this) != nullptr)
             Logger::warning("Attaching entity which has already a parent node");
@@ -250,24 +249,30 @@ void SceneNode::attachObject(SceneObject *e)
     } else
         Logger::error("Cannot attach null entity");
 
-    if(m_scene != nullptr)
-        m_scene->askToComputeRenderQueue();
+    //if(m_scene != nullptr)
+      //  m_scene->askToComputeRenderQueue();
 }
 
 void SceneNode::detachObject(SceneObject *e)
 {
+    if(e->getParentNode() != this)
+    {
+        Logger::warning("Tried to detach object from non-parent node");
+        return;
+    }
+
     m_attachedObjects.remove(e);
 
     if(e != nullptr && e->isAnEntity())
         m_attachedEntities.remove(dynamic_cast<SceneEntity*>(e));
 
     if(e != nullptr && e->isALight())
-        m_attachedLights.remove((Light*)e);
+        m_attachedLights.remove(dynamic_cast<LightEntity*>(e));
 
-    /**if(e != nullptr && e->isAShadowCaster())
-        m_shadowCasters.remove((ShadowCaster*)e);**/
+    if(e != nullptr && e->isAShadowCaster())
+        m_attachedShadowCasters.remove(dynamic_cast<ShadowCaster*>(e));
 
-    this->removeFromAllNotificationList(e);
+    e->setParentNode(nullptr);
 }
 
 /**SceneEntityIterator SceneNode::GetEntityIterator()
@@ -573,8 +578,8 @@ void SceneNode::updateGlobalPosition()
     else
         m_globalPosition = m_position;
 
-    if(m_scene != nullptr)
-        m_scene->askToComputeRenderQueue();
+    //if(m_scene != nullptr)
+      //  m_scene->askToComputeRenderQueue();
 
     this->updateModelMatrix();
    // this->sendNotification(Notification_SceneNodeMoved);
@@ -606,6 +611,14 @@ void SceneNode::generateRenderingData(SceneRenderingInstance *renderingInstance)
     for(auto entity : m_attachedEntities)
         if(entity->isVisible())
             entity->generateRenderingData(renderingInstance);
+
+    for(auto light : m_attachedLights)
+        if(light->isVisible())
+            renderingInstance->addToShadowLightsList(light);
+
+    for(auto shadowCaster : m_attachedShadowCasters)
+        if(shadowCaster->isVisible())
+            renderingInstance->addToShadowCastersList(shadowCaster);
 
     for(auto node : m_childs)
         node.second->generateRenderingData(renderingInstance);

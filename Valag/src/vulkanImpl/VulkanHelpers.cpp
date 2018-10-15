@@ -316,16 +316,16 @@ void VulkanHelpers::transitionImageLayout(VkImage image, uint32_t layer, uint32_
 
 VkImageView VulkanHelpers::createImageView(VImage image, VkImageAspectFlags aspectFlags)
 {
-    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, image.mipsCount, 0);
+    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, image.mipsCount, 0, 0);
 }
 
 VkImageView VulkanHelpers::createImageView(VImage image, uint32_t mipLevel, VkImageAspectFlags aspectFlags)
 {
-    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, 1, mipLevel);
+    return VulkanHelpers::createImageView(image.vkImage, image.format, aspectFlags, image.layerCount, 1, 0, mipLevel);
 }
 
 VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                           uint32_t layerCount, uint32_t mipsCount, uint32_t mipLevel)
+                                           uint32_t layerCount, uint32_t mipsCount, uint32_t layerLevel, uint32_t mipLevel)
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

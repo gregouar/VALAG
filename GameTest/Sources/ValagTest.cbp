@@ -98,7 +98,7 @@
 		<Unit filename="../../Valag/include/Valag/scene/CameraObject.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/IsoSpriteModel.h" />
-		<Unit filename="../../Valag/include/Valag/scene/Light.h" />
+		<Unit filename="../../Valag/include/Valag/scene/LightEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/MeshEntity.h" />
 		<Unit filename="../../Valag/include/Valag/scene/Scene.h" />
 		<Unit filename="../../Valag/include/Valag/scene/SceneEntity.h" />
@@ -136,6 +136,8 @@
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteAlphaDetection.frag" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteAlphaDetection.vert" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteAlphaShader.frag" />
+		<Unit filename="../../Valag/shaders/deferred/isoSpriteDirectShadow.frag" />
+		<Unit filename="../../Valag/shaders/deferred/isoSpriteDirectShadow.vert" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteShader.frag" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteShader.vert" />
 		<Unit filename="../../Valag/shaders/deferred/meshShader.frag" />
@@ -186,7 +188,7 @@
 		<Unit filename="../../Valag/src/scene/CameraObject.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/IsoSpriteModel.cpp" />
-		<Unit filename="../../Valag/src/scene/Light.cpp" />
+		<Unit filename="../../Valag/src/scene/LightEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/MeshEntity.cpp" />
 		<Unit filename="../../Valag/src/scene/Scene.cpp" />
 		<Unit filename="../../Valag/src/scene/SceneEntity.cpp" />

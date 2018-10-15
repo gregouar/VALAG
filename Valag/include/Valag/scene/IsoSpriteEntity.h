@@ -51,9 +51,10 @@ class IsoSpriteEntity : public ShadowCaster
 
         IsoSpriteDatum getIsoSpriteDatum();
         //virtual void draw(SceneRenderer *renderer);
-        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
+        virtual void generateRenderingData(SceneRenderingInstance *renderingInstance) override;
+        virtual void castShadow(SceneRenderer *renderer, LightEntity* light) override;
 
-        virtual void notify(NotificationSender *sender, NotificationType notification);
+        virtual void notify(NotificationSender *sender, NotificationType notification) override;
 
     protected:
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);

@@ -5,6 +5,7 @@
 #include "Valag/core/NotificationListener.h"
 #include "Valag/scene/SceneNode.h"
 #include "Valag/scene/CameraObject.h"
+#include "Valag/renderers/SceneRenderingInstance.h"
 #include "Valag/renderers/SceneRenderingData.h"
 
 namespace vlg
@@ -33,19 +34,13 @@ class Scene : public NotificationListener
 
         virtual void render(SceneRenderer *renderer, CameraObject *camera);
 
-        ///This should probably be removed
-        void askToComputeRenderQueue();
-
         SceneNode *getRootNode();
 
-        /**RectEntity*     createRectEntity(sf::Vector2f = sf::Vector2f(0,0));
-        SpriteEntity*   createSpriteEntity(sf::Vector2i);
-        SpriteEntity*   createSpriteEntity(sf::IntRect = sf::IntRect(0,0,0,0));
-
-        Light* createLight(LightType = OmniLight, sf::Vector3f = sf::Vector3f(0,0,-1),
-                           sf::Color = sf::Color::White);**/
-
-        CameraObject* createCamera();
+        CameraObject       *createCamera();
+        IsoSpriteEntity    *createIsoSpriteEntity(IsoSpriteModel *model = nullptr);
+        MeshEntity         *createMeshEntity(MeshAsset *model = nullptr);
+        LightEntity        *createLightEntity(LightType type = vlg::LightType_Omni,
+                                              Color color = {1.0,1.0,1.0,1.0}, float intensity = 1.0);
 
         void destroyCreatedObject(const ObjectTypeId);
         void destroyAllCreatedObjects();
@@ -74,34 +69,22 @@ class Scene : public NotificationListener
 
         ///virtual int updateLighting(std::multimap<float, Light*> &lightList, int = -1); //-1 is GL_MAX_LIGHTS
 
-        //CameraObject *m_currentCamera;
         SceneNode m_rootNode;
 
         /**
         ShadowCastingType m_shadowCastingOption;
-        bool m_enableSRGB;
-
-        std::list<SceneEntity*> m_renderQueue;
-        //std::list<SceneEntity*> m_staticRenderQueue;
-        sf::RenderTarget *m_last_target;**/
+        bool m_enableSRGB;**/
 
         float m_zAngle;
         float m_xyAngle;
-        glm::mat4   m_viewAngle,    //World to screen transformation matrix
-                    m_viewAngleInv;//, //Screen to world transformation matrix
-                   // m_viewProjInv;  //Mouse screen to world matrix
+        glm::mat4   m_viewAngle,    //World to screen transformation matrix (inv is transpose)
+                    m_viewAngleInv;// 2D Screen to world transformation matrix
 
     private:
         std::map<ObjectTypeId, SceneObject*> m_createdObjects;
         ObjectTypeId m_curNewId;
 
-        bool m_needToUpdateRenderQueue;
-        //bool m_needToUpdateEnvMap;
-
         TextureAsset           *m_envMapAsset;
-        /*VFramebufferAttachment  m_filteredEnvMap;
-        AmbientLightingData     m_ambientLightingData;*/
-
         SceneRenderingData      m_renderingData;
 
         ///static const sf::Vector2u DEFAULT_SHADOWMAP_SIZE;

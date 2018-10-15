@@ -3,12 +3,34 @@
 
 #include "Valag/core/NotificationListener.h"
 #include "Valag/core/NotificationSender.h"
+#include "Valag/vulkanImpl/VTexturesManager.h"
 #include "Valag/Types.h"
 
 #include <vector>
 
 namespace vlg
 {
+
+
+struct Direction
+{
+    float x;
+    float y;
+    float z;
+
+    Direction(glm::vec3 v){x=v.x, y=v.y, z=v.z;}
+
+    bool operator<( Direction const& rhs ) const
+    {
+        if(x < rhs.x)
+            return (true);
+        if(y < rhs.y)
+            return (true);
+        if(z < rhs.z)
+            return (true);
+        return (false);
+    }
+};
 
 class IsoSpriteModel : public NotificationListener, public NotificationSender
 {
@@ -17,8 +39,6 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
     public:
         IsoSpriteModel();
         virtual ~IsoSpriteModel();
-
-        //void setSize(glm::vec2 size);
 
         void setMaterial(AssetTypeId materialId);
         void setMaterial(MaterialAsset *material);
@@ -29,6 +49,10 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         void setColor(Color color);
         void setRmt(Color rmt);
 
+        void setShadowMapExtent(glm::vec2 extent);
+        void updateDirectionnalShadow(glm::vec3 oldDirection, glm::vec3 newDirection);
+        void deleteDirectionnalShadow(glm::vec3 direction);
+
         MaterialAsset *getMaterial();
         glm::vec2 getSize();
         glm::vec2 getTextureExtent();
@@ -36,11 +60,16 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         glm::vec2 getTextureCenter();
         bool      isReady();
 
+        VTexture getDirectionnalShadow(glm::vec3 direction);
+
         virtual void notify(NotificationSender* sender, NotificationType notification);
 
     protected:
         //void updateModel(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
+
+        //Add some kind of cleaning ?
+        VTexture generateDirectionnalShadow(glm::vec3 direction);
 
     private:
         MaterialAsset *m_material;
@@ -55,6 +84,9 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         glm::vec4 m_rmt;
 
         bool m_isReady;
+
+        glm::vec2 m_shadowMapExtent;
+        std::map<Direction, VRenderableTexture> m_directionnalShadows;
 
 };
 

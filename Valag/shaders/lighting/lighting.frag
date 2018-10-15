@@ -38,6 +38,7 @@ layout(push_constant) uniform PER_OBJECT
 layout(location = 0) flat in vec4  lightPos;
 layout(location = 1) flat in vec3  lightColor;
 layout(location = 2) flat in float lightRadiusInv;
+layout(location = 3) flat in vec2  lightShadowMap;
 
 layout(location = 0) out vec4 outColor;
 //layout(location = 1) out vec4 outColorAlpha;

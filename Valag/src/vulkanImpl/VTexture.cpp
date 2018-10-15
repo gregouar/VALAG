@@ -7,8 +7,8 @@ namespace vlg
 
 VTexture::VTexture()
 {
-    m_textureId = 0;
-    m_textureLayer = 0;
+    m_textureId     = 0;
+    m_textureLayer  = 0;
 }
 
 VTexture::~VTexture()

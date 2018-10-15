@@ -17,10 +17,12 @@ layout(push_constant) uniform PER_OBJECT
 layout(location = 0) in vec4  inPos;
 layout(location = 1) in vec4  inColor;
 layout(location = 2) in float inRadius;
+layout(location = 3) in vec2  inShadowMap;
 
 layout(location = 0) flat out vec4  lightPos;
 layout(location = 1) flat out vec3  lightColor;
 layout(location = 2) flat out float lightRadiusInv;
+layout(location = 3) flat out vec2  lightShadowMap;
 
 
 //2/sqrt(3) ~ 1.1547
@@ -61,6 +63,7 @@ void main()
     lightPos    = inPos;
     lightColor  = inColor.rgb*inColor.a;
     lightRadiusInv = 1.0/(inRadius*0.01);
+    lightShadowMap = inShadowMap;
 }
 
 
