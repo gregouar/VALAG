@@ -96,6 +96,59 @@ std::array<VkVertexInputAttributeDescription, 12> IsoSpriteDatum::getAttributeDe
     attributeDescriptions[i].offset = offsetof(IsoSpriteDatum, rmt_texId);
     ++i;
 
+    return attributeDescriptions;
+}
+
+VkVertexInputBindingDescription IsoSpriteShadowDatum::getBindingDescription()
+{
+    VkVertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(IsoSpriteShadowDatum);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 6> IsoSpriteShadowDatum::getAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions = {};
+
+    size_t i = 0;
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, position);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, size);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, center);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, texPos);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, texExtent);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
+    attributeDescriptions[i].offset = offsetof(IsoSpriteShadowDatum, texId);
+    ++i;
 
     return attributeDescriptions;
 }
@@ -196,7 +249,18 @@ void IsoSpriteEntity::generateRenderingData(SceneRenderingInstance *renderingIns
 
 void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
 {
+    if(m_spriteModel == nullptr || m_parentNode == nullptr)
+        return;
 
+    if(!m_spriteModel->isReady())
+        return;
+
+    if(light->getType() == LightType_Directional)
+    {
+        VTexture shadow = m_spriteModel->getDirectionnalShadow(light->getDirection());
+
+        //Add shadow sprite to renderer
+    }
 }
 
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)

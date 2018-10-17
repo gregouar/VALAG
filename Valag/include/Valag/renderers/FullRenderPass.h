@@ -2,7 +2,6 @@
 #define FULLRENDERPASS_H
 
 #include "Valag/vulkanImpl/vulkanImpl.h"
-#include "Valag/renderers/RenderTarget.h"
 
 namespace vlg
 {
@@ -19,10 +18,6 @@ class FullRenderPass
 
         VkCommandBuffer startRecording(size_t imageIndex, size_t frameIndex, VkSubpassContents contents);
         bool endRecording();
-
-        //void addWaitSemaphores(const std::vector<VkSemaphore> &semaphores, VkPipelineStageFlags stage);
-       // void setSignalSemaphores(size_t frameIndex, VkSemaphore semaphore);
-        //void addSignalSemaphores(const std::vector<VkSemaphore> &semaphores);
 
         void addWaitSemaphore(size_t frameIndex, VkSemaphore semaphore, VkPipelineStageFlags stage);
         void addSignalSemaphore(size_t frameIndex, VkSemaphore semaphore);
@@ -42,9 +37,9 @@ class FullRenderPass
         void setAttachmentsLoadOp(size_t attachmentIndex, VkAttachmentLoadOp loadOp, bool fromUniform);
         void setAttachmentsStoreOp(size_t attachmentIndex, VkAttachmentStoreOp storeOp, bool toUniform = false);
 
-        VkFlags         getCmbUsage();
+        //VkFlags         getCmbUsage();
         VkExtent2D      getExtent();
-        VkRenderPass    getVkRenderPass();
+       // //VkRenderPass    getVkRenderPass();
         const VRenderPass *getRenderPass();
         bool            isFinalPass();
        // size_t          getColorAttachmentsCount();
@@ -60,32 +55,21 @@ class FullRenderPass
         VkDescriptorSet         getDescriptorSet(size_t imageIndex);
 
     protected:
+        bool createCommandBuffers();
         bool createRenderPass();
-        /*bool createFramebuffers();
-        bool createCmb();*/
         bool createRenderTarget();
         bool createDescriptorSetLayout();
         bool createDescriptorSets(VkDescriptorPool pool, VkSampler sampler);
 
     private:
         size_t      m_imagesCount;
-        size_t      m_cmbCount;
-       // VkExtent2D  m_extent;
+        size_t      m_framesCount;
 
         bool        m_isFinalPass;
-        //VkFlags     m_cmbUsage;
 
+        VCommandBuffer  m_cmb;
         VRenderPass     m_renderPass;
-        RenderTarget    m_renderTarget;
-        //VkRenderPass m_vkRenderPass;
-        //std::vector<VkClearValue>  m_clearValues;
-        //std::vector<VkFramebuffer> m_framebuffers;
-
-        //std::vector<std::vector<VFramebufferAttachment> > m_attachments;
-        //std::vector<std::pair<VkAttachmentLoadOp, bool> > m_attachmentsLoadOp; //loadOp and fromUniform
-        //std::vector<std::pair<VkAttachmentStoreOp, bool> > m_attachmentsStoreOp; //storeOp and toUniform
-
-        //std::vector<VkCommandBuffer>    m_primaryCmb;
+        VRenderTarget   m_renderTarget;
 
         std::vector<VkPipelineStageFlags>      m_waitSemaphoreStages;
         std::vector<std::vector<VkSemaphore> > m_waitSemaphores;
@@ -97,8 +81,6 @@ class FullRenderPass
         std::vector<std::pair<size_t, std::vector<VkImageView> > >             m_uniformViews;
         VkDescriptorSetLayout           m_descriptorSetLayout;
         std::vector<VkDescriptorSet>    m_descriptorSets;
-
-        //size_t m_curRecordingIndex;
 
 };
 

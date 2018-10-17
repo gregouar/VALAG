@@ -30,6 +30,21 @@ struct IsoSpriteDatum
     static std::array<VkVertexInputAttributeDescription, 12> getAttributeDescriptions();
 };
 
+struct IsoSpriteShadowDatum
+{
+    glm::vec3 position;
+    glm::vec3 size;
+    glm::vec2 center;
+
+    glm::vec2 texPos;
+    glm::vec2 texExtent;
+
+    glm::uvec2 texId;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions();
+};
+
 
 class IsoSpriteEntity : public ShadowCaster
 {

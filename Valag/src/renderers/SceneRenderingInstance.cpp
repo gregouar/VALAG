@@ -57,7 +57,7 @@ void SceneRenderingInstance::addToShadowCastersList(ShadowCaster *caster)
         m_renderedShadowCasters[0].push_back(caster);
 
     if(caster->getShadowCastingType() == ShadowCasting_All
-    || caster->getShadowCastingType() == ShadowCasting_OnlyDirectionnal)
+    || caster->getShadowCastingType() == ShadowCasting_OnlyDirectional)
         m_renderedShadowCasters[1].push_back(caster);
 }
 
@@ -117,6 +117,17 @@ const ViewInfo &SceneRenderingInstance::getViewInfo()
 glm::vec4 SceneRenderingInstance::getCamPosAndZoom()
 {
     return glm::vec4(m_camPos, m_camZoom);
+}
+
+void SceneRenderingInstance::recordShadows(SceneRenderer *renderer, uint32_t imageIndex)
+{
+    for(auto light : m_renderedShadowLights)
+    {
+        if(light->getType() == LightType_Omni)
+            light->generateShadowMap(renderer, m_renderedShadowCasters[0]);
+        else if(light->getType() == LightType_Directional)
+            light->generateShadowMap(renderer, m_renderedShadowCasters[1]);
+    }
 }
 
 //Could add option for shader stage and offset

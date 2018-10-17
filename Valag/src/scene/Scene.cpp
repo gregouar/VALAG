@@ -249,7 +249,7 @@ void Scene::render(SceneRenderer *renderer, CameraObject *camera)
         viewInfo.viewInv  = m_viewAngleInv;
         renderer->setView(viewInfo);
 
-        SceneRenderingInstance renderingInstance(&m_renderingData, renderer);
+        SceneRenderingInstance *renderingInstance = new SceneRenderingInstance(&m_renderingData, renderer);
         //m_renderingData.createNewInstance(&renderingInstance, renderer);
         //renderingInstance.renderingData     = &renderingData;
         viewInfo.view     = m_viewAngle*camTranslate;
@@ -257,9 +257,9 @@ void Scene::render(SceneRenderer *renderer, CameraObject *camera)
         viewInfo.viewportOffset = camera->getViewportOffset();
         viewInfo.viewportExtent = camera->getViewportExtent();
 
-        renderingInstance.setViewInfo(viewInfo, camPos, camera->getZoom());
+        renderingInstance->setViewInfo(viewInfo, camPos, camera->getZoom());
 
-        m_rootNode.generateRenderingData(&renderingInstance);
+        m_rootNode.generateRenderingData(renderingInstance);
 
         renderer->addRenderingInstance(renderingInstance);
     }

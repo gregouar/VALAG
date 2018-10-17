@@ -14,7 +14,8 @@ IsoSpriteModel::IsoSpriteModel() :
     m_texturePosition({0.0f,0.0f}),
     m_textureExtent({1.0f,1.0f}),
     m_textureCenter({0.0f,0.0f}),
-    m_isReady(true)
+    m_isReady(true),
+    m_shadowMapExtent(256.0,256.0)
 {
     //ctor
 }

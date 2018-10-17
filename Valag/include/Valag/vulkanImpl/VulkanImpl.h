@@ -12,6 +12,8 @@
 #include "Valag/vulkanImpl/VMesh.h"
 #include "Valag/vulkanImpl/VGraphicsPipeline.h"
 #include "Valag/vulkanImpl/VRenderPass.h"
+#include "Valag/vulkanImpl/VRenderTarget.h"
+#include "Valag/vulkanImpl/VCommandBuffer.h"
 #include "Valag/vulkanImpl/VulkanExtProxies.h"
 #include "Valag/vulkanImpl/VulkanHelpers.h"
 

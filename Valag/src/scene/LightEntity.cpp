@@ -197,7 +197,7 @@ void LightEntity::notify(NotificationSender *sender, NotificationType type)
 
 void LightEntity::updateDatum()
 {
-    if(m_type == LightType_Directionnal)
+    if(m_type == LightType_Directional)
         m_datum.position = glm::vec4(m_direction,0.0);
     else if(m_parentNode != nullptr)
         m_datum.position = glm::vec4(m_parentNode->getGlobalPosition(),1.0);

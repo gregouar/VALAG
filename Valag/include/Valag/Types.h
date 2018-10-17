@@ -78,7 +78,7 @@ enum NotificationType
 enum LightType
 {
     LightType_Omni,
-    LightType_Directionnal,
+    LightType_Directional,
     LightType_Spot,
 };
 
@@ -86,7 +86,7 @@ enum LightType
 enum ShadowCastingType
 {
     ShadowCasting_None,
-    ShadowCasting_OnlyDirectionnal,
+    ShadowCasting_OnlyDirectional,
     ShadowCasting_OnlyDynamic,
     ShadowCasting_All,
 };

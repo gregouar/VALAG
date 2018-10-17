@@ -26,7 +26,7 @@ class SceneRenderer : public AbstractRenderer
         SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
-        void addRenderingInstance(const SceneRenderingInstance &renderingInstance);
+        void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
         void addToSpritesVbo(const IsoSpriteDatum &datum);
         void addToMeshesVbo(VMesh *mesh, const MeshDatum &datum);
@@ -42,35 +42,40 @@ class SceneRenderer : public AbstractRenderer
         virtual bool init();
         virtual void cleanup();
 
-        virtual void    prepareRenderPass();
-
-        virtual bool    createGraphicsPipeline();
-
-        //virtual bool    createDescriptorSetLayouts();
-        //virtual bool    createDescriptorPool();
-       // virtual bool    createDescriptorSets();
+        virtual void prepareRenderPass() override;
+        virtual bool createGraphicsPipeline() override;
 
         bool createAttachments();
 
+
+        //Render passes
+        void prepareShadowRenderPass();
+        //Deferred
         void prepareDeferredRenderPass();
         void prepareAlphaDetectRenderPass();
         void prepareAlphaDeferredRenderPass();
+        //Lighting
         void prepareSsgiBNRenderPasses();
         void prepareLightingRenderPass();
         void prepareAlphaLightingRenderPass();
         void prepareSsgiLightingRenderPass();
         void prepareAmbientLightingRenderPass();
+        //Final pass
         void prepareToneMappingRenderPass();
 
+        //Pipelines
+        //Deferred
         bool createDeferredSpritesPipeline();
         bool createDeferredMeshesPipeline();
         bool createAlphaDetectPipeline();
         bool createAlphaDeferredPipeline();
+        //Lighting
         bool createSsgiBNPipelines();
         bool createLightingPipeline();
         bool createAlphaLightingPipeline();
         bool createSsgiLightingPipeline();
         bool createAmbientLightingPipeline();
+        //Tone mapping
         bool createToneMappingPipeline();
 
         virtual bool    recordPrimaryCmb(uint32_t imageIndex) override;
@@ -82,14 +87,7 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    recordAmbientLightingCmb(uint32_t imageIndex);
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
-        //virtual bool    updateUbos(uint32_t imageIndex);
-
     private:
-        //AmbientLightingData     m_ambientLightingData;
-        //std::vector<VBuffer>    m_ambientLightingUbo;
-        //std::vector<size_t>     m_ambientLightingDescVersion;
-
-
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,
                             m_alphaDetectPipeline,
@@ -107,19 +105,20 @@ class SceneRenderer : public AbstractRenderer
                                             m_positionAttachments[NBR_ALPHA_LAYERS], //The opac.a contains existence of truly trasparent frag, the alpha.a contains alphaAlbedo.a
                                             m_normalAttachments[NBR_ALPHA_LAYERS], //The opac.a = 0 and alpha.a contains existence of truly transparent frag
                                             m_rmtAttachments[NBR_ALPHA_LAYERS];
-       // std::vector<VFramebufferAttachment> m_alphaDetectAttachments; //This could be stored in opacPosition.a
         std::vector<VFramebufferAttachment> m_hdrAttachements[NBR_ALPHA_LAYERS];
 
 
         //Need to think how to deal with multibuffering
         //Use blitting to move accordingly to camera ? Could also add velocity map...
+        //After testing GI, if accu doesn't look good, I should add multibuffering
         VFramebufferAttachment m_ssgiAccuBentNormalsAttachment;
         VFramebufferAttachment m_ssgiAccuLightingAttachment;
         VFramebufferAttachment m_ssgiCollisionsAttachments[NBR_SSGI_SAMPLES];
         VFramebufferAttachment m_SSGIBlurBentNormalsAttachments[2];
         //VFramebufferAttachment m_SSGIBlurLightingAttachment[2];
 
-        size_t  m_deferredPass,
+        size_t  m_shadowPass,
+                m_deferredPass,
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
                 m_ssgiBNPass,
@@ -131,11 +130,12 @@ class SceneRenderer : public AbstractRenderer
                 m_toneMappingPass;
 
         ///I should probably sort by material
+        std::vector<DynamicVBO<IsoSpriteShadowDatum> >          m_spriteShadowsVbos;
         std::vector<DynamicVBO<IsoSpriteDatum> >                m_spritesVbos;
         std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
         std::vector<DynamicVBO<LightDatum> >                    m_lightsVbos;
 
-        std::list<SceneRenderingInstance>   m_renderingInstances;
+        std::list<SceneRenderingInstance*>   m_renderingInstances;
 
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;

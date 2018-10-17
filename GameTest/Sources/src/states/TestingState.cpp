@@ -98,26 +98,28 @@ void TestingState::init()
     vlg::MaterialAsset *abbeyMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/abbeyXML.txt",loadType);
     vlg::MaterialAsset *treeMaterial = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/treeXML.txt",loadType);
 
-    m_treeModel.setMaterial(treeMaterial);
-    m_treeModel.setSize({512.0,512.0});
-    m_treeModel.setTextureRect({0,0},{1,1});
-    m_treeModel.setTextureCenter({256,526});
+    m_treeModel = new vlg::IsoSpriteModel();
+    m_treeModel->setMaterial(treeMaterial);
+    m_treeModel->setSize({512.0,512.0});
+    m_treeModel->setTextureRect({0,0},{1,1});
+    m_treeModel->setTextureCenter({256,526});
 
-    m_abbeyModel.setMaterial(abbeyMaterial);
-    m_abbeyModel.setSize({1920,1080});
-    m_abbeyModel.setTextureRect({0,0},{1,1});
-    m_abbeyModel.setTextureCenter({1920/2,1080/2});
+    m_abbeyModel = new vlg::IsoSpriteModel();
+    m_abbeyModel->setMaterial(abbeyMaterial);
+    m_abbeyModel->setSize({1920,1080});
+    m_abbeyModel->setTextureRect({0,0},{1,1});
+    m_abbeyModel->setTextureCenter({1920/2,1080/2});
 
 
     m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
-    m_abbeyNode->attachObject(m_scene->createIsoSpriteEntity(&m_abbeyModel));
+    m_abbeyNode->attachObject(m_scene->createIsoSpriteEntity(m_abbeyModel));
 
     //m_treeEntity.setSpriteModel(&m_treeModel);
     //m_abbeyEntity.setSpriteModel(&m_abbeyModel);
 
     m_treeNode  =  m_scene->getRootNode()->createChildNode({900,400,-90});
-    m_treeEntity = m_scene->createIsoSpriteEntity(&m_treeModel);
-    m_treeEntity->setShadowCasting(vlg::ShadowCasting_OnlyDirectionnal);
+    m_treeEntity = m_scene->createIsoSpriteEntity(m_treeModel);
+    m_treeEntity->setShadowCasting(vlg::ShadowCasting_OnlyDirectional);
     //m_treeEntity->setColor({0.0,1.0,0.0,0.6});
     m_treeNode->attachObject(m_treeEntity);
 
@@ -128,7 +130,7 @@ void TestingState::init()
         //m_forestEntities.back().setSpriteModel(&m_treeModel);
         m_scene ->getRootNode()
                 ->createChildNode({x*50,y*50,-90})
-                ->attachObject(m_scene->createIsoSpriteEntity(&m_treeModel));
+                ->attachObject(m_scene->createIsoSpriteEntity(m_treeModel));
     }
 
     m_camera = m_scene->createCamera();
@@ -152,7 +154,7 @@ void TestingState::init()
     //m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(m_scene->createMeshEntity(groundMesh));
 
-    vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directionnal);
+    vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
     m_scene->getRootNode()->attachObject(sunLight);
 
     ///Day
@@ -163,7 +165,7 @@ void TestingState::init()
     //m_sunLight.setDiffuseColor({0.7,0.7,1.0,1.0});
     //m_sunLight.setIntensity(0.2);
 
-    sunLight->setType(vlg::LightType_Directionnal);
+    sunLight->setType(vlg::LightType_Directional);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
     sunLight->setDirection({.2 ,-1.0,-1.0});
     sunLight->enableShadowCasting();
@@ -227,6 +229,16 @@ void TestingState::leaving()
     if(m_scene != nullptr)
         delete m_scene;
     m_scene = nullptr;
+
+    //I should have some kind of spriteModel manager (maybe I should put them as assets ?)
+
+    if(m_treeModel != nullptr)
+        delete m_treeModel;
+    m_treeModel = nullptr;
+
+    if(m_abbeyModel != nullptr)
+        delete m_abbeyModel;
+    m_abbeyModel = nullptr;
 }
 
 void TestingState::revealed()

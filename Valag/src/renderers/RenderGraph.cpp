@@ -136,10 +136,10 @@ void RenderGraph::setClearValue(size_t renderPassIndex, size_t attachmentIndex, 
     m_renderPasses[renderPassIndex]->setClearValues(attachmentIndex, color, depth);
 }
 
-VkRenderPass RenderGraph::getVkRenderPass(size_t renderPassIndex)
+/*VkRenderPass RenderGraph::getVkRenderPass(size_t renderPassIndex)
 {
     return m_renderPasses[renderPassIndex]->getVkRenderPass();
-}
+}*/
 
 const VRenderPass *RenderGraph::getRenderPass(size_t renderPassIndex)
 {
@@ -218,9 +218,9 @@ bool RenderGraph::initRenderPasses()
 {
     for(auto renderPass : m_renderPasses)
     {
-        size_t bufferCount =
+        /*size_t bufferCount =
            (renderPass->getCmbUsage() == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? m_framesCount : m_imagesCount;
-        renderPass->setCmbCount(bufferCount);
+        renderPass->setCmbCount(bufferCount);*/
 
         if(renderPass->getExtent().width == 0)
             renderPass->setExtent(m_defaultExtent);

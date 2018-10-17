@@ -44,7 +44,6 @@ bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, V
                                                           VBuffer{}, COMMANDPOOL_SHORTLIVED, &renderableTexture->texture))
         return (false);
 
-
     VkImageAspectFlags aspect;
     if(format == VK_FORMAT_D24_UNORM_S8_UINT)
         aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -138,11 +137,15 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
     texture2DArray->extent.height   = format.height;
 
     VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 
     if(format.renderable)
     {
         if(format.vkFormat == VK_FORMAT_D24_UNORM_S8_UINT || format.vkFormat == VK_FORMAT_D32_SFLOAT)
+        {
             usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
         else
             usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
@@ -152,7 +155,7 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
                                    texture2DArray->image))
         return (false);
 
-    texture2DArray->view = VulkanHelpers::createImageView(texture2DArray->image, VK_IMAGE_ASPECT_COLOR_BIT);
+    texture2DArray->view = VulkanHelpers::createImageView(texture2DArray->image, aspect);
 
     for(size_t i = 0 ; i < MAX_LAYER_PER_TEXTURE ; ++i)
         texture2DArray->availableLayers.push_back(i);

@@ -41,7 +41,7 @@ void DefaultRenderer::update(size_t frameIndex)
 
 void DefaultRenderer::draw(Drawable *drawable)
 {
-    VkCommandBuffer commandBuffer = drawable->getDrawCommandBuffer(this,m_curFrameIndex, m_renderGraph.getVkRenderPass(m_defaultPass), 0);
+    VkCommandBuffer commandBuffer = drawable->getDrawCommandBuffer(this,m_curFrameIndex, m_renderGraph.getRenderPass(m_defaultPass)->getVkRenderPass(), 0);
     if(commandBuffer != VK_NULL_HANDLE)
         m_activeSecondaryCommandBuffers.push_back(commandBuffer);
 }
