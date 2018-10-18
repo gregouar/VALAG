@@ -75,7 +75,7 @@ class LightEntity : public SceneEntity //, public NotificationListener
         //std::list<ShadowCaster*> *GetShadowCasterList();
 
         virtual void updateDatum();
-        void recreateShadowMap();
+        void recreateShadowMap(SceneRenderer* renderer);
 
     private:
         LightType   m_type;

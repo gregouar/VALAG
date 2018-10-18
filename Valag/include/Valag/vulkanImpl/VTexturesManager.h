@@ -14,6 +14,7 @@ struct VRenderableTexture
 {
     VTexture                texture;
     VFramebufferAttachment  attachment;
+    VRenderTarget           renderTarget;
 };
 
 struct VTexture2DArrayFormat
@@ -63,7 +64,7 @@ class VTexturesManager : public Singleton<VTexturesManager>
         static bool allocTexture(uint32_t width, uint32_t height,
                                  VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
         static bool allocRenderableTexture(uint32_t width, uint32_t height, VkFormat format,
-                                           VRenderableTexture *texture);
+                                           VRenderPass *renderPass, VRenderableTexture *texture);
         static void freeTexture(VTexture &texture);
         static void freeTexture(VRenderableTexture &texture);
 

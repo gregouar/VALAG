@@ -12,7 +12,7 @@ class VRenderTarget
         VRenderTarget();
         virtual ~VRenderTarget();
 
-        bool init(size_t framebuffersCount, VRenderPass *renderPass/*, size_t cmbCount*/);
+        bool init(size_t framebuffersCount, VRenderPass *renderPass);
         void destroy();
 
         ///Add preexisting attachments
@@ -20,13 +20,14 @@ class VRenderTarget
         ///Create new attachments (that will be created when init)
         void createAttachments(VFramebufferAttachmentType type);
 
-        void startRendering(size_t framebufferIndex, VkCommandBuffer cmb, VkSubpassContents contents);
+        void startRendering(size_t framebufferIndex, VkCommandBuffer cmb, VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
         void startRendering(size_t framebufferIndex, VkCommandBuffer cmb, VkSubpassContents contents,
                             VRenderPass* renderPass);
         //VkCommandBuffer startRecording(size_t cmbIndex, size_t framebufferIndex, VkSubpassContents contents);
         //bool endRecording();
 
         void setExtent(VkExtent2D extent);
+        void setMipLevel(size_t mipLevel);
         void setClearValue(size_t attachmentIndex, glm::vec4 color, glm::vec2 depth = {0.0,0});
         //void setCmbUsage(VkFlags usage);
 
@@ -42,6 +43,7 @@ class VRenderTarget
     protected:
         size_t      m_imagesCount;
         VkExtent2D  m_extent;
+        size_t      m_mipLevel;
         //VkFlags     m_cmbUsage;
 
         std::vector<VkClearValue>   m_clearValues;

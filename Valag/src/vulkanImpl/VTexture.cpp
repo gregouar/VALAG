@@ -63,6 +63,11 @@ uint32_t VTexture::getTextureLayer()
     return m_textureLayer;
 }
 
+glm::vec2 VTexture::getTexturePair()
+{
+    return {m_textureId, m_textureLayer};
+}
+
 VkExtent2D VTexture::getExtent()
 {
     return m_extent;

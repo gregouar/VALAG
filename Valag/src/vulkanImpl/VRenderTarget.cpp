@@ -10,6 +10,7 @@ namespace vlg
 VRenderTarget::VRenderTarget() :
     m_imagesCount(1),
     m_extent({0,0}),
+    m_mipLevel(0),
  //   m_cmbUsage(0),
     m_defaultRenderPass(nullptr)
    // m_curRecordingIndex(0)
@@ -127,6 +128,11 @@ void VRenderTarget::setExtent(VkExtent2D extent)
     m_extent = extent;
 }
 
+void VRenderTarget::setMipLevel(size_t mipLevel)
+{
+    m_mipLevel = mipLevel;
+}
+
 void VRenderTarget::setClearValue(size_t attachmentIndex, glm::vec4 color, glm::vec2 depth)
 {
     if(attachmentIndex >= m_clearValues.size())
@@ -170,16 +176,21 @@ bool VRenderTarget::createFramebuffers(size_t framebuffersCount)
 {
     m_framebuffers.resize(framebuffersCount);
 
+    float mipFactor = std::pow(0.5, static_cast<float>(m_mipLevel));
+
     for (size_t i = 0; i < framebuffersCount ; ++i)
     {
         std::vector<VkImageView> attachments(m_attachments.size());
 
         for(size_t j = 0 ; j < attachments.size() ; ++j)
         {
-            if(m_extent.width != m_attachments[j][i].extent.width
-            || m_extent.height != m_attachments[j][i].extent.height)
-                m_extent = m_attachments[j][i].extent;
-            attachments[j] = m_attachments[j][i].view;
+            if(m_extent.width  != mipFactor*m_attachments[j][i].extent.width
+            || m_extent.height != mipFactor*m_attachments[j][i].extent.height)
+            {
+                m_extent.width  = mipFactor*m_attachments[j][i].extent.width;
+                m_extent.height = mipFactor*m_attachments[j][i].extent.height;
+            }
+            attachments[j] = m_attachments[j][i].mipViews[m_mipLevel];
         }
 
         VkFramebufferCreateInfo framebufferInfo = {};

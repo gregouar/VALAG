@@ -20,7 +20,6 @@ class VGraphicsPipeline
         ///Only before init()
         void createShader(const std::string &shaderPath, VkShaderStageFlagBits shaderStageBit);
 
-        ///I could do something more high level here heh
         void setSpecializationInfo(VkSpecializationInfo &specializationInfo, size_t shaderNbr);
         void addSpecializationDatum(bool value,     size_t shaderNbr); //Need to add more
         void addSpecializationDatum(float value,    size_t shaderNbr);
@@ -50,21 +49,17 @@ class VGraphicsPipeline
         void setStencilTest(bool enableTest, VkStencilOpState both);
         void setStencilTest(bool enableTest, VkStencilOpState front, VkStencilOpState back);
 
-        bool init(const VRenderPass *renderPass, uint32_t subpass = 0/*, size_t attachmentsCount = 1*//*, size_t framesCount*/);
+        bool init(const VRenderPass *renderPass, uint32_t subpass = 0);
         void destroy();
 
         ///Only after init()
-        //bool writeDescriptorSet(size_t frameIndex);
-
         void bind(VkCommandBuffer &cmb);
+        void updateViewport(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent, bool alsoUpdateScissor = true);
+        void updateScissor(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent);
 
         VkPipelineLayout getLayout();
 
     protected:
-        //bool createDescriptorPool();
-        //bool createDescriptorSets();
-
-    private:
         std::vector< std::pair<std::string,VkShaderStageFlagBits> > m_attachedShaders;
         std::vector<VkSpecializationInfo>       m_specializationInfos;
         VkPipelineVertexInputStateCreateInfo    m_vertexInput;
@@ -81,10 +76,6 @@ class VGraphicsPipeline
 
         std::vector<std::vector<char*> >                     m_specializationData;
         std::vector<std::vector<VkSpecializationMapEntry> >  m_specializationMapEntries;
-
-        /*std::vector<VkDescriptorSetLayout> m_createdDescriptorSetLayouts;
-        VkDescriptorPool m_descriptorPool;
-        std::vector<std::vector<VkDescriptorSet> > m_createdDescriptorSets;*/
 
         VkPipelineLayout    m_pipelineLayout;
         VkPipeline          m_pipeline;

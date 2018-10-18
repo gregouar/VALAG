@@ -81,7 +81,7 @@ VTexture LightEntity::generateShadowMap(SceneRenderer* renderer, std::list<Shado
 {
     if(!(m_shadowMap.attachment.extent.width  == m_shadowMapExtent.x
       && m_shadowMap.attachment.extent.height == m_shadowMapExtent.y))
-        this->recreateShadowMap();
+        this->recreateShadowMap(renderer);
 
     //renderer->addShadowMap(this);
 
@@ -211,11 +211,11 @@ void LightEntity::updateDatum()
                          m_shadowMap.texture.getTextureLayer()};
 }
 
-void LightEntity::recreateShadowMap()
+void LightEntity::recreateShadowMap(SceneRenderer* renderer)
 {
     VTexturesManager::freeTexture(m_shadowMap);
-    VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y,
-                                             VK_FORMAT_D24_UNORM_S8_UINT, &m_shadowMap);
+    VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_D24_UNORM_S8_UINT,
+                                             renderer->getShadowMapsRenderPass(), &m_shadowMap);
 }
 
 

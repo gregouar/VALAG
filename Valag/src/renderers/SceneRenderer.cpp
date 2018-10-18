@@ -53,6 +53,26 @@ void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstan
     m_renderingInstances.push_back(renderingInstance);
 }
 
+void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum)
+{
+    m_shadowMapsToRender.push_back({shadowMap, datum});
+}
+
+void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
+{
+    m_spriteShadowsToRender.push_back({spriteShadow, datum});
+}
+
+void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum)
+{
+    m_spriteShadowsVbos[m_curFrameIndex].push_back(datum);
+}
+
+void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
+{
+
+}
+
 void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
 {
     m_spritesVbos[m_curFrameIndex].push_back(datum);
@@ -94,6 +114,15 @@ size_t SceneRenderer::getLightsVboSize()
     return m_lightsVbos[m_curFrameIndex].getSize();
 }
 
+VRenderPass *SceneRenderer::getSpriteShadowsRenderPass()
+{
+    return m_renderGraph.getRenderPass(m_spriteShadowsPass);
+}
+
+VRenderPass *SceneRenderer::getShadowMapsRenderPass()
+{
+    return m_renderGraph.getRenderPass(m_shadowMapsPass);
+}
 
 bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 {
@@ -133,16 +162,44 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 {
-    //Start recording
-
     for(auto renderingInstance : m_renderingInstances)
+        renderingInstance->recordShadows(this, imageIndex); //Probably a bad name for that
+
+    //Compute shadow maps here
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_spriteShadowsPass, imageIndex, m_curFrameIndex);
+
+        size_t i = 0;
+        while(m_renderGraph.nextRenderTarget(m_spriteShadowsPass))
+        {
+            i++;
+        }
+
+    m_renderGraph.endRecording(m_spriteShadowsPass);
+    m_spriteShadowsToRender.clear();
+
+
+    size_t  spritesVboSize = m_spriteShadowsVbos[m_curFrameIndex].uploadVBO();
+    VBuffer spritesInstancesVB = m_spriteShadowsVbos[m_curFrameIndex].getBuffer();
+
+    //Start recording
+    cmb = m_renderGraph.startRecording(m_shadowMapsPass, imageIndex, m_curFrameIndex);
+
+    //for(auto renderingInstance : m_renderingInstances)
     {
         //Setup viewport (?)
+        //m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
 
-        renderingInstance->recordShadows(this, imageIndex);
+        //renderingInstance->recordShadows(this, imageIndex);
+
+        i = 0;
+        while(m_renderGraph.nextRenderTarget(m_shadowMapsPass))
+        {
+            //Render shadow map
+            i++;
+        }
     }
-
-    //End recording
+    m_renderGraph.endRecording(m_shadowMapsPass);
+    m_shadowMapsToRender.clear();
 
     return (true);
 }
@@ -450,11 +507,14 @@ bool SceneRenderer::init()
     m_renderView.setDepthFactor(1024*1024);
     m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
+    m_spriteShadowsVbos.resize(m_targetWindow->getFramesCount(),
+                               DynamicVBO<IsoSpriteShadowDatum>(128));
+
     m_spritesVbos.resize(m_targetWindow->getFramesCount(),
-                         DynamicVBO<IsoSpriteDatum>(1024));
+                         DynamicVBO<IsoSpriteDatum>(256));
     m_meshesVbos.resize(m_targetWindow->getFramesCount());
     m_lightsVbos.resize(m_targetWindow->getFramesCount(),
-                        DynamicVBO<LightDatum>(512));
+                        DynamicVBO<LightDatum>(128));
 
     //if(!this->createSampler())
        // return (false);
@@ -478,6 +538,7 @@ bool SceneRenderer::init()
 
 void SceneRenderer::prepareRenderPass()
 {
+    this->prepareShadowRenderPass();
     this->prepareDeferredRenderPass();
     this->prepareAlphaDetectRenderPass();
     this->prepareAlphaDeferredRenderPass();
@@ -589,9 +650,20 @@ bool SceneRenderer::createAttachments()
 
 void SceneRenderer::prepareShadowRenderPass()
 {
-   // m_shadowPass = m_renderGraph.addRenderPass(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VFramebufferAttachmentType spriteShadowType;
+    spriteShadowType.format = VK_FORMAT_R8G8B8A8_UNORM;
+    spriteShadowType.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    m_spriteShadowsPass = m_renderGraph.addDynamicRenderPass();
+    m_renderGraph.addAttachmentType(m_spriteShadowsPass, spriteShadowType);
 
 
+    VFramebufferAttachmentType shadowMapType;
+    shadowMapType.format = VK_FORMAT_D24_UNORM_S8_UINT;
+    shadowMapType.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    m_shadowMapsPass = m_renderGraph.addDynamicRenderPass();
+    m_renderGraph.addAttachmentType(m_shadowMapsPass, shadowMapType);
 }
 
 void SceneRenderer::prepareDeferredRenderPass()
@@ -1091,6 +1163,7 @@ bool SceneRenderer::createToneMappingPipeline()
 
 void SceneRenderer::cleanup()
 {
+    m_spriteShadowsVbos.clear();
     m_spritesVbos.clear();
     m_meshesVbos.clear();
 

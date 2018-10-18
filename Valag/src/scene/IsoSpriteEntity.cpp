@@ -257,9 +257,10 @@ void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
 
     if(light->getType() == LightType_Directional)
     {
-        VTexture shadow = m_spriteModel->getDirectionnalShadow(light->getDirection());
+        VTexture shadow = m_spriteModel->getDirectionnalShadow(renderer, light->getDirection());
 
-        //Add shadow sprite to renderer
+        m_shadowDatum.texId = shadow.getTexturePair();
+        renderer->addToSpriteShadowsVbo(m_shadowDatum);
     }
 }
 
@@ -284,6 +285,8 @@ void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notifi
 void IsoSpriteEntity::updateDatum()
 {
     m_datum = {};
+    m_shadowDatum = {};
+
     if(m_spriteModel == nullptr || m_parentNode == nullptr)
         return;
 
@@ -315,6 +318,12 @@ void IsoSpriteEntity::updateDatum()
 
     m_datum.texPos    = m_spriteModel->getTexturePosition();
     m_datum.texExtent = m_spriteModel->getTextureExtent();
+
+    m_shadowDatum.position  = m_datum.position;
+    m_shadowDatum.size      = m_datum.size;
+    m_shadowDatum.center    = m_datum.center;
+    m_shadowDatum.texPos    = m_datum.texPos;
+    m_shadowDatum.texExtent = m_datum.texExtent;
 }
 
 

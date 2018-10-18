@@ -5,8 +5,84 @@
 #include "Valag/assets/MaterialAsset.h"
 #include "Valag/assets/AssetHandler.h"
 
+#include "Valag/renderers/SceneRenderer.h"
+
 namespace vlg
 {
+
+
+VkVertexInputBindingDescription SpriteShadowGenerationDatum::getBindingDescription()
+{
+    VkVertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(SpriteShadowGenerationDatum);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 6> SpriteShadowGenerationDatum::getAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions = {};
+
+    size_t i = 0;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, direction);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, size);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, center);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, texPos);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, texExtent);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, albedo_texId);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, height_texId);
+    ++i;
+
+   /* attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, normal_texId);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
+    attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, rmt_texId);
+    ++i;*/
+
+    return attributeDescriptions;
+}
 
 IsoSpriteModel::IsoSpriteModel() :
     m_material(0),
@@ -15,7 +91,7 @@ IsoSpriteModel::IsoSpriteModel() :
     m_textureExtent({1.0f,1.0f}),
     m_textureCenter({0.0f,0.0f}),
     m_isReady(true),
-    m_shadowMapExtent(256.0,256.0)
+    m_shadowMapExtent(0.0,0.0)
 {
     //ctor
 }
@@ -124,11 +200,11 @@ bool IsoSpriteModel::isReady()
     return m_isReady;
 }
 
-VTexture IsoSpriteModel::getDirectionnalShadow(glm::vec3 direction)
+VTexture IsoSpriteModel::getDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction)
 {
     auto foundedMap = m_directionnalShadows.find(direction);
     if(foundedMap == m_directionnalShadows.end())
-        return this->generateDirectionnalShadow(direction);
+        return this->generateDirectionnalShadow(renderer, direction);
     return foundedMap->second.texture;
 }
 
@@ -158,13 +234,29 @@ void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notific
     }
 }
 
-VTexture IsoSpriteModel::generateDirectionnalShadow(glm::vec3 direction)
+VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction)
 {
+    if(m_shadowMapExtent.x == 0.0)
+        m_shadowMapExtent = this->getSize();
+
     VRenderableTexture *renderableTexture = &m_directionnalShadows[direction];
     VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_R8G8B8A8_UNORM,
-                                             renderableTexture);
+                                             renderer->getSpriteShadowsRenderPass(), renderableTexture);
 
-    /*do something*/
+    SpriteShadowGenerationDatum datum;
+
+    datum.direction = direction;
+
+    datum.size      = {m_size,m_material->getHeightFactor()};
+    datum.center    = m_textureCenter;
+
+    datum.texPos    = m_texturePosition;
+    datum.texExtent = m_textureExtent;
+
+    datum.albedo_texId = m_material->getAlbedoMap().getTexturePair();
+    datum.height_texId = m_material->getHeightMap().getTexturePair();
+
+    renderer->addSpriteShadowToRender(&renderableTexture->renderTarget, datum);
 
     return renderableTexture->texture;
 }

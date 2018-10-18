@@ -63,8 +63,13 @@ bool PBRToolbox::generateBrdflut()
     if(!pipeline.init(&renderPass))
         return (false);
 
+    ///Rendertarget
+    VRenderTarget renderTarget;
+    renderTarget.addAttachments({m_brdflutAttachement});
+    renderTarget.init(1, &renderPass);
+
     ///Framebuffer
-    VkFramebufferCreateInfo framebufferInfo = {};
+    /*VkFramebufferCreateInfo framebufferInfo = {};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = renderPass.getVkRenderPass();
     framebufferInfo.attachmentCount = 1;
@@ -75,19 +80,20 @@ bool PBRToolbox::generateBrdflut()
 
     VkFramebuffer framebuffer;
     if(vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &framebuffer) != VK_SUCCESS)
-        return (false);
+        return (false);*/
 
-    ///Mmmm if I use RenderTarget, then I would lose this (recycling cmb) => but not really important since one use only I guess
-    VkRenderPassBeginInfo renderPassBeginInfo = {};
+   /* VkRenderPassBeginInfo renderPassBeginInfo = {};
     renderPassBeginInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass   = renderPass.getVkRenderPass();
     renderPassBeginInfo.framebuffer  = framebuffer;
     renderPassBeginInfo.renderArea.offset = {0, 0};
-    renderPassBeginInfo.renderArea.extent = {width, height};
+    renderPassBeginInfo.renderArea.extent = {width, height};*/
 
     VkCommandBuffer cmb = VInstance::beginSingleTimeCommands();
 
-    vkCmdBeginRenderPass(cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    renderTarget.startRendering(0, cmb);
+
+    //vkCmdBeginRenderPass(cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         pipeline.bind(cmb);
         vkCmdDraw(cmb, 3, 1, 0, 0);
     vkCmdEndRenderPass(cmb);
@@ -95,8 +101,9 @@ bool PBRToolbox::generateBrdflut()
     VInstance::endSingleTimeCommands(cmb);
 
     ///Cleaning
-    vkDestroyFramebuffer(VInstance::device(), framebuffer, nullptr);
+    //vkDestroyFramebuffer(VInstance::device(), framebuffer, nullptr);
     pipeline.destroy();
+    renderTarget.destroy();
     renderPass.destroy();
 
     return (true);
@@ -150,8 +157,17 @@ VFramebufferAttachment PBRToolbox::generateFilteredEnvMap(VTexture src)
     if(!pipeline.init(&renderPass))
     {/* error */}
 
+    ///RenderTarget
+    VRenderTarget renderTargets[ENVMAP_FILTERINGMIPSCOUNT];
+    for(size_t i = 0 ; i < ENVMAP_FILTERINGMIPSCOUNT ; ++i)
+    {
+        renderTargets[i].addAttachments({dst});
+        renderTargets[i].setMipLevel(i);
+        renderTargets[i].init(1, &renderPass);
+    }
+
     ///Framebuffer
-    VkFramebufferCreateInfo framebufferInfo = {};
+    /*VkFramebufferCreateInfo framebufferInfo = {};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = renderPass.getVkRenderPass();
     framebufferInfo.attachmentCount = 1;
@@ -164,29 +180,37 @@ VFramebufferAttachment PBRToolbox::generateFilteredEnvMap(VTexture src)
         framebufferInfo.width        = dst.extent.width  * std::pow(0.5, i);
         framebufferInfo.height       = dst.extent.height * std::pow(0.5, i);
         if(vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS)
-        {/* error */}
-    }
+        {}
+    }*/
 
     ///Rendering
-    VkRenderPassBeginInfo renderPassBeginInfo = {};
+    /*VkRenderPassBeginInfo renderPassBeginInfo = {};
     renderPassBeginInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass   = renderPass.getVkRenderPass();
-    renderPassBeginInfo.renderArea.offset = {0, 0};
+    renderPassBeginInfo.renderArea.offset = {0, 0};*/
 
-    VkViewport viewport = {};
+   /* VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor = {};
-    scissor.offset = {0, 0};
+    scissor.offset = {0, 0};*/
 
     VkCommandBuffer cmb = VInstance::beginSingleTimeCommands();
 
+    pipeline.bind(cmb);
+
     for(size_t i = 0 ; i < ENVMAP_FILTERINGMIPSCOUNT ; ++i)
     {
-        renderPassBeginInfo.renderArea.extent = {static_cast<uint32_t>((double)dst.extent.width  * std::pow(0.5, i)),
+        renderTargets[i].startRendering(0, cmb, VK_SUBPASS_CONTENTS_INLINE);
+
+        /*viewport.width  = static_cast<float>(renderTargets[i].getExtent().width);
+        viewport.height = static_cast<float>(renderTargets[i].getExtent().height);
+        scissor.extent = renderTargets[i].getExtent();*/
+
+        /*renderPassBeginInfo.renderArea.extent = {static_cast<uint32_t>((double)dst.extent.width  * std::pow(0.5, i)),
                                                  static_cast<uint32_t>((double)dst.extent.height * std::pow(0.5, i))};
 
         viewport.width  = static_cast<float>(renderPassBeginInfo.renderArea.extent.width);
@@ -195,11 +219,12 @@ VFramebufferAttachment PBRToolbox::generateFilteredEnvMap(VTexture src)
         scissor.extent = renderPassBeginInfo.renderArea.extent;
 
         renderPassBeginInfo.framebuffer = framebuffers[i];
-        vkCmdBeginRenderPass(cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-            pipeline.bind(cmb);
+        vkCmdBeginRenderPass(cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);*/
 
-            vkCmdSetViewport(cmb, 0, 1, &viewport);
-            vkCmdSetScissor(cmb, 0, 1, &scissor);
+            pipeline.updateViewport(cmb, {0,0}, renderTargets[i].getExtent());
+
+            //vkCmdSetViewport(cmb, 0, 1, &viewport);
+            //vkCmdSetScissor(cmb, 0, 1, &scissor);
 
             VkDescriptorSet descSets[] = {VTexturesManager::descriptorSet()};
 
@@ -219,7 +244,8 @@ VFramebufferAttachment PBRToolbox::generateFilteredEnvMap(VTexture src)
 
     ///Cleaning
     for(size_t i = 0 ; i < ENVMAP_FILTERINGMIPSCOUNT ; ++i)
-        vkDestroyFramebuffer(VInstance::device(), framebuffers[i], nullptr);
+        renderTargets[i].destroy();
+        //vkDestroyFramebuffer(VInstance::device(), framebuffers[i], nullptr);
 
     pipeline.destroy();
     renderPass.destroy();

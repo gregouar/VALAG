@@ -402,6 +402,31 @@ void VGraphicsPipeline::bind(VkCommandBuffer &cmb)
     vkCmdBindPipeline(cmb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }
 
+void VGraphicsPipeline::updateViewport(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent, bool alsoUpdateScissor)
+{
+    VkViewport viewport = {};
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    viewport.x = pos.x;
+    viewport.y = pos.y;
+    viewport.width  = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
+
+    vkCmdSetViewport(cmb, 0, 1, &viewport);
+
+    if(alsoUpdateScissor && !m_onlyScissorIsStatic)
+        this->updateScissor(cmb, pos, extent);
+}
+
+void VGraphicsPipeline::updateScissor(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent)
+{
+    VkRect2D scissor = {};
+    scissor.offset = {pos.x, pos.y};
+    scissor.extent = extent;
+
+    vkCmdSetScissor(cmb, 0, 1, &scissor);
+}
+
 VkPipelineLayout VGraphicsPipeline::getLayout()
 {
     return m_pipelineLayout;

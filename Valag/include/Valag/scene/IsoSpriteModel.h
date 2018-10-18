@@ -11,6 +11,7 @@
 namespace vlg
 {
 
+class SceneRenderer;
 
 struct Direction
 {
@@ -30,6 +31,24 @@ struct Direction
             return (true);
         return (false);
     }
+};
+
+struct SpriteShadowGenerationDatum
+{
+    glm::vec3 direction;
+    glm::vec3 size;
+    glm::vec2 center;
+
+    glm::vec2 texPos;
+    glm::vec2 texExtent;
+
+    glm::uvec2 albedo_texId;
+    glm::uvec2 height_texId;
+    //glm::uvec2 normal_texId;
+    //glm::uvec2 rmt_texId;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions();
 };
 
 class IsoSpriteModel : public NotificationListener, public NotificationSender
@@ -60,7 +79,7 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         glm::vec2 getTextureCenter();
         bool      isReady();
 
-        VTexture getDirectionnalShadow(glm::vec3 direction);
+        VTexture getDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction);
 
         virtual void notify(NotificationSender* sender, NotificationType notification);
 
@@ -69,7 +88,7 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         void cleanup();
 
         //Add some kind of cleaning ?
-        VTexture generateDirectionnalShadow(glm::vec3 direction);
+        VTexture generateDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction);
 
     private:
         MaterialAsset *m_material;

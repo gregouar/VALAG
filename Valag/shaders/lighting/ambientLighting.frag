@@ -86,14 +86,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4
     vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal.xyz);
     //reflectionView += mix(vec3(0.0),rVec,fragRmt.r*.25);
     vec3 reflectionColor = ambientLighting;
-    //if(enable_map_environmental == true)
-    //    reflectionColor = texture2DLod(map_environmental, uv, fragRmt.r*8.0).rgb;
     vec2 envUV = vec2(0,0);
-    /*if(!(ubo.envMap.x == 0 && ubo.envMap.y == 0))
-    {
-        envUV = sampleSphericalMap(normalize(reflectionView));
-        reflectionColor = texture(sampler2DArray(textures[ubo.envMap.x], samp),vec3(envUV,ubo.envMap.y)).rgb;
-    }*/
 
     if(ubo.enableEnvMap == true)
     {

@@ -22,6 +22,7 @@ class VTexture
 
         uint32_t    getTextureId();
         uint32_t    getTextureLayer();
+        glm::vec2   getTexturePair();
         VkExtent2D  getExtent();
         VkFormat    getFormat();
 

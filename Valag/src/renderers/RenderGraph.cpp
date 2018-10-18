@@ -70,6 +70,13 @@ size_t RenderGraph::addRenderPass(VkFlags usage)
     return m_renderPasses.size()-1;
 }
 
+size_t RenderGraph::addDynamicRenderPass()
+{
+    m_renderPasses.push_back(new FullRenderPass(m_imagesCount, m_framesCount, true));
+    m_renderPasses.back()->setCmbUsage(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    return m_renderPasses.size()-1;
+}
+
 void RenderGraph::connectRenderPasses(size_t src, size_t dst)
 {
     if(src >= m_renderPasses.size()
@@ -83,10 +90,12 @@ void RenderGraph::connectRenderPasses(size_t src, size_t dst)
     m_connexions.insert({src, dst});
 }
 
-/*void RenderGraph::setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments)
+
+void RenderGraph::addAttachmentType(size_t renderPassIndex, const VFramebufferAttachmentType &type,
+                                    VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
 {
-    m_renderPasses[renderPassIndex]->setAttachments(bufferIndex, attachments);
-}*/
+    m_renderPasses[renderPassIndex]->addAttachmentType(type,storeOp,loadOp,true);
+}
 
 void RenderGraph::addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
                                  VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
@@ -141,7 +150,7 @@ void RenderGraph::setClearValue(size_t renderPassIndex, size_t attachmentIndex, 
     return m_renderPasses[renderPassIndex]->getVkRenderPass();
 }*/
 
-const VRenderPass *RenderGraph::getRenderPass(size_t renderPassIndex)
+VRenderPass *RenderGraph::getRenderPass(size_t renderPassIndex)
 {
     return m_renderPasses[renderPassIndex]->getRenderPass();
 }
@@ -163,7 +172,12 @@ VkDescriptorSet RenderGraph::getDescriptorSet(size_t renderPassIndex, size_t ima
 
 VkCommandBuffer RenderGraph::startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
 {
-    return m_renderPasses[renderPassIndex]->startRecording(imageIndex, frameIndex, contents);
+     return m_renderPasses[renderPassIndex]->startRecording(imageIndex, frameIndex, contents);
+}
+
+bool RenderGraph::nextRenderTarget(size_t renderPassIndex, VkSubpassContents contents)
+{
+    return m_renderPasses[renderPassIndex]->nextRenderTarget(contents);
 }
 
 bool RenderGraph::endRecording(size_t renderPassIndex)
@@ -181,7 +195,9 @@ std::vector<FullRenderPass*> RenderGraph::submitToGraphicsQueue(size_t imageInde
         if(renderPass->isFinalPass())
         {
             finalRenderPasses.push_back(renderPass);
-        } else {
+        }
+        else if(renderPass->needToSubmit())
+        {
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submitInfo.waitSemaphoreCount   = /*0;//*/static_cast<uint32_t>(renderPass->getWaitSemaphores(frameIndex).size());
@@ -190,13 +206,6 @@ std::vector<FullRenderPass*> RenderGraph::submitToGraphicsQueue(size_t imageInde
 
             submitInfo.signalSemaphoreCount   = /*0;//*/static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size());
             submitInfo.pSignalSemaphores      = renderPass->getSignalSemaphores(frameIndex).data();
-
-            /*VkSemaphore signalSemaphore = renderPass->getSignalSemaphore(frameIndex);
-            if(signalSemaphore != VK_NULL_HANDLE)
-            {
-                submitInfo.signalSemaphoreCount = 1; //static_cast<uint32_t>(renderPass->getSignalSemaphores(frameIndex).size()));
-                submitInfo.pSignalSemaphores    = &signalSemaphore;//renderPass->getSignalSemaphore(frameIndex);//renderPass->getSignalSemaphores(frameIndex).data();
-            }*/
 
             submitInfo.commandBufferCount   = 1;
             submitInfo.pCommandBuffers      = renderPass->getPrimaryCmb(imageIndex, frameIndex);

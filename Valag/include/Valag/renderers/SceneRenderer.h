@@ -28,6 +28,12 @@ class SceneRenderer : public AbstractRenderer
 
         void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
+        //I'll need light position and so forth (maybe I'll use push constants, it's like cam pos)...
+        void addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum);
+        void addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum);
+        void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum);
+        void addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum);
+
         void addToSpritesVbo(const IsoSpriteDatum &datum);
         void addToMeshesVbo(VMesh *mesh, const MeshDatum &datum);
         void addToLightsVbo(const LightDatum &datum);
@@ -36,7 +42,8 @@ class SceneRenderer : public AbstractRenderer
         size_t getMeshesVboSize(VMesh *mesh);
         size_t getLightsVboSize();
 
-        //void setAmbientLightingData(const AmbientLightingData &);
+        VRenderPass *getSpriteShadowsRenderPass();
+        VRenderPass *getShadowMapsRenderPass();
 
     protected:
         virtual bool init();
@@ -117,7 +124,8 @@ class SceneRenderer : public AbstractRenderer
         VFramebufferAttachment m_SSGIBlurBentNormalsAttachments[2];
         //VFramebufferAttachment m_SSGIBlurLightingAttachment[2];
 
-        size_t  m_shadowPass,
+        size_t  m_spriteShadowsPass,
+                m_shadowMapsPass,
                 m_deferredPass,
                 m_alphaDetectPass,
                 m_alphaDeferredPass,
@@ -128,6 +136,9 @@ class SceneRenderer : public AbstractRenderer
                 m_ssgiLightingPass,
                 m_ambientLightingPass,
                 m_toneMappingPass;
+
+        std::list<std::pair<VRenderTarget*, SpriteShadowGenerationDatum> >   m_spriteShadowsToRender;
+        std::list<std::pair<VRenderTarget*, LightDatum> >                   m_shadowMapsToRender;
 
         ///I should probably sort by material
         std::vector<DynamicVBO<IsoSpriteShadowDatum> >          m_spriteShadowsVbos;

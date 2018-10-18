@@ -8,7 +8,7 @@
 namespace vlg
 {
 
-///I should add option to force storeOp of attachment
+///Maybe I should drop working with indices and directly return FullRenderPass*
 
 class RenderGraph
 {
@@ -24,6 +24,9 @@ class RenderGraph
         ///If VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT is set, then the cmb will use framesCount and frameIndex
         ///Otherwise it will use imagesCount and imageIndex
         size_t  addRenderPass(VkFlags usage = 0);
+        size_t  addDynamicRenderPass();
+
+        ///Only use if you need explicit synchronization with semaphores. For most cases, the barriers will suffice
         void    connectRenderPasses(size_t src, size_t dst);
 
         void    transferAttachmentsToAttachments(size_t srcRenderPass, size_t dstRenderPass, size_t attachmentsIndex,
@@ -32,7 +35,8 @@ class RenderGraph
 
         ///If an attachment is of type VK_IMAGE_LAYOUT_PRESENT_SRC_KHR then the cmb will be returned by submitToGraphicsQueue in order to be
         ///rendered by RenderWindow
-       // void    setAttachments(size_t renderPassIndex, size_t bufferIndex, const std::vector<VFramebufferAttachment> &attachments);
+        void    addAttachmentType(size_t renderPassIndex, const VFramebufferAttachmentType &type,
+                               VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
         void    addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
                                VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
         void    addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
@@ -42,8 +46,7 @@ class RenderGraph
 
         void    setClearValue(size_t renderPassIndex, size_t attachmentIndex ,glm::vec4 color, glm::vec2 depth);
 
-        VkRenderPass            getVkRenderPass(size_t renderPassIndex);
-        const VRenderPass      *getRenderPass(size_t renderPassIndex);
+        VRenderPass            *getRenderPass(size_t renderPassIndex);
         VkDescriptorSetLayout   getDescriptorLayout(size_t renderPassIndex);
         VkDescriptorSet         getDescriptorSet(size_t renderPassIndex, size_t imageIndex);
 
@@ -51,6 +54,7 @@ class RenderGraph
 
         VkCommandBuffer startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex,
                                        VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
+        bool            nextRenderTarget(size_t renderPassIndex, VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
         bool            endRecording(size_t renderPassIndex);
 
         ///Return final render passes

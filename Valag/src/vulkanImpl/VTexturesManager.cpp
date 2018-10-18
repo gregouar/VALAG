@@ -38,7 +38,7 @@ bool VTexturesManager::allocTexture(uint32_t width, uint32_t height, VkFormat fo
 
 
 bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, VkFormat format,
-                                              VRenderableTexture *renderableTexture)
+                                              VRenderPass *renderPass, VRenderableTexture *renderableTexture)
 {
     if(!VTexturesManager::instance()->allocTextureImpl({width, height, format, true},
                                                           VBuffer{}, COMMANDPOOL_SHORTLIVED, &renderableTexture->texture))
@@ -57,6 +57,7 @@ bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, V
     renderableTexture->attachment.view  =
             VulkanHelpers::createImageView( renderableTexture->attachment.image.vkImage, format,
                                             aspect, 1, 1, renderableTexture->texture.getTextureLayer(), 0);
+    renderableTexture->attachment.mipViews.push_back(renderableTexture->attachment.view);
 
     if(renderableTexture->attachment.view == VK_NULL_HANDLE)
         return (false);
@@ -66,6 +67,9 @@ bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, V
     renderableTexture->attachment.type.format = format;
     renderableTexture->attachment.type.layout = (format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT) ?
                                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    renderableTexture->renderTarget.addAttachments({renderableTexture->attachment});
+    renderableTexture->renderTarget.init(1,renderPass);
 
     return (true);
 }
@@ -191,6 +195,8 @@ void VTexturesManager::freeTexture(VRenderableTexture &renderableTexture)
     if(renderableTexture.attachment.view != VK_NULL_HANDLE)
         vkDestroyImageView(VInstance::device(), renderableTexture.attachment.view, nullptr);
     renderableTexture.attachment.view = VK_NULL_HANDLE;
+
+    renderableTexture.renderTarget.destroy();
 }
 
 void VTexturesManager::freeTextureImpl(VTexture &texture)

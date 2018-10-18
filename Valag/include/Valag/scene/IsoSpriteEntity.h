@@ -79,7 +79,9 @@ class IsoSpriteEntity : public ShadowCaster
 
         //bool checkUpdates(SceneRenderer *renderer, size_t frameIndex);
     protected:
-        IsoSpriteDatum m_datum;
+        IsoSpriteDatum          m_datum;
+        IsoSpriteShadowDatum    m_shadowDatum;
+
         IsoSpriteModel *m_spriteModel;
 
     private:
