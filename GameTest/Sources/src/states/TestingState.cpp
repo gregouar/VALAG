@@ -170,10 +170,10 @@ void TestingState::init()
     sunLight->setDirection({.2 ,-1.0,-1.0});
     sunLight->enableShadowCasting();
 
-    sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
+    /*sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
     m_scene->getRootNode()->attachObject(sunLight);
     sunLight->setDirection({-.2 ,-1.0,-1.0});
-    sunLight->enableShadowCasting();
+    sunLight->enableShadowCasting();*/
 
 
     vlg::LightEntity *cursorLight = m_scene->createLightEntity();

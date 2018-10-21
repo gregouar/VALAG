@@ -27,6 +27,9 @@ void main()
     vec4 heightPixel = texture(sampler2DArray(textures[fragTexId.x], samp),
                                vec3(fragTexCoord,fragTexId.y));
 
+    if(heightPixel.a < 0.1)
+        discard;
+
     float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
     float fragHeight = screenPosAndHeight.z + height * screenPosAndHeight.w;
 

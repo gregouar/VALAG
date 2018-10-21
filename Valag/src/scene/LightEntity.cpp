@@ -41,7 +41,7 @@ std::array<VkVertexInputAttributeDescription, 4> LightDatum::getAttributeDescrip
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
-    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(LightDatum, shadowMap);
     ++i;
 
@@ -216,6 +216,7 @@ void LightEntity::recreateShadowMap(SceneRenderer* renderer)
     VTexturesManager::freeTexture(m_shadowMap);
     VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_D24_UNORM_S8_UINT,
                                              renderer->getShadowMapsRenderPass(), &m_shadowMap);
+    this->updateDatum();
 }
 
 

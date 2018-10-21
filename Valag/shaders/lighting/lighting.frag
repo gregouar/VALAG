@@ -8,11 +8,22 @@ layout(early_fragment_tests) in;
 layout (constant_id = 0) const float const_aoIntensity = 1;
 layout (constant_id = 1) const float const_gioIntensity = 1;
 
-layout (set = 1, binding = 0) uniform sampler2D samplerAlbedo;
-layout (set = 1, binding = 1) uniform sampler2D samplerPosition;
-layout (set = 1, binding = 2) uniform sampler2D samplerNormal;
-layout (set = 1, binding = 3) uniform sampler2D samplerRmt;
-layout (set = 1, binding = 4) uniform sampler2D samplerBentNormal;
+layout(set = 0, binding = 0) uniform ViewUBO {
+    mat4 view;
+    mat4 viewInv;
+    vec2 screenOffset;
+    vec2 screenSizeFactor;
+    vec2 depthOffsetAndFactor;
+} viewUbo;
+
+layout(set = 1, binding = 0) uniform sampler samp;
+layout(set = 1, binding = 1) uniform texture2DArray textures[128];
+
+layout (set = 2, binding = 0) uniform sampler2D samplerAlbedo;
+layout (set = 2, binding = 1) uniform sampler2D samplerPosition;
+layout (set = 2, binding = 2) uniform sampler2D samplerNormal;
+layout (set = 2, binding = 3) uniform sampler2D samplerRmt;
+layout (set = 2, binding = 4) uniform sampler2D samplerBentNormal;
 
 /*layout (set = 1, binding = 4) uniform sampler2D samplerAlphaAlbedo;
 layout (set = 1, binding = 5) uniform sampler2D samplerAlphaPosition;
@@ -26,6 +37,8 @@ layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
     //uvec2 envMap;
 } ubo;*/
 
+
+
 layout(push_constant) uniform PER_OBJECT
 {
     vec4 camPosAndZoom;
@@ -38,7 +51,7 @@ layout(push_constant) uniform PER_OBJECT
 layout(location = 0) flat in vec4  lightPos;
 layout(location = 1) flat in vec3  lightColor;
 layout(location = 2) flat in float lightRadiusInv;
-layout(location = 3) flat in vec2  lightShadowMap;
+layout(location = 3) flat in uvec2  lightShadowMap;
 
 layout(location = 0) out vec4 outColor;
 //layout(location = 1) out vec4 outColorAlpha;
@@ -100,6 +113,14 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
     {
         lightDirection = -lightPos.xyz;
         attenuation = 1.0;
+
+        if(lightShadowMap.x != 0)
+        {
+            float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
+                                       vec3(gl_FragCoord.xy*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
+            if(shadowMap > 0)
+                attenuation = 0.0;
+        }
     }
     else
     {

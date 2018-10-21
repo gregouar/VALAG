@@ -19,7 +19,7 @@ struct LightDatum
     glm::vec4 color; //alpha for intensity
     float     radius;
 
-    glm::vec2 shadowMap;
+    glm::uvec2 shadowMap;
 
     static VkVertexInputBindingDescription getBindingDescription();
     static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();

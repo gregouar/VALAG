@@ -5,6 +5,7 @@
 		<Option title="ValagTest" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
+		<Option virtualFolders="Valag\src\scene\;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="../Game/bin_debug/ValagTest" prefix_auto="1" extension_auto="1" />
@@ -181,7 +182,9 @@
 		<Unit filename="../../Valag/src/renderers/AbstractRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/DefaultRenderer.cpp" />
 		<Unit filename="../../Valag/src/renderers/FullRenderPass.cpp" />
-		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp" />
+		<Unit filename="../../Valag/src/renderers/InstancingRenderer.cpp">
+			<Option virtualFolder="Valag/src/scene/" />
+		</Unit>
 		<Unit filename="../../Valag/src/renderers/PBRToolbox.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderGraph.cpp" />
 		<Unit filename="../../Valag/src/renderers/RenderView.cpp" />

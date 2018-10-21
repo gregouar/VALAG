@@ -231,7 +231,11 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 
                 for(auto renderingInstance : m_renderingInstances)
                 {
-                    m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
+                    ///m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
+                    ///I'll need to find something smart to do
+                    m_spriteShadowsPipeline.updateViewport(cmb, {0,0},
+                            m_renderGraph.getExtent(m_shadowMapsPass));
+
                     renderingInstance->pushCamPosAndZoom(cmb, m_spriteShadowsPipeline.getLayout(),
                                                         VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -401,13 +405,14 @@ bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
     VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex]->getBuffer();
 
     VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                             VTexturesManager::descriptorSet(m_curFrameIndex),
                                              m_renderGraph.getDescriptorSet(m_lightingPass,imageIndex/*m_curFrameIndex*/) };
 
     /// Lighting of opac fragments
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_lightingPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_lightingPipeline.getLayout(),0,2, lightDescriptorSets, 0, nullptr);
+                                m_lightingPipeline.getLayout(),0,3, lightDescriptorSets, 0, nullptr);
 
         m_lightingPipeline.bind(cmb);
 
@@ -434,12 +439,12 @@ bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
 
 
     /// Lighting of alpha fragments
-    lightDescriptorSets[1] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,imageIndex/**m_curFrameIndex**/);
+    lightDescriptorSets[2] = m_renderGraph.getDescriptorSet(m_alphaLightingPass,imageIndex/**m_curFrameIndex**/);
 
     cmb = m_renderGraph.startRecording(m_alphaLightingPass, imageIndex, m_curFrameIndex);
 
         vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_alphaLightingPipeline.getLayout(),0,2, lightDescriptorSets, 0, nullptr);
+                                m_alphaLightingPipeline.getLayout(),0,3, lightDescriptorSets, 0, nullptr);
 
         m_alphaLightingPipeline.bind(cmb);
 
@@ -1166,6 +1171,7 @@ bool SceneRenderer::createLightingPipeline()
     //m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_lightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_lightingPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
     //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
@@ -1199,6 +1205,7 @@ bool SceneRenderer::createAlphaLightingPipeline()
     //m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_alphaLightingPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaLightingPass));
     //m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
