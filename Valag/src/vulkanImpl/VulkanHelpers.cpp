@@ -338,8 +338,8 @@ VkImageView VulkanHelpers::createImageView(VkImage image, VkFormat format, VkIma
     viewInfo.subresourceRange.aspectMask    = aspectFlags;//VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel  = mipLevel;
     viewInfo.subresourceRange.levelCount    = mipsCount;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount    = layerCount;
+    viewInfo.subresourceRange.baseArrayLayer    = layerLevel;
+    viewInfo.subresourceRange.layerCount        = layerCount;
 
     /*viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;

@@ -97,6 +97,12 @@ void RenderGraph::addAttachmentType(size_t renderPassIndex, const VFramebufferAt
     m_renderPasses[renderPassIndex]->addAttachmentType(type,storeOp,loadOp,true);
 }
 
+void RenderGraph::addAttachmentType(size_t renderPassIndex, const VFramebufferAttachmentType &type,
+                                    VkAttachmentStoreOp storeOp, bool toMemory, VkAttachmentLoadOp loadOp, bool fromMemory)
+{
+    m_renderPasses[renderPassIndex]->addAttachmentType(type,storeOp, toMemory,loadOp,fromMemory);
+}
+
 void RenderGraph::addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
                                  VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp)
 {
@@ -165,10 +171,17 @@ VkDescriptorSet RenderGraph::getDescriptorSet(size_t renderPassIndex, size_t ima
     return m_renderPasses[renderPassIndex]->getDescriptorSet(imageIndex);
 }
 
-/*size_t RenderGraph::getColorAttachmentsCount(size_t renderPassIndex)
+
+VkExtent2D  RenderGraph::getExtent(size_t renderPassIndex)
 {
-    return m_renderPasses[renderPassIndex]->getColorAttachmentsCount();
-}*/
+    return m_renderPasses[renderPassIndex]->getExtent();
+}
+
+
+void RenderGraph::addDynamicRenderTarget(size_t renderPassIndex, VRenderTarget* renderTarget)
+{
+    m_renderPasses[renderPassIndex]->addDynamicRenderTarget(renderTarget);
+}
 
 VkCommandBuffer RenderGraph::startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex, VkSubpassContents contents)
 {

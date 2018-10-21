@@ -40,6 +40,9 @@ class VMesh
         VMesh();
         virtual ~VMesh();
 
+        VMesh( const VMesh& ) = delete;
+        VMesh& operator=( const VMesh& ) = delete;
+
         bool generateMesh(  std::vector<MeshVertex> &vertexList,
                             std::vector<uint16_t> &indexList,
                             CommandPoolName poolName = COMMANDPOOL_SHORTLIVED);

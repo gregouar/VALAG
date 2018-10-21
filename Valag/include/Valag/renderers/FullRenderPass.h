@@ -14,6 +14,9 @@ class FullRenderPass
         FullRenderPass(size_t imagesCount, size_t framesCount, bool useDynamicRenderTargets = false);
         virtual ~FullRenderPass();
 
+        FullRenderPass( const FullRenderPass& ) = delete;
+        FullRenderPass& operator=( const FullRenderPass& ) = delete;
+
         bool init(VkDescriptorPool pool, VkSampler sampler);
         void destroy();
 
@@ -36,6 +39,9 @@ class FullRenderPass
                             VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp, bool fromUniform = false);
         void addAttachmentType(VFramebufferAttachmentType type,
                                VkAttachmentStoreOp storeOp, VkAttachmentLoadOp loadOp, bool fromUniform = false);
+        void addAttachmentType(VFramebufferAttachmentType type,
+                               VkAttachmentStoreOp storeOp, bool toMemory,
+                               VkAttachmentLoadOp loadOp, bool fromUniform);
         void addUniforms(const std::vector<VFramebufferAttachment> &attachments);
         void addUniforms(const std::vector<VBuffer> &buffers);
         void addUniforms(const std::vector<VkImageView> &views);

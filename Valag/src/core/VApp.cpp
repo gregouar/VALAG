@@ -102,7 +102,8 @@ bool VApp::init()
     if(!m_renderWindow.init())
         throw std::runtime_error("Cannot initialize window");
 
-    VTexturesManager::instance()->init(m_renderWindow.getFramesCount(), m_renderWindow.getSwapchainSize());
+    VTexturesManager::instance()->init(m_renderWindow.getFramesCount(),
+                                       m_renderWindow.getSwapchainSize());
 
     m_eventsManager.init(m_renderWindow.getWindowPtr());
 
@@ -156,8 +157,8 @@ void VApp::loop()
         m_renderWindow.acquireNextImage();
         Profiler::popClock();
 
-        VTexturesManager::instance()->checkUpdateDescriptorSets(m_renderWindow.getFrameIndex(),
-                                                                m_renderWindow.getImageIndex());
+        VTexturesManager::instance()->update(m_renderWindow.getFrameIndex(),
+                                             m_renderWindow.getImageIndex());
 
         m_eventsManager.update();
 

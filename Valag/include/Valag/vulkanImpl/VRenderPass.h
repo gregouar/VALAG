@@ -16,6 +16,9 @@ class VRenderPass
         VRenderPass();
         virtual ~VRenderPass();
 
+        VRenderPass( const VRenderPass& ) = delete;
+        VRenderPass& operator=( const VRenderPass& ) = delete;
+
         bool init();
         void destroy();
 

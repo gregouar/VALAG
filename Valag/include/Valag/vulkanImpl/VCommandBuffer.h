@@ -14,6 +14,9 @@ class VCommandBuffer
         VCommandBuffer();
         virtual ~VCommandBuffer();
 
+        VCommandBuffer( const VCommandBuffer& ) = delete;
+        VCommandBuffer& operator=( const VCommandBuffer& ) = delete;
+
         bool init(size_t buffersCount);
 
         void    setCmbUsage(VkFlags usage);

@@ -49,7 +49,7 @@ class InstancingRenderer : public AbstractRenderer
         virtual bool    recordPrimaryCmb(uint32_t imageIndex);
 
     protected:
-        std::vector<DynamicVBO<InstanciedSpriteDatum> > m_spritesVbos;
+        std::vector<DynamicVBO<InstanciedSpriteDatum>*> m_spritesVbos;
 
         VGraphicsPipeline m_pipeline;
 

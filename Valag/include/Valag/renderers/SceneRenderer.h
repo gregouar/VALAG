@@ -71,6 +71,8 @@ class SceneRenderer : public AbstractRenderer
         void prepareToneMappingRenderPass();
 
         //Pipelines
+        bool createSpriteShadowsGenPipeline();
+        bool createSpriteShadowsPipeline();
         //Deferred
         bool createDeferredSpritesPipeline();
         bool createDeferredMeshesPipeline();
@@ -95,11 +97,15 @@ class SceneRenderer : public AbstractRenderer
         virtual bool    recordToneMappingCmb(uint32_t imageIndex);
 
     private:
+        VGraphicsPipeline   m_spriteShadowsGenPipeline,
+                            m_spriteShadowsPipeline;
+
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,
                             m_alphaDetectPipeline,
-                            m_alphaDeferredPipeline,
-                            m_ssgiBNPipeline,
+                            m_alphaDeferredPipeline;
+
+        VGraphicsPipeline   m_ssgiBNPipeline,
                             m_ssgiBNBlurPipelines[2],
                             m_lightingPipeline,
                             m_alphaLightingPipeline,
@@ -137,17 +143,22 @@ class SceneRenderer : public AbstractRenderer
                 m_ambientLightingPass,
                 m_toneMappingPass;
 
-        std::list<std::pair<VRenderTarget*, SpriteShadowGenerationDatum> >   m_spriteShadowsToRender;
+        //std::list<std::pair<VRenderTarget*, SpriteShadowGenerationDatum> >   m_spriteShadowsToRender;
         std::list<std::pair<VRenderTarget*, LightDatum> >                   m_shadowMapsToRender;
 
         ///I should probably sort by material
-        std::vector<DynamicVBO<IsoSpriteShadowDatum> >          m_spriteShadowsVbos;
-        std::vector<DynamicVBO<IsoSpriteDatum> >                m_spritesVbos;
-        std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum> > >  m_meshesVbos;
-        std::vector<DynamicVBO<LightDatum> >                    m_lightsVbos;
+        std::vector<DynamicVBO<SpriteShadowGenerationDatum>*>   m_spriteShadowGenerationVbos;
+        std::vector<DynamicVBO<IsoSpriteShadowDatum>*>          m_spriteShadowsVbos;
+        std::vector<DynamicVBO<IsoSpriteDatum>*>                m_spritesVbos;
+        std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum>*> >  m_meshesVbos;
+        std::vector<DynamicVBO<LightDatum>*>                    m_lightsVbos;
 
         std::list<SceneRenderingInstance*>   m_renderingInstances;
 
+        static const char *ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
+        static const char *ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
+        static const char *ISOSPRITE_SHADOW_VERTSHADERFILE;
+        static const char *ISOSPRITE_SHADOW_FRAGSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;
         static const char *MESH_DEFERRED_VERTSHADERFILE;

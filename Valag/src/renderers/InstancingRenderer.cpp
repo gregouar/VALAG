@@ -123,7 +123,7 @@ void InstancingRenderer::draw(Sprite* sprite)
        datum.texId = {vtexture.getTextureId(),
                       vtexture.getTextureLayer()};
 
-       m_spritesVbos[m_curFrameIndex].push_back(datum);
+       m_spritesVbos[m_curFrameIndex]->push_back(datum);
     }
 }
 
@@ -135,7 +135,7 @@ void InstancingRenderer::draw(SpritesBatch* spritesBatch)
 
 bool InstancingRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
-    size_t spritesVertexBufferSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
+    size_t spritesVertexBufferSize = m_spritesVbos[m_curFrameIndex]->uploadVBO();
 
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_defaultPass, imageIndex, m_curFrameIndex);
 
@@ -149,7 +149,7 @@ bool InstancingRenderer::recordPrimaryCmb(uint32_t imageIndex)
             vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     m_pipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
-            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex].getBuffer();
+            VBuffer vertexBuffer = m_spritesVbos[m_curFrameIndex]->getBuffer();
             vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer, &vertexBuffer.offset);
 
             vkCmdDraw(cmb, 4, spritesVertexBufferSize, 0, 0);
@@ -163,7 +163,10 @@ bool InstancingRenderer::init()
     m_renderView.setDepthFactor(DEPTH_SCALING_FACTOR);
     m_renderView.setScreenOffset(glm::vec3(-1.0f, -1.0f, 0.5f));
 
-    m_spritesVbos = std::vector<DynamicVBO<InstanciedSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedSpriteDatum>(1024));
+    m_spritesVbos.resize(m_targetWindow->getFramesCount());
+    for(auto vbo : m_spritesVbos)
+        vbo = new DynamicVBO<InstanciedSpriteDatum>(1024);
+    //m_spritesVbos = std::vector<DynamicVBO<InstanciedSpriteDatum> >(m_targetWindow->getFramesCount(), DynamicVBO<InstanciedSpriteDatum>(1024));
 
     return AbstractRenderer::init();
 }

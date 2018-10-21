@@ -28,8 +28,9 @@ FullRenderPass::~FullRenderPass()
 {
     this->destroy();
 
-    if(!m_useDynamicRenderTargets)
+    if(!m_useDynamicRenderTargets && m_renderTarget != nullptr)
         delete m_renderTarget;
+
     m_renderTarget = nullptr;
 }
 
@@ -52,7 +53,6 @@ bool FullRenderPass::init(VkDescriptorPool pool, VkSampler sampler)
 void FullRenderPass::destroy()
 {
     m_isFinalPass             = false;
-    m_useDynamicRenderTargets = false;
     m_needToSubmit            = false;
 
     VkDevice device = VInstance::device();
@@ -109,6 +109,7 @@ bool FullRenderPass::nextRenderTarget(VkSubpassContents contents)
     if(m_dynamicRenderTargets.empty())
         return (false);
 
+    m_needToSubmit = true;
     m_renderTarget = m_dynamicRenderTargets.front();
     m_dynamicRenderTargets.pop_front();
     m_cmb.nextRenderPass(m_lastImageIndex, contents, &m_renderPass, m_renderTarget);
@@ -178,6 +179,13 @@ void FullRenderPass::addAttachmentType(VFramebufferAttachmentType type,
                                        bool fromUniform)
 {
     m_renderPass.addAttachmentType(type, storeOp, false, loadOp, fromUniform);
+}
+
+void FullRenderPass::addAttachmentType(VFramebufferAttachmentType type,
+                                        VkAttachmentStoreOp storeOp, bool toMemory,
+                                        VkAttachmentLoadOp loadOp, bool fromMemory)
+{
+    m_renderPass.addAttachmentType(type, storeOp, toMemory, loadOp, fromMemory);
 }
 
 void FullRenderPass::addUniforms(const std::vector<VFramebufferAttachment> &attachments)

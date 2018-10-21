@@ -1,6 +1,6 @@
 #include "Valag/scene/IsoSpriteModel.h"
 
-#include <Vulkan/vulkan.hpp>
+#include <Vulkan/vulkan.h>
 
 #include "Valag/assets/MaterialAsset.h"
 #include "Valag/assets/AssetHandler.h"
@@ -39,11 +39,11 @@ std::array<VkVertexInputAttributeDescription, 6> SpriteShadowGenerationDatum::ge
     attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, size);
     ++i;
 
-    attributeDescriptions[i].binding = 0;
+    /*attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
     attributeDescriptions[i].offset = offsetof(SpriteShadowGenerationDatum, center);
-    ++i;
+    ++i;*/
 
     attributeDescriptions[i].binding = 0;
     attributeDescriptions[i].location = i;
@@ -203,7 +203,7 @@ bool IsoSpriteModel::isReady()
 VTexture IsoSpriteModel::getDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction)
 {
     auto foundedMap = m_directionnalShadows.find(direction);
-    if(foundedMap == m_directionnalShadows.end())
+   // if(foundedMap == m_directionnalShadows.end())
         return this->generateDirectionnalShadow(renderer, direction);
     return foundedMap->second.texture;
 }
@@ -212,7 +212,7 @@ VTexture IsoSpriteModel::getDirectionnalShadow(SceneRenderer *renderer, glm::vec
 
 void IsoSpriteModel::cleanup()
 {
-    for(auto shadowMap : m_directionnalShadows)
+    for(auto &shadowMap : m_directionnalShadows)
         VTexturesManager::freeTexture(shadowMap.second);
     m_directionnalShadows.clear();
 }
@@ -239,7 +239,15 @@ VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm
     if(m_shadowMapExtent.x == 0.0)
         m_shadowMapExtent = this->getSize();
 
+
+    bool needToCreate = false;
+    auto founded = m_directionnalShadows.find(direction);
+    if(founded ==  m_directionnalShadows.end())
+        needToCreate = true;
+
     VRenderableTexture *renderableTexture = &m_directionnalShadows[direction];
+
+    if(needToCreate)
     VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_R8G8B8A8_UNORM,
                                              renderer->getSpriteShadowsRenderPass(), renderableTexture);
 
@@ -248,7 +256,7 @@ VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm
     datum.direction = direction;
 
     datum.size      = {m_size,m_material->getHeightFactor()};
-    datum.center    = m_textureCenter;
+    //datum.center    = m_textureCenter;
 
     datum.texPos    = m_texturePosition;
     datum.texExtent = m_textureExtent;
@@ -256,7 +264,7 @@ VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm
     datum.albedo_texId = m_material->getAlbedoMap().getTexturePair();
     datum.height_texId = m_material->getHeightMap().getTexturePair();
 
-    renderer->addSpriteShadowToRender(&renderableTexture->renderTarget, datum);
+    renderer->addSpriteShadowToRender(renderableTexture->renderTarget, datum);
 
     return renderableTexture->texture;
 }

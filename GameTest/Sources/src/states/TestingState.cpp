@@ -134,7 +134,7 @@ void TestingState::init()
     }
 
     m_camera = m_scene->createCamera();
-   // m_camera->setViewport({.2,.3},{.5,.4});
+    //m_camera->setViewport({.2,.3},{.5,.4});
     m_cameraNode = m_scene->getRootNode()->createChildNode(2000,2000,1500);
     m_cameraNode->attachObject(m_camera);
     //m_scene->setCurrentCamera(m_camera);
@@ -165,10 +165,16 @@ void TestingState::init()
     //m_sunLight.setDiffuseColor({0.7,0.7,1.0,1.0});
     //m_sunLight.setIntensity(0.2);
 
-    sunLight->setType(vlg::LightType_Directional);
+    //sunLight->setType(vlg::LightType_Directional);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
     sunLight->setDirection({.2 ,-1.0,-1.0});
     sunLight->enableShadowCasting();
+
+    sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
+    m_scene->getRootNode()->attachObject(sunLight);
+    sunLight->setDirection({-.2 ,-1.0,-1.0});
+    sunLight->enableShadowCasting();
+
 
     vlg::LightEntity *cursorLight = m_scene->createLightEntity();
     m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,60);

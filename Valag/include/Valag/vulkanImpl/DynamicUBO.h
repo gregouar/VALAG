@@ -15,6 +15,9 @@ class DynamicUBO
         DynamicUBO(size_t objectSize, size_t chunkSize );
         virtual ~DynamicUBO();
 
+        DynamicUBO( const DynamicUBO& ) = delete;
+        DynamicUBO& operator=( const DynamicUBO& ) = delete;
+
         bool    allocObject(size_t &index);
         bool    freeObject(size_t index);
         bool    isFull();

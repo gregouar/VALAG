@@ -17,6 +17,9 @@ class VGraphicsPipeline
         VGraphicsPipeline();
         virtual ~VGraphicsPipeline();
 
+        VGraphicsPipeline( const VGraphicsPipeline& ) = delete;
+        VGraphicsPipeline& operator=( const VGraphicsPipeline& ) = delete;
+
         ///Only before init()
         void createShader(const std::string &shaderPath, VkShaderStageFlagBits shaderStageBit);
 

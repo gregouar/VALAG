@@ -85,12 +85,23 @@ void RenderView::setupViewport(const ViewInfo &viewInfo, VkCommandBuffer cmb)
     VkViewport viewport = {};
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    viewport.x = viewInfo.viewportOffset.x*m_extent.x;
+    /*viewport.x = viewInfo.viewportOffset.x*m_extent.x;
     viewport.y = viewInfo.viewportOffset.y*m_extent.y;
     viewport.width  = viewInfo.viewportExtent.x*m_extent.x;
-    viewport.height = viewInfo.viewportExtent.y*m_extent.y;
+    viewport.height = viewInfo.viewportExtent.y*m_extent.y;*/
+    viewport.width = m_extent.x;
+    viewport.height = m_extent.y;
 
     vkCmdSetViewport(cmb, 0, 1, &viewport);
+
+    VkRect2D scissor = {};
+    scissor.offset = {viewInfo.viewportOffset.x*m_extent.x,
+                      viewInfo.viewportOffset.y*m_extent.y};
+    scissor.extent = {viewInfo.viewportExtent.x*m_extent.x,
+                      viewInfo.viewportExtent.y*m_extent.y};
+
+    vkCmdSetScissor(cmb, 0, 1, &scissor);
+
 }
 
 void RenderView::setDepthFactor(float depthFactor)

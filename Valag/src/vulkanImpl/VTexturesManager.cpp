@@ -68,8 +68,9 @@ bool VTexturesManager::allocRenderableTexture(uint32_t width, uint32_t height, V
     renderableTexture->attachment.type.layout = (format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT) ?
                                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    renderableTexture->renderTarget.addAttachments({renderableTexture->attachment});
-    renderableTexture->renderTarget.init(1,renderPass);
+    renderableTexture->renderTarget = new VRenderTarget();
+    renderableTexture->renderTarget->addAttachments({renderableTexture->attachment});
+    renderableTexture->renderTarget->init(1,renderPass);
 
     return (true);
 }
@@ -140,8 +141,9 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
     texture2DArray->extent.width    = format.width;
     texture2DArray->extent.height   = format.height;
 
-    VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    VkImageUsageFlags   usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    VkImageAspectFlags  aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    VkImageLayout       layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     if(format.renderable)
     {
@@ -149,9 +151,13 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
         {
             usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+            layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         }
         else
+        {
             usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
     }
 
     if(!VulkanHelpers::createImage(format.width, format.height, MAX_LAYER_PER_TEXTURE, format.vkFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -166,7 +172,7 @@ size_t VTexturesManager::createTextureArray(VTexture2DArrayFormat format)
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.sampler       = nullptr;
-    imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageLayout   = layout;
     imageInfo.imageView     = texture2DArray->view;
 
     m_imageInfos[m_allocatedTextureArrays.size()] = imageInfo;
@@ -190,13 +196,13 @@ void VTexturesManager::freeTexture(VTexture &texture)
 
 void VTexturesManager::freeTexture(VRenderableTexture &renderableTexture)
 {
-    VTexturesManager::freeTexture(renderableTexture.texture);
+    VTexturesManager::instance()->freeTextureImpl(renderableTexture);
 
-    if(renderableTexture.attachment.view != VK_NULL_HANDLE)
+    /*if(renderableTexture.attachment.view != VK_NULL_HANDLE)
         vkDestroyImageView(VInstance::device(), renderableTexture.attachment.view, nullptr);
     renderableTexture.attachment.view = VK_NULL_HANDLE;
 
-    renderableTexture.renderTarget.destroy();
+    renderableTexture.renderTarget.destroy();*/
 }
 
 void VTexturesManager::freeTextureImpl(VTexture &texture)
@@ -209,6 +215,46 @@ void VTexturesManager::freeTextureImpl(VTexture &texture)
     }
 }
 
+
+void VTexturesManager::freeTextureImpl(VRenderableTexture &renderableTexture)
+{
+    this->freeTextureImpl(renderableTexture.texture);
+
+    if(renderableTexture.renderTarget != nullptr)
+        m_cleaningList_renderTargets.push_back({m_framesCount, renderableTexture.renderTarget});
+
+    if(renderableTexture.attachment.view != VK_NULL_HANDLE)
+        m_cleaningList_imageViews.push_back({m_framesCount, renderableTexture.attachment.view});
+
+    renderableTexture.attachment.mipViews.clear();
+    renderableTexture.attachment.view   = VK_NULL_HANDLE;
+    renderableTexture.renderTarget      = nullptr;
+}
+
+void VTexturesManager::updateCleaningLists(bool cleanAll)
+{
+    //Maybe I should have a class called cleanable or something.. or just work with pointers
+
+    for(auto renderTarget : m_cleaningList_renderTargets)
+    {
+        --renderTarget.first;
+        if(cleanAll || renderTarget.first == -1)
+        {
+            delete renderTarget.second;
+            m_cleaningList_renderTargets.remove(renderTarget);
+        }
+    }
+
+    for(auto imageView : m_cleaningList_imageViews)
+    {
+        --imageView.first;
+        if(cleanAll || imageView.first == -1)
+        {
+            vkDestroyImageView(VInstance::device(), imageView.second, nullptr);
+            m_cleaningList_imageViews.remove(imageView);
+        }
+    }
+}
 
 VkSampler VTexturesManager::sampler()
 {
@@ -278,13 +324,15 @@ VTexture VTexturesManager::getDummyTexture()
 
 /// Protected ///
 
-void VTexturesManager::checkUpdateDescriptorSets(size_t frameIndex, size_t imageIndex)
+void VTexturesManager::update(size_t frameIndex, size_t imageIndex)
 {
     if(m_needToUpdateDescSet[frameIndex] == true)
         this->updateDescriptorSet(frameIndex);
     if(m_needToUpdateImgDescSet[imageIndex] == true)
         this->updateImgDescriptorSet(imageIndex);
     m_lastFrameIndex = frameIndex;
+
+    this->updateCleaningLists();
 }
 
 bool VTexturesManager::createDescriptorSetLayouts()
@@ -404,24 +452,24 @@ void VTexturesManager::writeDescriptorSet(VkDescriptorSet &descSet)
 	samplerInfo.sampler = m_sampler;
 
 	setWrites[0] = {};
-	setWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	setWrites[0].dstBinding = 0;
-	setWrites[0].dstArrayElement = 0;
-	setWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-	setWrites[0].descriptorCount = 1;
-	setWrites[0].dstSet = descSet;
-	setWrites[0].pBufferInfo = 0;
-	setWrites[0].pImageInfo = &samplerInfo;
+	setWrites[0].sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	setWrites[0].dstBinding         = 0;
+	setWrites[0].dstArrayElement    = 0;
+	setWrites[0].descriptorType     = VK_DESCRIPTOR_TYPE_SAMPLER;
+	setWrites[0].descriptorCount    = 1;
+	setWrites[0].dstSet             = descSet;
+	setWrites[0].pBufferInfo        = 0;
+	setWrites[0].pImageInfo         = &samplerInfo;
 
 	setWrites[1] = {};
-	setWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	setWrites[1].dstBinding = 1;
-	setWrites[1].dstArrayElement = 0;
-	setWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-	setWrites[1].descriptorCount = MAX_TEXTURES_ARRAY_SIZE;
-	setWrites[1].pBufferInfo = 0;
-	setWrites[1].dstSet = descSet;
-	setWrites[1].pImageInfo =  m_imageInfos.data();
+	setWrites[1].sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	setWrites[1].dstBinding         = 1;
+	setWrites[1].dstArrayElement    = 0;
+	setWrites[1].descriptorType     = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	setWrites[1].descriptorCount    = MAX_TEXTURES_ARRAY_SIZE;
+	setWrites[1].pBufferInfo        = 0;
+	setWrites[1].dstSet             = descSet;
+	setWrites[1].pImageInfo         = m_imageInfos.data();
 
     vkUpdateDescriptorSets(VInstance::device(), 2, setWrites, 0, nullptr);
 }
@@ -435,6 +483,7 @@ bool VTexturesManager::createDummyTexture()
 bool VTexturesManager::init(size_t framesCount, size_t imagesCount)
 {
     m_imageInfos.resize(MAX_TEXTURES_ARRAY_SIZE);
+    m_framesCount = framesCount;
 
     if(!this->createDummyTexture())
         return (false);
@@ -445,9 +494,9 @@ bool VTexturesManager::init(size_t framesCount, size_t imagesCount)
     size_t i = 0;
     for(auto &imageInfo : m_imageInfos)
     {
-        imageInfo.sampler = nullptr;
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_allocatedTextureArrays[0]->view;
+        imageInfo.sampler       = nullptr;
+        imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView     = m_allocatedTextureArrays[0]->view;
         i++;
     }
 
@@ -466,6 +515,8 @@ bool VTexturesManager::init(size_t framesCount, size_t imagesCount)
 void VTexturesManager::cleanup()
 {
     VkDevice device = VInstance::device();
+
+    this->updateCleaningLists(true);
 
     vkDestroySampler(device, m_sampler, nullptr);
     vkDestroyDescriptorPool(device,m_descriptorPool,nullptr);

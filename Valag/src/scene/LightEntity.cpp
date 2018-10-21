@@ -83,7 +83,7 @@ VTexture LightEntity::generateShadowMap(SceneRenderer* renderer, std::list<Shado
       && m_shadowMap.attachment.extent.height == m_shadowMapExtent.y))
         this->recreateShadowMap(renderer);
 
-    //renderer->addShadowMap(this);
+    renderer->addShadowMapToRender(m_shadowMap.renderTarget, m_datum);
 
     for(auto shadowCaster : shadowCastersList)
         shadowCaster->castShadow(renderer, this);

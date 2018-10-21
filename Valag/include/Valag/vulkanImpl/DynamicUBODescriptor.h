@@ -14,6 +14,9 @@ class DynamicUBODescriptor
         DynamicUBODescriptor(size_t objectSize, size_t chunkSize);
         virtual ~DynamicUBODescriptor();
 
+        DynamicUBODescriptor( const DynamicUBODescriptor& ) = delete;
+        DynamicUBODescriptor& operator=( const DynamicUBODescriptor& ) = delete;
+
         bool init(size_t framesCount);
         void update(size_t frameIndex); //Expands UBOs
         void cleanup();

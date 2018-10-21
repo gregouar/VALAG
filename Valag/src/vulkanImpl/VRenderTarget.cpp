@@ -20,17 +20,15 @@ VRenderTarget::VRenderTarget() :
 
 VRenderTarget::~VRenderTarget()
 {
-    //dtor
+    this->destroy();
 }
 
-bool VRenderTarget::init(size_t framebuffersCount, VRenderPass *renderPass /*, size_t cmbCount*/)
+bool VRenderTarget::init(size_t framebuffersCount, VRenderPass *renderPass)
 {
     m_defaultRenderPass = renderPass;
 
     if(!this->createFramebuffers(framebuffersCount))
         return (false);
-    /*if(!this->createCmb(cmbCount))
-        return (false);*/
 
     return (true);
 }
@@ -43,10 +41,6 @@ void VRenderTarget::destroy()
     for(auto framebuffer : m_framebuffers)
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     m_framebuffers.clear();
-
-    //m_primaryCmb.clear();
-
-    //m_usedRenderPass = nullptr;
 }
 
 void VRenderTarget::addAttachments(const std::vector<VFramebufferAttachment> &attachments)
@@ -81,48 +75,6 @@ void VRenderTarget::startRendering(size_t framebufferIndex, VkCommandBuffer cmb,
     vkCmdBeginRenderPass(cmb, &renderPassInfo, contents);
 }
 
-/*VkCommandBuffer VRenderTarget::startRecording(size_t cmbIndex, size_t framebufferIndex, VkSubpassContents contents)
-{
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = m_cmbUsage;
-
-    if (vkBeginCommandBuffer(m_primaryCmb[cmbIndex], &beginInfo) != VK_SUCCESS)
-    {
-        Logger::error("Failed to begin recording command buffer");
-        return (VK_NULL_HANDLE);
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType        = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass   = m_usedRenderPass->getVkRenderPass();
-    renderPassInfo.framebuffer  = m_framebuffers[framebufferIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_extent;
-
-    renderPassInfo.clearValueCount  = static_cast<uint32_t>(m_clearValues.size());
-    renderPassInfo.pClearValues     = m_clearValues.data();
-
-    vkCmdBeginRenderPass(m_primaryCmb[cmbIndex], &renderPassInfo, contents);
-
-    m_curRecordingIndex = cmbIndex;
-
-    return m_primaryCmb[cmbIndex];
-}
-
-bool VRenderTarget::endRecording()
-{
-    vkCmdEndRenderPass(m_primaryCmb[m_curRecordingIndex]);
-
-    if (vkEndCommandBuffer(m_primaryCmb[m_curRecordingIndex]) != VK_SUCCESS)
-    {
-        Logger::error("Failed to record primary command buffer");
-        return (false);
-    }
-
-    return (true);
-}*/
-
 void VRenderTarget::setExtent(VkExtent2D extent)
 {
     m_extent = extent;
@@ -142,25 +94,10 @@ void VRenderTarget::setClearValue(size_t attachmentIndex, glm::vec4 color, glm::
     m_clearValues[attachmentIndex].depthStencil = {depth.x, static_cast<uint32_t>(depth.y)};
 }
 
-/*void VRenderTarget::setCmbUsage(VkFlags usage)
-{
-    m_cmbUsage = usage;
-}*/
-
 VkExtent2D VRenderTarget::getExtent()
 {
     return m_extent;
 }
-
-/*VkFlags VRenderTarget::getCmbUsage()
-{
-    return m_cmbUsage;
-}*/
-
-/*const VkCommandBuffer *VRenderTarget::getPrimaryCmb(size_t cmbIndex)
-{
-    return &m_primaryCmb[cmbIndex];
-}*/
 
 const  std::vector<VFramebufferAttachment> &VRenderTarget::getAttachments(size_t attachmentsIndex)
 {
@@ -203,7 +140,11 @@ bool VRenderTarget::createFramebuffers(size_t framebuffersCount)
         framebufferInfo.layers          = 1;
 
         if (vkCreateFramebuffer(VInstance::device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
+        {
+            Logger::error("Cannot create framebuffers");
+            m_framebuffers.clear();
             return (false);
+        }
     }
 
     if(m_clearValues.size() < m_attachments.size())
@@ -211,19 +152,5 @@ bool VRenderTarget::createFramebuffers(size_t framebuffersCount)
 
     return (true);
 }
-
-/*bool VRenderTarget::createCmb(size_t cmbCount)
-{
-    m_primaryCmb.resize(cmbCount);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    CommandPoolName pool    = (m_cmbUsage == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) ? COMMANDPOOL_SHORTLIVED : COMMANDPOOL_DEFAULT;
-    allocInfo.commandPool   = VInstance::commandPool(pool);
-    allocInfo.level         = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_primaryCmb.size());
-
-    return (vkAllocateCommandBuffers(VInstance::device(), &allocInfo, m_primaryCmb.data()) == VK_SUCCESS);
-}*/
 
 }

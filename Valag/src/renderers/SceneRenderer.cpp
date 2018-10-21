@@ -12,6 +12,10 @@
 namespace vlg
 {
 
+const char *SceneRenderer::ISOSPRITE_SHADOWGEN_VERTSHADERFILE = "deferred/isoSpriteShadowGen.vert.spv";
+const char *SceneRenderer::ISOSPRITE_SHADOWGEN_FRAGSHADERFILE = "deferred/isoSpriteShadowGen.frag.spv";
+const char *SceneRenderer::ISOSPRITE_SHADOW_VERTSHADERFILE = "deferred/isoSpriteShadow.vert.spv";
+const char *SceneRenderer::ISOSPRITE_SHADOW_FRAGSHADERFILE = "deferred/isoSpriteShadow.frag.spv";
 const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "deferred/isoSpriteShader.vert.spv";
 const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "deferred/isoSpriteShader.frag.spv";
 const char *SceneRenderer::MESH_DEFERRED_VERTSHADERFILE = "deferred/meshShader.vert.spv";
@@ -56,16 +60,20 @@ void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstan
 void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum)
 {
     m_shadowMapsToRender.push_back({shadowMap, datum});
+    m_renderGraph.addDynamicRenderTarget(m_shadowMapsPass,shadowMap);
 }
 
 void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
 {
-    m_spriteShadowsToRender.push_back({spriteShadow, datum});
+    m_renderGraph.addDynamicRenderTarget(m_spriteShadowsPass,spriteShadow);
+    m_spriteShadowGenerationVbos[m_curFrameIndex]->push_back(datum);
+
+    //m_spriteShadowsToRender.push_back({spriteShadow, datum});
 }
 
 void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum)
 {
-    m_spriteShadowsVbos[m_curFrameIndex].push_back(datum);
+    m_spriteShadowsVbos[m_curFrameIndex]->push_back(datum);
 }
 
 void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
@@ -75,20 +83,20 @@ void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
 
 void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
 {
-    m_spritesVbos[m_curFrameIndex].push_back(datum);
+    m_spritesVbos[m_curFrameIndex]->push_back(datum);
 }
 
 void SceneRenderer::addToMeshesVbo(VMesh* mesh, const MeshDatum &datum)
 {
     auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
     if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
-        foundedVbo = m_meshesVbos[m_curFrameIndex].insert(foundedVbo, {mesh, DynamicVBO<MeshDatum>(4)});
-    foundedVbo->second.push_back(datum);
+        foundedVbo = m_meshesVbos[m_curFrameIndex].insert(foundedVbo, {mesh, new DynamicVBO<MeshDatum>(4)});
+    foundedVbo->second->push_back(datum);
 }
 
 void SceneRenderer::addToLightsVbo(const LightDatum &datum)
 {
-    m_lightsVbos[m_curFrameIndex].push_back(datum);
+    m_lightsVbos[m_curFrameIndex]->push_back(datum);
 }
 
 /*void SceneRenderer::setAmbientLightingData(const AmbientLightingData &data)
@@ -98,7 +106,7 @@ void SceneRenderer::addToLightsVbo(const LightDatum &datum)
 
 size_t SceneRenderer::getSpritesVboSize()
 {
-    return m_spritesVbos[m_curFrameIndex].getSize();
+    return m_spritesVbos[m_curFrameIndex]->getSize();
 }
 
 size_t SceneRenderer::getMeshesVboSize(VMesh *mesh)
@@ -106,12 +114,12 @@ size_t SceneRenderer::getMeshesVboSize(VMesh *mesh)
     auto foundedVbo = m_meshesVbos[m_curFrameIndex].find(mesh);
     if(foundedVbo == m_meshesVbos[m_curFrameIndex].end())
         return (0);
-    return foundedVbo->second.getSize();
+    return foundedVbo->second->getSize();
 }
 
 size_t SceneRenderer::getLightsVboSize()
 {
-    return m_lightsVbos[m_curFrameIndex].getSize();
+    return m_lightsVbos[m_curFrameIndex]->getSize();
 }
 
 VRenderPass *SceneRenderer::getSpriteShadowsRenderPass()
@@ -165,36 +173,73 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
     for(auto renderingInstance : m_renderingInstances)
         renderingInstance->recordShadows(this, imageIndex); //Probably a bad name for that
 
-    //Compute shadow maps here
-    VkCommandBuffer cmb = m_renderGraph.startRecording(m_spriteShadowsPass, imageIndex, m_curFrameIndex);
+    size_t  spriteShadowGenVboSize = m_spriteShadowGenerationVbos[m_curFrameIndex]->uploadVBO();
+    VBuffer spriteShadowGenInstancesVB = m_spriteShadowGenerationVbos[m_curFrameIndex]->getBuffer();
 
-        size_t i = 0;
-        while(m_renderGraph.nextRenderTarget(m_spriteShadowsPass))
+    VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
+                                        VTexturesManager::descriptorSet(m_curFrameIndex) };
+
+    //Compute shadow maps here
+    VkCommandBuffer cmb = m_renderGraph.startRecording(m_spriteShadowsPass, 0, m_curFrameIndex);
+        if(spriteShadowGenVboSize > 0)
         {
-            i++;
+            m_spriteShadowsGenPipeline.bind(cmb);
+
+            vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    m_spriteShadowsGenPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+            vkCmdBindVertexBuffers(cmb, 0, 1,   &spriteShadowGenInstancesVB.buffer,
+                                                &spriteShadowGenInstancesVB.offset);
+
+            size_t i = 0;
+            while(m_renderGraph.nextRenderTarget(m_spriteShadowsPass))
+            {
+                m_spriteShadowsGenPipeline.updateViewport(cmb, {0,0},
+                        m_renderGraph.getExtent(m_spriteShadowsPass));
+                vkCmdDraw(cmb, 3, 1, 0, i);
+                i++;
+            }
         }
 
     m_renderGraph.endRecording(m_spriteShadowsPass);
-    m_spriteShadowsToRender.clear();
+    //m_spriteShadowsToRender.clear();
 
 
-    size_t  spritesVboSize = m_spriteShadowsVbos[m_curFrameIndex].uploadVBO();
-    VBuffer spritesInstancesVB = m_spriteShadowsVbos[m_curFrameIndex].getBuffer();
+    size_t  spritesVboSize      = m_spriteShadowsVbos[m_curFrameIndex]->uploadVBO();
+    VBuffer spritesInstancesVB  = m_spriteShadowsVbos[m_curFrameIndex]->getBuffer();
 
     //Start recording
-    cmb = m_renderGraph.startRecording(m_shadowMapsPass, imageIndex, m_curFrameIndex);
+    cmb = m_renderGraph.startRecording(m_shadowMapsPass, /*imageIndex*/ 0, m_curFrameIndex);
 
     //for(auto renderingInstance : m_renderingInstances)
     {
         //Setup viewport (?)
         //m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
 
-        //renderingInstance->recordShadows(this, imageIndex);
+        //Render shadow map
 
-        i = 0;
+        size_t i = 0;
         while(m_renderGraph.nextRenderTarget(m_shadowMapsPass))
         {
-            //Render shadow map
+            if(spritesVboSize != 0)
+            {
+                vkCmdBindVertexBuffers(cmb, 0, 1, &spritesInstancesVB.buffer, &spritesInstancesVB.offset);
+                m_spriteShadowsPipeline.bind(cmb);
+
+                vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        m_spriteShadowsPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+                for(auto renderingInstance : m_renderingInstances)
+                {
+                    m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
+                    renderingInstance->pushCamPosAndZoom(cmb, m_spriteShadowsPipeline.getLayout(),
+                                                        VK_SHADER_STAGE_VERTEX_BIT);
+
+                    vkCmdDraw(cmb, 4, spritesVboSize/*renderingInstance->getSpritesVboSize()*/,
+                                   0, 0/*renderingInstance->getSpritesVboOffset()*/);
+                }
+            }
+
             i++;
         }
     }
@@ -206,8 +251,8 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
 {
-    size_t  spritesVboSize = m_spritesVbos[m_curFrameIndex].uploadVBO();
-    VBuffer spritesInstancesVB = m_spritesVbos[m_curFrameIndex].getBuffer();
+    size_t  spritesVboSize      = m_spritesVbos[m_curFrameIndex]->uploadVBO();
+    VBuffer spritesInstancesVB  = m_spritesVbos[m_curFrameIndex]->getBuffer();
 
     std::vector<size_t>     meshesVboSize(m_meshesVbos[m_curFrameIndex].size());
     std::vector<VBuffer>    meshesInstanceVB(m_meshesVbos[m_curFrameIndex].size());
@@ -216,8 +261,8 @@ bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
     size_t i = 0;
     for(auto &mesh : m_meshesVbos[m_curFrameIndex])
     {
-        meshesVboSize[i]    = mesh.second.uploadVBO();
-        meshesInstanceVB[i] = mesh.second.getBuffer();
+        meshesVboSize[i]    = mesh.second->uploadVBO();
+        meshesInstanceVB[i] = mesh.second->getBuffer();
         i++;
 
     }
@@ -352,8 +397,8 @@ bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
 {
-    size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex].uploadVBO();
-    VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex].getBuffer();
+    size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex]->uploadVBO();
+    VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex]->getBuffer();
 
     VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                              m_renderGraph.getDescriptorSet(m_lightingPass,imageIndex/*m_curFrameIndex*/) };
@@ -507,14 +552,23 @@ bool SceneRenderer::init()
     m_renderView.setDepthFactor(1024*1024);
     m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
-    m_spriteShadowsVbos.resize(m_targetWindow->getFramesCount(),
-                               DynamicVBO<IsoSpriteShadowDatum>(128));
+    m_spriteShadowGenerationVbos.resize(m_targetWindow->getFramesCount());
+    for(auto &vbo : m_spriteShadowGenerationVbos)
+        vbo = new DynamicVBO<SpriteShadowGenerationDatum>(32);
 
-    m_spritesVbos.resize(m_targetWindow->getFramesCount(),
-                         DynamicVBO<IsoSpriteDatum>(256));
+    m_spriteShadowsVbos.resize(m_targetWindow->getFramesCount());
+    for(auto &vbo : m_spriteShadowsVbos)
+        vbo = new DynamicVBO<IsoSpriteShadowDatum>(128);
+
+    m_spritesVbos.resize(m_targetWindow->getFramesCount());
+    for(auto &vbo : m_spritesVbos)
+        vbo = new DynamicVBO<IsoSpriteDatum>(256);
+
     m_meshesVbos.resize(m_targetWindow->getFramesCount());
-    m_lightsVbos.resize(m_targetWindow->getFramesCount(),
-                        DynamicVBO<LightDatum>(128));
+
+    m_lightsVbos.resize(m_targetWindow->getFramesCount());
+    for(auto &vbo : m_lightsVbos)
+        vbo = new DynamicVBO<LightDatum>(128);
 
     //if(!this->createSampler())
        // return (false);
@@ -552,6 +606,10 @@ void SceneRenderer::prepareRenderPass()
 
 bool SceneRenderer::createGraphicsPipeline()
 {
+    if(!this->createSpriteShadowsGenPipeline())
+        return (false);
+    if(!this->createSpriteShadowsPipeline())
+        return (false);
     if(!this->createDeferredSpritesPipeline())
         return (false);
     if(!this->createDeferredMeshesPipeline())
@@ -655,7 +713,8 @@ void SceneRenderer::prepareShadowRenderPass()
     spriteShadowType.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     m_spriteShadowsPass = m_renderGraph.addDynamicRenderPass();
-    m_renderGraph.addAttachmentType(m_spriteShadowsPass, spriteShadowType);
+    m_renderGraph.addAttachmentType(m_spriteShadowsPass, spriteShadowType,
+                                    VK_ATTACHMENT_STORE_OP_STORE, false);
 
 
     VFramebufferAttachmentType shadowMapType;
@@ -663,7 +722,8 @@ void SceneRenderer::prepareShadowRenderPass()
     shadowMapType.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     m_shadowMapsPass = m_renderGraph.addDynamicRenderPass();
-    m_renderGraph.addAttachmentType(m_shadowMapsPass, shadowMapType);
+    m_renderGraph.addAttachmentType(m_shadowMapsPass, shadowMapType,
+                                    VK_ATTACHMENT_STORE_OP_STORE, false);
 }
 
 void SceneRenderer::prepareDeferredRenderPass()
@@ -817,6 +877,53 @@ void SceneRenderer::prepareToneMappingRenderPass()
     m_renderGraph.transferAttachmentsToUniforms(m_ambientLightingPass, m_toneMappingPass, 1);
 }
 
+bool SceneRenderer::createSpriteShadowsGenPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
+
+    m_spriteShadowsGenPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_spriteShadowsGenPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    auto bindingDescription = SpriteShadowGenerationDatum::getBindingDescription();
+    auto attributeDescriptions = SpriteShadowGenerationDatum::getAttributeDescriptions();
+    m_spriteShadowsGenPipeline.setVertexInput(1, &bindingDescription,
+                                    attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_spriteShadowsGenPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_spriteShadowsGenPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    return m_spriteShadowsGenPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass));
+}
+
+bool SceneRenderer::createSpriteShadowsPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOW_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOW_FRAGSHADERFILE;
+
+    m_spriteShadowsPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_spriteShadowsPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    auto bindingDescription = IsoSpriteShadowDatum::getBindingDescription();
+    auto attributeDescriptions = IsoSpriteShadowDatum::getAttributeDescriptions();
+    m_spriteShadowsPipeline.setVertexInput(1, &bindingDescription,
+                                    attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_spriteShadowsPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
+
+    m_spriteShadowsPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_spriteShadowsPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_spriteShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec4));
+
+    m_spriteShadowsPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    return m_spriteShadowsPipeline.init(m_renderGraph.getRenderPass(m_shadowMapsPass));
+
+}
+
 bool SceneRenderer::createDeferredSpritesPipeline()
 {
     std::ostringstream vertShaderPath,fragShaderPath;
@@ -833,7 +940,7 @@ bool SceneRenderer::createDeferredSpritesPipeline()
 
     m_deferredSpritesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_deferredSpritesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_deferredSpritesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_deferredSpritesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredSpritesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -876,7 +983,7 @@ bool SceneRenderer::createDeferredMeshesPipeline()
 
     m_deferredMeshesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
 
-    m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -906,7 +1013,7 @@ bool SceneRenderer::createAlphaDetectPipeline()
 
     m_alphaDetectPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDetectPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_alphaDetectPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaDetectPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDetectPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -947,7 +1054,7 @@ bool SceneRenderer::createAlphaDeferredPipeline()
 
     m_alphaDeferredPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true);
 
-    m_alphaDeferredPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_alphaDeferredPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaDeferredPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaDeferredPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -1056,7 +1163,7 @@ bool SceneRenderer::createLightingPipeline()
 
     m_lightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_lightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_lightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_lightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_lightingPass));
@@ -1089,7 +1196,7 @@ bool SceneRenderer::createAlphaLightingPipeline()
 
     m_alphaLightingPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, false);
 
-    m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_alphaLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_alphaLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_alphaLightingPass));
@@ -1128,7 +1235,7 @@ bool SceneRenderer::createAmbientLightingPipeline()
     m_ambientLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_ambientLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_ambientLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
+    //m_ambientLightingPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_ambientLightingPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ambientLightingPass));
     m_ambientLightingPipeline.attachDescriptorSetLayout(SceneRenderingData::ambientLightingDescSetLayout());
@@ -1163,8 +1270,21 @@ bool SceneRenderer::createToneMappingPipeline()
 
 void SceneRenderer::cleanup()
 {
+    for(auto vbo : m_spriteShadowGenerationVbos)
+        delete vbo;
+    m_spriteShadowGenerationVbos.clear();
+
+    for(auto vbo : m_spriteShadowsVbos)
+        delete vbo;
     m_spriteShadowsVbos.clear();
+
+    for(auto vbo : m_spritesVbos)
+        delete vbo;
     m_spritesVbos.clear();
+
+    for(auto meshVboMap : m_meshesVbos)
+        for(auto meshVbo : meshVboMap)
+            delete meshVbo.second;
     m_meshesVbos.clear();
 
     for(auto attachement : m_deferredDepthAttachments)
@@ -1201,6 +1321,8 @@ void SceneRenderer::cleanup()
     for(size_t i = 0 ; i < 2 ; ++i)
         VulkanHelpers::destroyAttachment(m_SSGIBlurBentNormalsAttachments[i]);
 
+    m_spriteShadowsGenPipeline.destroy();
+    m_spriteShadowsPipeline.destroy();
     m_deferredSpritesPipeline.destroy();
     m_deferredMeshesPipeline.destroy();
     m_alphaDetectPipeline.destroy();

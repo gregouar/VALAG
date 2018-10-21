@@ -12,9 +12,11 @@ namespace vlg
 
 struct VRenderableTexture
 {
+    VRenderableTexture() : renderTarget(nullptr){}
+
     VTexture                texture;
     VFramebufferAttachment  attachment;
-    VRenderTarget           renderTarget;
+    VRenderTarget          *renderTarget;
 };
 
 struct VTexture2DArrayFormat
@@ -50,14 +52,15 @@ struct VTexture2DArray
     std::list<size_t>   availableLayers;
 };
 
+///I need a cleaning list so that I free resource only after a full image_index*loop
+
 class VTexturesManager : public Singleton<VTexturesManager>
 {
     public:
         friend class Singleton<VTexturesManager>;
         friend class VApp;
 
-
-        void checkUpdateDescriptorSets(size_t frameIndex, size_t imageIndex);
+        void update(size_t frameIndex, size_t imageIndex);
 
         static bool allocTexture(uint32_t width, uint32_t height, VkFormat format,
                                  VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
@@ -82,11 +85,14 @@ class VTexturesManager : public Singleton<VTexturesManager>
     protected:
         VTexturesManager();
         virtual ~VTexturesManager();
-        bool allocTextureImpl(VTexture2DArrayFormat format, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
-        bool allocRenderableTextureImpl(VTexture2DArrayFormat format, CommandPoolName cmdPoolName, VTexture *texture);
-        size_t createTextureArray(VTexture2DArrayFormat format);
 
-        void freeTextureImpl(VTexture &texture);
+        bool    allocTextureImpl(VTexture2DArrayFormat format, VBuffer source, CommandPoolName cmdPoolName, VTexture *texture);
+        bool    allocRenderableTextureImpl(VTexture2DArrayFormat format, CommandPoolName cmdPoolName, VTexture *texture);
+        size_t  createTextureArray(VTexture2DArrayFormat format);
+
+        void    freeTextureImpl(VTexture &texture);
+        void    freeTextureImpl(VRenderableTexture &texture);
+        void    updateCleaningLists(bool cleanAll = false);
 
         bool    createDescriptorSetLayouts();
         bool    createSampler();
@@ -127,6 +133,10 @@ class VTexturesManager : public Singleton<VTexturesManager>
         VkDescriptorPool                m_descriptorPool;
 
         size_t  m_lastFrameIndex;
+        size_t  m_framesCount;
+
+        std::list<std::pair<int, VRenderTarget*> >  m_cleaningList_renderTargets;
+        std::list<std::pair<int, VkImageView> >     m_cleaningList_imageViews;
 
     public:
         static const size_t MAX_TEXTURES_ARRAY_SIZE;

@@ -276,7 +276,7 @@ void Sprite::cleanup()
 
 /// Static ///
 
-DynamicUBODescriptor Sprite::s_modelUBO = DynamicUBODescriptor(sizeof(SpriteModelUBO),1024); //Chunk size
+DynamicUBODescriptor Sprite::s_modelUBO(sizeof(SpriteModelUBO),1024); //Chunk size
 size_t Sprite::s_framesCount = 1;
 
 bool Sprite::initRendering(size_t framesCount)

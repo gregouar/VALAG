@@ -37,7 +37,7 @@ struct SpriteShadowGenerationDatum
 {
     glm::vec3 direction;
     glm::vec3 size;
-    glm::vec2 center;
+    //glm::vec2 center;
 
     glm::vec2 texPos;
     glm::vec2 texExtent;
@@ -58,6 +58,10 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
     public:
         IsoSpriteModel();
         virtual ~IsoSpriteModel();
+
+        IsoSpriteModel( const IsoSpriteModel& ) = delete;
+        IsoSpriteModel& operator=( const IsoSpriteModel& ) = delete;
+
 
         void setMaterial(AssetTypeId materialId);
         void setMaterial(MaterialAsset *material);

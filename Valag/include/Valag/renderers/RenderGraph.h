@@ -37,6 +37,9 @@ class RenderGraph
         ///rendered by RenderWindow
         void    addAttachmentType(size_t renderPassIndex, const VFramebufferAttachmentType &type,
                                VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
+        void    addAttachmentType(size_t renderPassIndex, const VFramebufferAttachmentType &type,
+                                    VkAttachmentStoreOp storeOp, bool toMemory,
+                                    VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR, bool fromMemory = false);
         void    addNewAttachments(size_t renderPassIndex, const VFramebufferAttachment &attachment,
                                VkAttachmentStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, VkAttachmentLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR);
         void    addNewAttachments(size_t renderPassIndex, const std::vector<VFramebufferAttachment> &attachments,
@@ -50,7 +53,9 @@ class RenderGraph
         VkDescriptorSetLayout   getDescriptorLayout(size_t renderPassIndex);
         VkDescriptorSet         getDescriptorSet(size_t renderPassIndex, size_t imageIndex);
 
-        size_t getColorAttachmentsCount(size_t renderPassIndex);
+        VkExtent2D  getExtent(size_t renderPassIndex);
+
+        void addDynamicRenderTarget(size_t renderPassIndex, VRenderTarget* renderTarget);
 
         VkCommandBuffer startRecording(size_t renderPassIndex, size_t imageIndex, size_t frameIndex,
                                        VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);

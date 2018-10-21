@@ -12,6 +12,9 @@ template<class T> class DynamicVBO
         DynamicVBO(size_t chunkSize);
         virtual ~DynamicVBO();
 
+        DynamicVBO( const DynamicVBO& ) = delete;
+        DynamicVBO& operator=( const DynamicVBO& ) = delete;
+
         void push_back(const T &datum);
 
         size_t uploadVBO(); //return buffer size
