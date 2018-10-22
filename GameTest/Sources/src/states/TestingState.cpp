@@ -112,7 +112,9 @@ void TestingState::init()
 
 
     m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
-    m_abbeyNode->attachObject(m_scene->createIsoSpriteEntity(m_abbeyModel));
+    vlg::IsoSpriteEntity *abbeyEntity = m_scene->createIsoSpriteEntity(m_abbeyModel);
+    abbeyEntity->setShadowCasting(vlg::ShadowCasting_OnlyDirectional);
+    m_abbeyNode->attachObject(abbeyEntity);
 
     //m_treeEntity.setSpriteModel(&m_treeModel);
     //m_abbeyEntity.setSpriteModel(&m_abbeyModel);

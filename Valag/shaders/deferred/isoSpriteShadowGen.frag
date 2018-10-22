@@ -1,6 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout (constant_id = 0) const uint const_nbrRaySteps          = 256;
+layout (constant_id = 1) const uint const_nbrSearchSteps       = 4;
+layout (constant_id = 2) const float const_rayThreshold        = 15.0;
+
 layout(binding = 0, set = 0) uniform ViewUBO {
     mat4 view;
     mat4 viewInv;
@@ -24,43 +28,81 @@ layout(location = 7)        in vec3 spriteSize;
 
 layout(location = 0) out vec4 outShadow;
 
+float insideBox(vec2 v, vec2 bottomRight, vec2 topLeft)
+{
+    vec2 s = step(bottomRight, v) - step(topLeft, v);
+    return s.x * s.y;
+}
 
+vec4 sampleHeight(vec2 p)
+{
+    vec2 pn = (p - spritePos)/spriteSize.xy;
+
+    return texture(sampler2DArray(textures[spriteHeightTexId.x], samp),
+                                    vec3(pn,spriteHeightTexId.y)) * insideBox(pn, vec2(1.0), vec2(0.0));
+}
+
+vec2 raySearch(vec3 start, vec3 end, int under)
+{
+   vec3 cur = start;
+   vec3 diff = end-start;
+   float stp = 0.5;
+   for(int i = 0 ; i < const_nbrSearchSteps ; ++i){
+       vec3 test = cur + diff*stp;
+
+        vec4 dstFrag    = sampleHeight(test.xy);
+        float dstHeight = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*spriteSize.z*dstFrag.a;
+
+       if((1-2*under)*dstHeight < (1-2*under)*test.z) {
+           cur = test; //Collision in second segment
+       }
+       stp = stp*0.5;
+   }
+   return cur.xy;
+}
+
+vec4 rayTrace(vec3 screenStart, vec3 ray)
+{
+    vec3 screenRayStep  = ray/float(const_nbrRaySteps);
+    vec3 curPos         = screenStart;
+    vec3 oldPos         = curPos;
+
+    bool wasUnder   = false;
+    bool isUnder    = false;
+
+    vec4 dstFrag;
+    float dstHeight;
+
+    for(uint i = 0 ; i < const_nbrRaySteps ; ++i)
+    {
+        curPos     += screenRayStep;
+        dstFrag     = sampleHeight(curPos.xy);
+        dstHeight   = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*spriteSize.z*dstFrag.a;
+
+        if(curPos.z < dstHeight)
+            isUnder = true;
+        else
+            isUnder = false;
+
+        if(dstFrag.a > 0.1)
+        if(isUnder != wasUnder && abs(curPos.z - dstHeight) < const_rayThreshold )
+        {
+            curPos.xy   = raySearch(oldPos, curPos,int(wasUnder));
+            dstFrag     = sampleHeight(curPos.xy);
+            return dstFrag;
+        }
+
+        oldPos      = curPos;
+        wasUnder    = isUnder;
+    }
+
+    return vec4(0.0);
+}
 
 void main()
 {
-    outShadow = texture(sampler2DArray(textures[spriteHeightTexId.x], samp),
-                                    vec3(inUV,spriteHeightTexId.y));
-
-    /*outAlbedo = fragColor * texture(sampler2DArray(textures[fragAlbedoTexId.x], samp),
-                                    vec3(fragTexCoord,fragAlbedoTexId.y));
-
-
-    vec4 heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp),
-                               vec3(fragTexCoord,fragHeightTexId.y));
-
-    float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
-    float fragHeight = screenPosAndHeight.z + height * screenPosAndHeight.w;
-
-    vec2 fragWorldPos = screenPosAndHeight.xy;
-    fragWorldPos.y -= (fragHeight - pc.camPosAndZoom.z) * viewUbo.view[2][1];
-    fragWorldPos = vec4(viewUbo.viewInv*vec4(fragWorldPos.xy,0.0,1.0)).xy;
-    fragWorldPos += pc.camPosAndZoom.xy;
-
-    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
-
-    outPosition = vec4(fragWorldPos.xy, fragHeight, 0.0);
-
-    vec3 normal = vec3(0.5,0.5,1.0);
-    if(!(fragNormalTexId.x == 0 && fragNormalTexId.y == 0))
-        normal = texture(sampler2DArray(textures[fragNormalTexId.x], samp), vec3(fragTexCoord,fragNormalTexId.y)).xyz;
-    normal = 2.0*normal - vec3(1.0);
-
-    normal = vec4(vec4(normal,0.0)*viewUbo.view).xyz;
-    outNormal = vec4(normal,0.0);
-
-    outRmt = vec4(texture(sampler2DArray(textures[fragRmtTexId.x], samp), vec3(fragTexCoord,fragRmtTexId.y)).xyz  * fragRmt, 1.0);
-
-    if(outAlbedo.a < .99f)
-        discard;*/
+    vec3 ray    = viewLightDirection;
+    ray.z      *= spriteSize.z;
+    outShadow   = rayTrace(vec3(inUV,0.0)-ray, ray);
 }
 

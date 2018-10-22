@@ -74,6 +74,11 @@ void VGraphicsPipeline::addSpecializationDatum(int value, size_t shaderNbr)
     this->addSpecializationDatum(sizeof(int), (char*)&value, shaderNbr);
 }
 
+void VGraphicsPipeline::addSpecializationDatum(uint32_t value, size_t shaderNbr)
+{
+    this->addSpecializationDatum(sizeof(uint32_t), (char*)&value, shaderNbr);
+}
+
 void VGraphicsPipeline::addSpecializationDatum(size_t size, char* data, size_t shaderNbr)
 {
     if(m_specializationData.size() < shaderNbr)

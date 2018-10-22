@@ -36,20 +36,32 @@ void main()
 	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
 	gl_Position = vec4(outUV * 2.0f - 1.0f, 0.0f, 1.0f);
 
-	vec3 lightDirection = normalize(inDirection);
 
-	viewLightDirection.xy = (viewUbo.view * vec4(lightDirection.xy / lightDirection.z, 0.0, 0.0)).xy;
+	/*vec3 lightDirection = normalize(inDirection);
+	viewLightDirection.xy = (viewUbo.view * vec4(lightDirection.xy / -lightDirection.z, 0.0, 0.0)).xy;
 	viewLightDirection.xy = normalize(viewLightDirection.xy * inSize.xy)*0.5;
 	viewLightDirection.z = lightDirection.z;
+    spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
+    spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);
+    spriteSize.z        = inSize.z;*/
+
+
+    vec3 lightDirection = normalize(inDirection);
+	viewLightDirection.xy = (viewUbo.view * vec4(inSize.z*lightDirection.xy / -lightDirection.z, 0.0, 0.0)).xy;
+	vec2 totalSize        = abs(viewLightDirection.xy)+inSize.xy;
+
+	viewLightDirection.xy = viewLightDirection.xy/totalSize;
+	viewLightDirection.z = lightDirection.z;
+
+    spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
+    spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);
+    spriteSize.z        = inSize.z;
 
 	spriteTexCoord      = inTexCoord;
 	spriteTexExtent     = inTexExtent;
     spriteAlbedoTexId   = inAlbedoTexId;
     spriteHeightTexId   = inHeightTexId;
 
-    spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
-    spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);
-    spriteSize.z        = inSize.z;
 }
 
 

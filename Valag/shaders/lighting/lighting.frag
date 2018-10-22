@@ -116,9 +116,20 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
 
         if(lightShadowMap.x != 0)
         {
+            vec3 v = vec3((fragPos.z/lightPos.z)*lightPos.xy,0.0);
+            vec2 projPos;
+
+	/*"               vec3 v = vec3((heightPixel/lightDirection.z)*lightDirection.xy,0.0);"
+	"               shadowPos.xy += (heightPixel*p_isoToCartZFactor)*constantList.yx "
+	"                                  +(v*p_isoToCartMat).xy * constantList.zx;"*/
+
+            projPos  = gl_FragCoord.xy;
+            projPos.y   -= fragPos.z * viewUbo.view[2][1];
+            projPos     -= (viewUbo.viewInv * vec4(v,0.0)).xy;
+
             float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
-                                       vec3(gl_FragCoord.xy*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
-            if(shadowMap > 0)
+                                       vec3(projPos/*gl_FragCoord.xy*/*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
+            if(shadowMap > viewUbo.depthOffsetAndFactor.x + fragPos.z * viewUbo.depthOffsetAndFactor.y)
                 attenuation = 0.0;
         }
     }

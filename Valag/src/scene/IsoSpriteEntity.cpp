@@ -259,9 +259,47 @@ void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
     {
         VTexture shadow = m_spriteModel->getDirectionnalShadow(renderer, light->getDirection());
 
+        //Since I need to generate it here, I could send it to VS
+        this->generateShadowDatum(light->getDirection());
+
         m_shadowDatum.texId = shadow.getTexturePair();
         renderer->addToSpriteShadowsVbo(m_shadowDatum);
     }
+}
+
+void IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
+{
+    if(m_parentNode == nullptr || m_parentNode->getScene() == nullptr)
+        return;
+
+
+    /*vec3 lightDirection = normalize(inDirection);
+	viewLightDirection.xy = (viewUbo.view * vec4(inSize.z*lightDirection.xy / -lightDirection.z, 0.0, 0.0)).xy;
+	vec2 totalSize        = abs(viewLightDirection.xy)+inSize.xy;
+
+	viewLightDirection.xy = viewLightDirection.xy/totalSize;
+	viewLightDirection.z = lightDirection.z;
+
+    spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
+    spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);
+    spriteSize.z        = inSize.z;*/
+
+	glm::vec3 lightDirection = normalize(direction);
+
+	glm::vec2 lightDirectionXY = {lightDirection.x, lightDirection.y};
+
+	glm::vec4 r = m_parentNode->getScene()->getViewMatrix() * glm::vec4(m_datum.size.z*lightDirectionXY / -lightDirection.z, 0.0, 0.0);
+	glm::vec2 viewLightDirectionXY = {r.x, r.y};
+
+    glm::vec2 totalSize = glm::abs(viewLightDirectionXY)+glm::vec2(m_datum.size.x, m_datum.size.y);
+
+    glm::vec2 spritePos;
+    spritePos        = glm::max(glm::vec2(0.0), -viewLightDirectionXY);
+    //spriteSize       = glm::vec2(1.0) - glm::abs(viewLightDirectionXY);
+
+    m_shadowDatum.position  = m_datum.position;
+    m_shadowDatum.size      = glm::vec3(totalSize, m_datum.size.z);
+    m_shadowDatum.center    = m_datum.center+spritePos;
 }
 
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)
@@ -319,9 +357,6 @@ void IsoSpriteEntity::updateDatum()
     m_datum.texPos    = m_spriteModel->getTexturePosition();
     m_datum.texExtent = m_spriteModel->getTextureExtent();
 
-    m_shadowDatum.position  = m_datum.position;
-    m_shadowDatum.size      = m_datum.size;
-    m_shadowDatum.center    = m_datum.center;
     m_shadowDatum.texPos    = m_datum.texPos;
     m_shadowDatum.texExtent = m_datum.texExtent;
 }

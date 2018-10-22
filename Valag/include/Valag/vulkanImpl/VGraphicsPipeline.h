@@ -27,6 +27,7 @@ class VGraphicsPipeline
         void addSpecializationDatum(bool value,     size_t shaderNbr); //Need to add more
         void addSpecializationDatum(float value,    size_t shaderNbr);
         void addSpecializationDatum(int value,      size_t shaderNbr);
+        void addSpecializationDatum(uint32_t value,      size_t shaderNbr);
         void addSpecializationDatum(size_t size, char* data, size_t shaderNbr);
 
         void setVertexInput(size_t vertexBindingCount, VkVertexInputBindingDescription* vertexBindings,

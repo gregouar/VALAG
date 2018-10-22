@@ -33,7 +33,7 @@ void main()
     float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
     float fragHeight = screenPosAndHeight.z + height * screenPosAndHeight.w;
 
-    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y;
+    gl_FragDepth = (viewUbo.depthOffsetAndFactor.x + fragHeight * viewUbo.depthOffsetAndFactor.y)*heightPixel.a;
 
     /*outAlbedo = fragColor * texture(sampler2DArray(textures[fragAlbedoTexId.x], samp),
                                     vec3(fragTexCoord,fragAlbedoTexId.y));

@@ -400,6 +400,10 @@ glm::vec2 Scene::convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam)
     return {worldPos.x, worldPos.y};
 }
 
+const glm::mat4 &Scene::getViewMatrix() const
+{
+    return m_viewAngle;
+}
 
 
 /*void Scene::setCurrentCamera(CameraObject *cam)

@@ -75,6 +75,7 @@ class IsoSpriteEntity : public ShadowCaster
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
         void updateDatum();
+        void generateShadowDatum(glm::vec3 direction);
 
 
         //bool checkUpdates(SceneRenderer *renderer, size_t frameIndex);

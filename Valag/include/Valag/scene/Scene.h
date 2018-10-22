@@ -46,6 +46,7 @@ class Scene : public NotificationListener
         void destroyAllCreatedObjects();
 
         virtual glm::vec2 convertScreenToWorldCoord(glm::vec2 p, CameraObject *cam = nullptr);
+        virtual const glm::mat4 &getViewMatrix() const;
 
         virtual void setAmbientLight(Color color);
         virtual void setEnvironmentMap(TextureAsset *texture);
