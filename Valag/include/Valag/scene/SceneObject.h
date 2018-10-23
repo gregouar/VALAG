@@ -26,7 +26,8 @@ class SceneObject : public NotificationListener
         bool isAShadowCaster();
 
         virtual void update(const Time &elapsedTime);
-        virtual void notify(NotificationSender*, NotificationType);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     protected:
         SceneNode *setParentNode(SceneNode*);

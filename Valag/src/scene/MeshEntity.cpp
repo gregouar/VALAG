@@ -167,7 +167,8 @@ void MeshEntity::generateRenderingData(SceneRenderingInstance *renderingInstance
         renderer->addToMeshesVbo(m_mesh->getMesh(), this->getMeshDatum());
 }*/
 
-void MeshEntity::notify(NotificationSender *sender, NotificationType notification)
+void MeshEntity::notify(NotificationSender *sender, NotificationType notification,
+                        size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded ||
        notification == Notification_TextureChanged ||

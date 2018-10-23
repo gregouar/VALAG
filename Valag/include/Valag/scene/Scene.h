@@ -60,7 +60,8 @@ class Scene : public NotificationListener
         virtual void setViewAngle(float zAngle, float xyAngle);
         //virtual void setCurrentCamera(CameraObject *);
 
-        void notify(NotificationSender *sender, NotificationType notification);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     protected:
         ObjectTypeId generateObjectId();

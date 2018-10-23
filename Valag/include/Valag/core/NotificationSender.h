@@ -24,7 +24,7 @@ class NotificationSender
         void removeFromAllNotificationList(NotificationListener *);
 
     protected:
-        void sendNotification(NotificationType);
+        void sendNotification(NotificationType, size_t dataSize = 0, char* data = nullptr);
 
     private:
         std::set<NotificationListener*> m_listenerToNotifyEverything;

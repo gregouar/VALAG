@@ -494,7 +494,8 @@ void Scene::setEnvironmentMap(TextureAsset *texture)
 }
 
 
-void Scene::notify(NotificationSender *sender, NotificationType notification)
+void Scene::notify(NotificationSender *sender, NotificationType notification,
+                   size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded)
     {

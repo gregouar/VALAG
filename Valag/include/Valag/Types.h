@@ -72,6 +72,7 @@ enum NotificationType
     Notification_ModelChanged,
     Notification_TextureChanged,
     Notification_TextureIsAboutToChange,
+    Notification_UpdateShadow,
    // Notification_LightMoved,
 };
 

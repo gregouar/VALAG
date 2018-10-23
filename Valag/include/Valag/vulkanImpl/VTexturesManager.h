@@ -30,12 +30,24 @@ struct VTexture2DArrayFormat
     {
         if(renderable < rhs.renderable)
             return (true);
+        if(renderable > rhs.renderable)
+            return (false);
+
         if(vkFormat < rhs.vkFormat)
             return (true);
+        if(vkFormat > rhs.vkFormat)
+            return (false);
+
         if(height < rhs.height)
             return (true);
+        if(height > rhs.height)
+            return (false);
+
         if(width < rhs.width)
             return (true);
+        if(width > rhs.width)
+            return (false);
+
         return (false);
     }
 };

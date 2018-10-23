@@ -51,7 +51,7 @@ vec2 raySearch(vec3 start, vec3 end, int under)
        vec3 test = cur + diff*stp;
 
         vec4 dstFrag    = sampleHeight(test.xy);
-        float dstHeight = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*spriteSize.z*dstFrag.a;
+        float dstHeight = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*dstFrag.a;//*spriteSize.z;
 
        if((1-2*under)*dstHeight < (1-2*under)*test.z) {
            cur = test; //Collision in second segment
@@ -67,7 +67,7 @@ vec4 rayTrace(vec3 screenStart, vec3 ray)
     vec3 curPos         = screenStart;
     vec3 oldPos         = curPos;
 
-    bool wasUnder   = false;
+    bool wasUnder   = true;
     bool isUnder    = false;
 
     vec4 dstFrag;
@@ -77,19 +77,21 @@ vec4 rayTrace(vec3 screenStart, vec3 ray)
     {
         curPos     += screenRayStep;
         dstFrag     = sampleHeight(curPos.xy);
-        dstHeight   = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*spriteSize.z*dstFrag.a;
+        dstHeight   = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*dstFrag.a; //*spriteSize.z;
 
-        if(curPos.z < dstHeight)
-            isUnder = true;
-        else
-            isUnder = false;
-
-        if(dstFrag.a > 0.1)
-        if(isUnder != wasUnder && abs(curPos.z - dstHeight) < const_rayThreshold )
+        if(dstFrag.a > 0.9)
         {
-            curPos.xy   = raySearch(oldPos, curPos,int(wasUnder));
-            dstFrag     = sampleHeight(curPos.xy);
-            return dstFrag;
+            if(curPos.z < dstHeight)
+                isUnder = true;
+            else
+                isUnder = false;
+
+            if(isUnder != wasUnder && abs(curPos.z - dstHeight) < const_rayThreshold )
+            {
+                curPos.xy   = raySearch(oldPos, curPos,int(wasUnder));
+                dstFrag     = sampleHeight(curPos.xy);
+                return dstFrag;
+            }
         }
 
         oldPos      = curPos;
@@ -102,7 +104,7 @@ vec4 rayTrace(vec3 screenStart, vec3 ray)
 void main()
 {
     vec3 ray    = viewLightDirection;
-    ray.z      *= spriteSize.z;
+    //ray.z      *= spriteSize.z;
     outShadow   = rayTrace(vec3(inUV,0.0)-ray, ray);
 }
 

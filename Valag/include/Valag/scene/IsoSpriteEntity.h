@@ -69,7 +69,8 @@ class IsoSpriteEntity : public ShadowCaster
         virtual void generateRenderingData(SceneRenderingInstance *renderingInstance) override;
         virtual void castShadow(SceneRenderer *renderer, LightEntity* light) override;
 
-        virtual void notify(NotificationSender *sender, NotificationType notification) override;
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     protected:
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);

@@ -54,7 +54,8 @@ bool MeshAsset::loadFromFile(const std::string &filePath)
     return this->loadFromXML(&hdl);
 }
 
-void MeshAsset::notify(NotificationSender* sender, NotificationType notification)
+void MeshAsset::notify(NotificationSender* sender, NotificationType notification,
+                       size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded)
     if(sender == m_material)
@@ -270,20 +271,44 @@ struct TempVertex
     {
         if(pos.x < rhs.pos.x)
             return (true);
+        if(pos.x > rhs.pos.x)
+            return (false);
+
         if(pos.y < rhs.pos.y)
             return (true);
+        if(pos.y > rhs.pos.y)
+            return (false);
+
         if(pos.z < rhs.pos.z)
             return (true);
+        if(pos.z > rhs.pos.z)
+            return (false);
+
         if(uv.x < rhs.uv.x)
             return (true);
+        if(uv.x > rhs.uv.x)
+            return (false);
+
         if(uv.y < rhs.uv.y)
             return (true);
+        if(uv.y > rhs.uv.y)
+            return (false);
+
         if(normal.x < rhs.normal.x)
             return (true);
+        if(normal.x > rhs.normal.x)
+            return (false);
+
         if(normal.y < rhs.normal.y)
             return (true);
+        if(normal.y > rhs.normal.y)
+            return (false);
+
         if(normal.z < rhs.normal.z)
             return (true);
+        if(normal.z > rhs.normal.z)
+            return (false);
+
         return (false);
     }
 };

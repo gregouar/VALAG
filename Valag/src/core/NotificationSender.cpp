@@ -55,13 +55,13 @@ void NotificationSender::removeFromAllNotificationList(NotificationListener *lis
 }
 
 
-void NotificationSender::sendNotification(NotificationType type)
+void NotificationSender::sendNotification(NotificationType type, size_t dataSize, char* data)
 {
     for(auto listener : m_listenerToNotify[type])
-        listener->notify(this, type);
+        listener->notify(this, type, dataSize, data);
 
     for(auto listener : m_listenerToNotifyEverything)
-        listener->notify(this, type);
+        listener->notify(this, type, dataSize, data);
 }
 
 }

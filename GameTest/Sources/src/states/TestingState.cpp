@@ -25,6 +25,7 @@ TestingState::TestingState() :
     m_testingSpritesBatch(true)
 {
     m_nbrFps = 0;
+    m_sunAngle = 3;
 }
 
 TestingState::~TestingState()
@@ -156,12 +157,12 @@ void TestingState::init()
     //m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(m_scene->createMeshEntity(groundMesh));
 
-    vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
-    m_scene->getRootNode()->attachObject(sunLight);
+    m_sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
+    m_scene->getRootNode()->attachObject(m_sunLight);
 
     ///Day
-    sunLight->setDiffuseColor({1.0,1.0,1.0,1.0});
-    sunLight->setIntensity(15.0);
+    m_sunLight->setDiffuseColor({1.0,1.0,1.0,1.0});
+    m_sunLight->setIntensity(15.0);
 
     ///Night
     //m_sunLight.setDiffuseColor({0.7,0.7,1.0,1.0});
@@ -169,8 +170,8 @@ void TestingState::init()
 
     //sunLight->setType(vlg::LightType_Directional);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
-    sunLight->setDirection({.2 ,-1.0,-1.0});
-    sunLight->enableShadowCasting();
+    m_sunLight->setDirection({.2 ,-1.0,-1.0});
+    m_sunLight->enableShadowCasting();
 
     /*sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
     m_scene->getRootNode()->attachObject(sunLight);
@@ -274,6 +275,7 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     //std::cout<<worldMousePos.x<<" "<<worldMousePos.y<<std::endl;
     m_camVelocity = {0,0};
+    m_sunAngleVelocity = 0;
 
     m_cursorLightNode->setPosition(worldMousePos);
 
@@ -283,10 +285,17 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_treeEntity->setRotation(m_treeEntity->getRotation()-0.1f);
 
 
-    if(eventsManager->keyPressed(GLFW_KEY_Q))
+    /*if(eventsManager->keyPressed(GLFW_KEY_Q))
         m_abbeyNode->move(0,0,100);
     if(eventsManager->keyPressed(GLFW_KEY_S))
-        m_abbeyNode->move(0,0,-100);
+        m_abbeyNode->move(0,0,-100);*/
+
+    if(eventsManager->keyIsPressed(GLFW_KEY_Q))
+        m_sunAngleVelocity = 1.0f;
+    if(eventsManager->keyIsPressed(GLFW_KEY_S))
+        m_sunAngleVelocity = -1.0f;
+
+
 
     if(eventsManager->keyIsPressed(GLFW_KEY_DOWN))
         m_camVelocity.y = 200.0;
@@ -362,6 +371,12 @@ void TestingState::update(const vlg::Time &elapsedTime)
 
     m_quackNode->rotate(elapsedTime.count(), {0,0,1});
     m_cursorLightNode ->rotate(elapsedTime.count(), {0,0,1});
+
+    if(m_sunAngleVelocity != 0)
+    {
+        m_sunAngle += elapsedTime.count() * m_sunAngleVelocity;
+        m_sunLight->setDirection({cos(m_sunAngle), sin(m_sunAngle), -1.0});
+    }
 
    // m_testingSprites.front().setColor(glm::vec4(1,m_totalTime.count(),m_totalTime.count(),1));
 }

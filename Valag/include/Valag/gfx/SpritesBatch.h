@@ -32,7 +32,8 @@ class SpritesBatch : public Drawable
         bool recordDrawCommandBuffers(DefaultRenderer *renderer, size_t frameIndex, VkRenderPass renderPass,
                                       uint32_t subpass, VkFramebuffer framebuffer = VK_NULL_HANDLE);
 
-        virtual void notify(NotificationSender*, NotificationType);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     private:
        // std::set<Sprite*> m_sprites;

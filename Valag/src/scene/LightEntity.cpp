@@ -134,8 +134,11 @@ void LightEntity::setDirection(glm::vec3 direction)
 {
     if(m_direction != direction)
     {
+        glm::vec3 oldDirection = m_direction;
         m_direction = direction;
         this->updateDatum();
+
+        this->sendNotification(Notification_UpdateShadow, sizeof(oldDirection), (char*)(&oldDirection));
     }
 }
 
@@ -188,8 +191,8 @@ LightDatum LightEntity::getLightDatum()
 }
 
 /// Protected ///
-
-void LightEntity::notify(NotificationSender *sender, NotificationType type)
+void LightEntity::notify(NotificationSender *sender, NotificationType type,
+                         size_t dataSize, char* data)
 {
     if(type == Notification_SceneNodeMoved)
         this->updateDatum();

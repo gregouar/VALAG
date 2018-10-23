@@ -1,6 +1,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
+#include "Valag/core/NotificationSender.h"
 #include "Valag/scene/SceneEntity.h"
 #include "Valag/vulkanImpl/VulkanImpl.h"
 #include "Valag/Types.h"
@@ -27,7 +28,7 @@ struct LightDatum
 
 /// I could try to compute an accurate englobing sphere and use early z-testing to discard pixels
 
-class LightEntity : public SceneEntity //, public NotificationListener
+class LightEntity : public SceneEntity, public NotificationSender //, public NotificationListener
 {
     friend class SceneNode;
 
@@ -61,14 +62,14 @@ class LightEntity : public SceneEntity //, public NotificationListener
         void RenderShadowMap(const sf::View &);
         void UpdateShadow();*/
 
-        //virtual void notify(NotificationSender*, NotificationType);
 
         virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
         virtual VTexture generateShadowMap(SceneRenderer* renderer, std::list<ShadowCaster*> &shadowCastersList);
 
         LightDatum getLightDatum();
 
-        virtual void notify(NotificationSender *sender, NotificationType type);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
 
     protected:

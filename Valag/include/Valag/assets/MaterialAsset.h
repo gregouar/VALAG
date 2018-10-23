@@ -20,7 +20,8 @@ class MaterialAsset : public Asset, public NotificationListener
 
         bool loadFromFile(const std::string &filePath);
 
-        virtual void notify(NotificationSender* , NotificationType);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
         VTexture getAlbedoMap();
         VTexture getNormalMap();

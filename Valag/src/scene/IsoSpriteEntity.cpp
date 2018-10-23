@@ -4,6 +4,7 @@
 #include "Valag/assets/MaterialAsset.h"
 #include "Valag/renderers/SceneRenderer.h"
 #include "Valag/scene/SceneNode.h"
+#include "Valag/scene/LightEntity.h"
 
 namespace vlg
 {
@@ -255,6 +256,8 @@ void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
     if(!m_spriteModel->isReady())
         return;
 
+    this->startListeningTo(light);
+
     if(light->getType() == LightType_Directional)
     {
         VTexture shadow = m_spriteModel->getDirectionnalShadow(renderer, light->getDirection());
@@ -272,43 +275,42 @@ void IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
     if(m_parentNode == nullptr || m_parentNode->getScene() == nullptr)
         return;
 
-
-    /*vec3 lightDirection = normalize(inDirection);
-	viewLightDirection.xy = (viewUbo.view * vec4(inSize.z*lightDirection.xy / -lightDirection.z, 0.0, 0.0)).xy;
-	vec2 totalSize        = abs(viewLightDirection.xy)+inSize.xy;
-
-	viewLightDirection.xy = viewLightDirection.xy/totalSize;
-	viewLightDirection.z = lightDirection.z;
-
-    spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
-    spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);
-    spriteSize.z        = inSize.z;*/
-
 	glm::vec3 lightDirection = normalize(direction);
 
 	glm::vec2 lightDirectionXY = {lightDirection.x, lightDirection.y};
 
 	glm::vec4 r = m_parentNode->getScene()->getViewMatrix() * glm::vec4(m_datum.size.z*lightDirectionXY / -lightDirection.z, 0.0, 0.0);
+	r.y -= m_datum.size.z * m_parentNode->getScene()->getViewMatrix()[2][1];
 	glm::vec2 viewLightDirectionXY = {r.x, r.y};
 
     glm::vec2 totalSize = glm::abs(viewLightDirectionXY)+glm::vec2(m_datum.size.x, m_datum.size.y);
 
     glm::vec2 spritePos;
     spritePos        = glm::max(glm::vec2(0.0), -viewLightDirectionXY);
-    //spriteSize       = glm::vec2(1.0) - glm::abs(viewLightDirectionXY);
 
     m_shadowDatum.position  = m_datum.position;
     m_shadowDatum.size      = glm::vec3(totalSize, m_datum.size.z);
     m_shadowDatum.center    = m_datum.center+spritePos;
 }
 
-void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification)
+void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification,
+                             size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded ||
        notification == Notification_TextureChanged ||
        notification == Notification_ModelChanged ||
        notification == Notification_SceneNodeMoved)
         this->updateDatum();
+
+    if(notification == Notification_UpdateShadow)
+    {
+        if(m_spriteModel != nullptr)
+        {
+            float* f = (float*)data;
+            glm::vec3 d(*f, *(f+1), *(f+2));
+            m_spriteModel->updateDirectionnalShadow(d,(dynamic_cast<LightEntity*>(sender))->getDirection());
+        }
+    }
 
     if(notification == Notification_SenderDestroyed)
     {

@@ -162,7 +162,8 @@ bool MaterialAsset::loadFromXML(TiXmlHandle *hdl)
 }
 
 
-void MaterialAsset::notify(NotificationSender* sender, NotificationType notification)
+void MaterialAsset::notify(NotificationSender* sender, NotificationType notification,
+                           size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded)
     if(sender == m_albedoMap || sender == m_heightMap

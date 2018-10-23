@@ -101,7 +101,8 @@ class SceneNode : public NotificationSender, public NotificationListener
         //void render(SceneRenderer *renderer);
         void generateRenderingData(SceneRenderingInstance *renderingInstance);
 
-        virtual void notify(NotificationSender*, NotificationType);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     protected:
         void setParent(SceneNode *);

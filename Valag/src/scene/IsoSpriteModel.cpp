@@ -169,7 +169,6 @@ void IsoSpriteModel::setRmt(Color rmt)
     }
 }
 
-
 MaterialAsset* IsoSpriteModel::getMaterial()
 {
     return m_material;
@@ -203,9 +202,20 @@ bool IsoSpriteModel::isReady()
 VTexture IsoSpriteModel::getDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction)
 {
     auto foundedMap = m_directionnalShadows.find(direction);
-   // if(foundedMap == m_directionnalShadows.end())
+    if(foundedMap == m_directionnalShadows.end() || foundedMap->second.second == true)
         return this->generateDirectionnalShadow(renderer, direction);
-    return foundedMap->second.texture;
+    return foundedMap->second.first.texture;
+}
+
+void IsoSpriteModel::updateDirectionnalShadow(glm::vec3 oldDirection, glm::vec3 newDirection)
+{
+    auto foundedMap = m_directionnalShadows.find(oldDirection);
+    if(foundedMap != m_directionnalShadows.end())
+    {
+        VRenderableTexture buf = foundedMap->second.first;
+        m_directionnalShadows.erase(foundedMap);
+        m_directionnalShadows.insert({newDirection, {buf, true}});
+    }
 }
 
 /// Protected ///
@@ -213,11 +223,12 @@ VTexture IsoSpriteModel::getDirectionnalShadow(SceneRenderer *renderer, glm::vec
 void IsoSpriteModel::cleanup()
 {
     for(auto &shadowMap : m_directionnalShadows)
-        VTexturesManager::freeTexture(shadowMap.second);
+        VTexturesManager::freeTexture(shadowMap.second.first);
     m_directionnalShadows.clear();
 }
 
-void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notification)
+void IsoSpriteModel::notify(NotificationSender *sender, NotificationType notification,
+                            size_t dataSize, char* data)
 {
     if(notification == Notification_AssetLoaded)
     {
@@ -243,13 +254,18 @@ VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm
     bool needToCreate = false;
     auto founded = m_directionnalShadows.find(direction);
     if(founded ==  m_directionnalShadows.end())
+    {
         needToCreate = true;
+        founded = m_directionnalShadows.insert(/*founded,*/{direction, {VRenderableTexture{},false}}).first;
+    }
 
-    VRenderableTexture *renderableTexture = &m_directionnalShadows[direction];
+    VRenderableTexture *renderableTexture = &founded->second.first;//&m_directionnalShadows[direction].first;
 
     if(needToCreate)
-    VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y, VK_FORMAT_R8G8B8A8_UNORM,
-                                             renderer->getSpriteShadowsRenderPass(), renderableTexture);
+        VTexturesManager::allocRenderableTexture(m_shadowMapExtent.x, m_shadowMapExtent.y,
+                                                 VK_FORMAT_R8G8B8A8_UNORM,
+                                                 renderer->getSpriteShadowsRenderPass(),
+                                                 renderableTexture);
 
     SpriteShadowGenerationDatum datum;
 
@@ -265,6 +281,7 @@ VTexture IsoSpriteModel::generateDirectionnalShadow(SceneRenderer *renderer, glm
     datum.height_texId = m_material->getHeightMap().getTexturePair();
 
     renderer->addSpriteShadowToRender(renderableTexture->renderTarget, datum);
+    founded->second.second = false;
 
     return renderableTexture->texture;
 }

@@ -60,7 +60,8 @@ void SceneObject::update(const Time &elapsedTime)
 
 }
 
-void SceneObject::notify(NotificationSender* sender, NotificationType type)
+void SceneObject::notify(NotificationSender* sender, NotificationType type,
+                         size_t dataSize, char* data)
 {
     if(sender == (NotificationSender*)m_parentNode)
     {

@@ -45,6 +45,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
 
         //vlg::MeshEntity      m_groundSand;
 
+        vlg::LightEntity     *m_sunLight;
+        float                 m_sunAngle, m_sunAngleVelocity;
+
         vlg::IsoSpriteModel  *m_treeModel, *m_abbeyModel;
         vlg::IsoSpriteEntity *m_treeEntity;//, m_abbeyEntity;
         vlg::MeshAsset       *m_quackMesh;

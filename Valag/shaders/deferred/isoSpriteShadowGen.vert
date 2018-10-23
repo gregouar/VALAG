@@ -48,10 +48,11 @@ void main()
 
     vec3 lightDirection = normalize(inDirection);
 	viewLightDirection.xy = (viewUbo.view * vec4(inSize.z*lightDirection.xy / -lightDirection.z, 0.0, 0.0)).xy;
+	viewLightDirection.y -= inSize.z * viewUbo.view[2][1];
 	vec2 totalSize        = abs(viewLightDirection.xy)+inSize.xy;
 
 	viewLightDirection.xy = viewLightDirection.xy/totalSize;
-	viewLightDirection.z = lightDirection.z;
+	viewLightDirection.z  = -1.0;//-inSize.z;//lightDirection.z;
 
     spritePos.xy        = max(vec2(0.0), -viewLightDirection.xy);
     spriteSize.xy       = vec2(1.0) - abs(viewLightDirection.xy);

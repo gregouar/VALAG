@@ -25,10 +25,18 @@ struct Direction
     {
         if(x < rhs.x)
             return (true);
+        if(x > rhs.x)
+            return (false);
+
         if(y < rhs.y)
             return (true);
+        if(y > rhs.y)
+            return (false);
+
         if(z < rhs.z)
             return (true);
+        if(z > rhs.z)
+            return (false);
         return (false);
     }
 };
@@ -73,8 +81,6 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         void setRmt(Color rmt);
 
         void setShadowMapExtent(glm::vec2 extent);
-        void updateDirectionnalShadow(glm::vec3 oldDirection, glm::vec3 newDirection);
-        void deleteDirectionnalShadow(glm::vec3 direction);
 
         MaterialAsset *getMaterial();
         glm::vec2 getSize();
@@ -84,8 +90,11 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         bool      isReady();
 
         VTexture getDirectionnalShadow(SceneRenderer *renderer, glm::vec3 direction);
+        void updateDirectionnalShadow(glm::vec3 oldDirection, glm::vec3 newDirection);
+        void deleteDirectionnalShadow(glm::vec3 direction);
 
-        virtual void notify(NotificationSender* sender, NotificationType notification);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
 
     protected:
         //void updateModel(SceneRenderer *renderer, size_t frameIndex);
@@ -109,7 +118,7 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
         bool m_isReady;
 
         glm::vec2 m_shadowMapExtent;
-        std::map<Direction, VRenderableTexture> m_directionnalShadows;
+        std::map<Direction, std::pair<VRenderableTexture, bool> > m_directionnalShadows;
 
 };
 

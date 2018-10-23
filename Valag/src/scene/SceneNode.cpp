@@ -624,7 +624,8 @@ void SceneNode::generateRenderingData(SceneRenderingInstance *renderingInstance)
         node.second->generateRenderingData(renderingInstance);
 }
 
-void SceneNode::notify(NotificationSender* sender, NotificationType type)
+void SceneNode::notify(NotificationSender* sender, NotificationType type,
+                       size_t dataSize, char* data)
 {
     /** Auto Update Global Position Here ETC **/
     if(sender == m_parent)

@@ -891,9 +891,9 @@ bool SceneRenderer::createSpriteShadowsGenPipeline()
     m_spriteShadowsGenPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_spriteShadowsGenPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(256), 1); //Nbr ray steps
-    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(4), 1); //Nbr search steps
-    m_spriteShadowsGenPipeline.addSpecializationDatum(15.0f, 1); //Ray collision thresold
+    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(128), 1); //Nbr ray steps
+    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(8), 1); //Nbr search steps
+    m_spriteShadowsGenPipeline.addSpecializationDatum(0.02f, 1); //Ray collision thresold
 
     auto bindingDescription = SpriteShadowGenerationDatum::getBindingDescription();
     auto attributeDescriptions = SpriteShadowGenerationDatum::getAttributeDescriptions();

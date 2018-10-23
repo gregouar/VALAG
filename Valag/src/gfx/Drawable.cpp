@@ -69,7 +69,8 @@ void Drawable::askToUpdateDrawCmb(size_t frameIndex)
         m_needToUpdateDrawCmb[frameIndex] = true;
 }
 
-void Drawable::notify(NotificationSender* sender, NotificationType notificationType)
+void Drawable::notify(NotificationSender* sender, NotificationType notificationType,
+                      size_t dataSize, char* data)
 {
     if(notificationType == Notification_UpdateCmb)
         for(auto b : m_needToUpdateDrawCmb) b = true;

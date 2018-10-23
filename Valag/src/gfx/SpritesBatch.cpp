@@ -93,7 +93,8 @@ bool SpritesBatch::recordDrawCommandBuffers(DefaultRenderer *renderer, size_t fr
 }
 
 
-void SpritesBatch::notify(NotificationSender* sender, NotificationType notificationType)
+void SpritesBatch::notify(NotificationSender* sender, NotificationType notificationType,
+                          size_t dataSize, char* data)
 {
     /// Could check if sender is in m_sprites... or just trust it ?///
     /*if(notificationType == Notification_UpdateCmb)

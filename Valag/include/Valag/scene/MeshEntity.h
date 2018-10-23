@@ -46,7 +46,9 @@ class MeshEntity : public SceneEntity
 
         MeshDatum getMeshDatum();
 
-        virtual void notify(NotificationSender *sender, NotificationType notification);
+        virtual void notify(NotificationSender* , NotificationType,
+                            size_t dataSize = 0, char* data = nullptr) override;
+
         virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
 
     protected:

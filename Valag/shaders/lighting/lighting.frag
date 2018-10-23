@@ -56,6 +56,26 @@ layout(location = 3) flat in uvec2  lightShadowMap;
 layout(location = 0) out vec4 outColor;
 //layout(location = 1) out vec4 outColorAlpha;
 
+
+vec2 hashed[16] = vec2[](
+    vec2(.92, .09),
+    vec2(-.51,-.10),
+    vec2(-.70,.22),
+    vec2(-.97, .03),
+    vec2(-.42, .75),
+    vec2(.64,1.0),
+    vec2(-.56,.86),
+    vec2(.45,-.15),
+    vec2(.21,.67),
+    vec2(.46,.77),
+    vec2(.65, -.57),
+    vec2(-.88, .6),
+    vec2(-.53,.12),
+    vec2(.71,.08),
+    vec2(.05,-.82),
+    vec2(-.41,-.14)
+);
+
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -94,6 +114,16 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
+float sampleShadow(vec2 screenPos, float fragZ)
+{
+    float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
+                               vec3(screenPos*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
+    if(shadowMap > viewUbo.depthOffsetAndFactor.x + (fragZ + 5.0) * viewUbo.depthOffsetAndFactor.y)
+        return 0.0;
+
+    return 1.0;
+}
+
 vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
 {
     vec4 lighting = vec4(0.0);
@@ -111,26 +141,36 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
 
     if(lightPos.w == 0.0)
     {
-        lightDirection = -lightPos.xyz;
+        lightDirection = -normalize(lightPos.xyz);
         attenuation = 1.0;
 
         if(lightShadowMap.x != 0)
         {
-            vec3 v = vec3((fragPos.z/lightPos.z)*lightPos.xy,0.0);
+            vec3 v = vec3((fragPos.z/lightDirection.z)*lightDirection.xy,0.0);
             vec2 projPos;
 
-	/*"               vec3 v = vec3((heightPixel/lightDirection.z)*lightDirection.xy,0.0);"
-	"               shadowPos.xy += (heightPixel*p_isoToCartZFactor)*constantList.yx "
-	"                                  +(v*p_isoToCartMat).xy * constantList.zx;"*/
-
-            projPos  = gl_FragCoord.xy;
+            projPos      = gl_FragCoord.xy;
             projPos.y   -= fragPos.z * viewUbo.view[2][1];
-            projPos     -= (viewUbo.viewInv * vec4(v,0.0)).xy;
+            projPos     -= (viewUbo.view * vec4(v,0.0)).xy;
 
-            float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
-                                       vec3(projPos/*gl_FragCoord.xy*/*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
-            if(shadowMap > viewUbo.depthOffsetAndFactor.x + fragPos.z * viewUbo.depthOffsetAndFactor.y)
-                attenuation = 0.0;
+            int h = int(gl_FragCoord.x)%4+4*(int(gl_FragCoord.y)%4);
+
+            float shadowing = 1.0/6.0 * (sampleShadow(projPos, fragPos.z) * 2.0
+                               + sampleShadow(projPos + hashed[h] * 2.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+1)%16] * 2.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+2)%16] * 2.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+3)%16] * 2.0, fragPos.z));
+
+            if(shadowing > 0.2 && shadowing < 0.8)
+            {
+                shadowing = shadowing * 0.5 + 1.0/8.0 * (
+                               + sampleShadow(projPos + hashed[(h+4)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+5)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+6)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+7)%16] * 4.0, fragPos.z));
+            }
+
+            attenuation *= shadowing;
         }
     }
     else
@@ -141,6 +181,8 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
         float sqrtnom = 1.0 - dr*dr*dr*dr;
         if(sqrtnom >= 0.0)
             attenuation = clamp(sqrtnom*sqrtnom/(dist*dist+1.0),0.0,1.0);
+
+        lightDirection      = normalize(lightDirection);
     }
 
     if(attenuation > 0.0)
@@ -151,7 +193,6 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
         float gio = abs(fragBentNormal.z);
         fragBentNormal.xyz = vec3(fragBentNormal.xy, /*sign(fragBentNormal.z) * */ sqrt(1.0 - fragBentNormal.x*fragBentNormal.x - fragBentNormal.y*fragBentNormal.y));
 
-        lightDirection      = normalize(lightDirection);
         vec3 halfwayVector  = normalize(viewDirection + lightDirection);
         float NdotL         = max(dot(fragNormal.xyz, lightDirection), 0.0);
         float BNdotL        = clamp(dot(fragBentNormal.xyz, lightDirection)/*+0.25*/, 0.0, 1.0);
