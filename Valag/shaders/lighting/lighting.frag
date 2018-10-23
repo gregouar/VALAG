@@ -52,6 +52,7 @@ layout(location = 0) flat in vec4  lightPos;
 layout(location = 1) flat in vec3  lightColor;
 layout(location = 2) flat in float lightRadiusInv;
 layout(location = 3) flat in uvec2  lightShadowMap;
+layout(location = 4) flat in vec2   lightShadowShift;
 
 layout(location = 0) out vec4 outColor;
 //layout(location = 1) out vec4 outColorAlpha;
@@ -116,8 +117,11 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 float sampleShadow(vec2 screenPos, float fragZ)
 {
+    vec2 shadowPos = screenPos - min(lightShadowShift, vec2(0.0));
+    vec2 shadowSizeFactor = 1.0/(2.0/viewUbo.screenSizeFactor+abs(lightShadowShift));
+
     float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
-                               vec3(screenPos*viewUbo.screenSizeFactor*0.5,lightShadowMap.y)).x;
+                               vec3(shadowPos*shadowSizeFactor,lightShadowMap.y)).x;
     if(shadowMap > viewUbo.depthOffsetAndFactor.x + (fragZ + 5.0) * viewUbo.depthOffsetAndFactor.y)
         return 0.0;
 

@@ -16,9 +16,9 @@ VkVertexInputBindingDescription LightDatum::getBindingDescription()
     return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 4> LightDatum::getAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 5> LightDatum::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions = {};
 
     size_t i = 0;
     attributeDescriptions[i].binding = 0;
@@ -43,6 +43,12 @@ std::array<VkVertexInputAttributeDescription, 4> LightDatum::getAttributeDescrip
     attributeDescriptions[i].location = i;
     attributeDescriptions[i].format = VK_FORMAT_R32G32_UINT;
     attributeDescriptions[i].offset = offsetof(LightDatum, shadowMap);
+    ++i;
+
+    attributeDescriptions[i].binding = 0;
+    attributeDescriptions[i].location = i;
+    attributeDescriptions[i].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[i].offset = offsetof(LightDatum, shadowShift);
     ++i;
 
     return attributeDescriptions;
@@ -83,10 +89,18 @@ VTexture LightEntity::generateShadowMap(SceneRenderer* renderer, std::list<Shado
       && m_shadowMap.attachment.extent.height == m_shadowMapExtent.y))
         this->recreateShadowMap(renderer);
 
-    renderer->addShadowMapToRender(m_shadowMap.renderTarget, m_datum);
+    renderer->addShadowMapToRender(m_shadowMap.renderTarget/*, m_datum*/);
+
+    m_datum.shadowShift = {0,0};
 
     for(auto shadowCaster : shadowCastersList)
-        shadowCaster->castShadow(renderer, this);
+    {
+        glm::vec2 shadowShift = shadowCaster->castShadow(renderer, this);
+        if(glm::abs(shadowShift.x) > glm::abs(m_datum.shadowShift.x))
+            m_datum.shadowShift.x = shadowShift.x;
+        if(glm::abs(shadowShift.y) > glm::abs(m_datum.shadowShift.y))
+            m_datum.shadowShift.y = shadowShift.y;
+    }
 
     return m_shadowMap.texture;
 }
@@ -212,6 +226,8 @@ void LightEntity::updateDatum()
 
     m_datum.shadowMap = {m_shadowMap.texture.getTextureId(),
                          m_shadowMap.texture.getTextureLayer()};
+
+    m_datum.shadowShift = {0,0};
 }
 
 void LightEntity::recreateShadowMap(SceneRenderer* renderer)

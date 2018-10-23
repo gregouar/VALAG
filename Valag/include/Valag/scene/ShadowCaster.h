@@ -21,7 +21,7 @@ class ShadowCaster : public SceneEntity
 
         ShadowCastingType getShadowCastingType();
 
-        virtual void castShadow(SceneRenderer *renderer, LightEntity* light) = 0;
+        virtual glm::vec2 castShadow(SceneRenderer *renderer, LightEntity* light) = 0;
 
         //virtual void notify(NotificationSender*, NotificationType);
 

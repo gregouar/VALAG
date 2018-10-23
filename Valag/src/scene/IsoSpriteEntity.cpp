@@ -248,13 +248,13 @@ void IsoSpriteEntity::generateRenderingData(SceneRenderingInstance *renderingIns
         renderingInstance->addToSpritesVbo(this->getIsoSpriteDatum());
 }
 
-void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
+glm::vec2 IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
 {
     if(m_spriteModel == nullptr || m_parentNode == nullptr)
-        return;
+        return glm::vec2(0.0);
 
     if(!m_spriteModel->isReady())
-        return;
+        return glm::vec2(0.0);
 
     this->startListeningTo(light);
 
@@ -263,17 +263,21 @@ void IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* light)
         VTexture shadow = m_spriteModel->getDirectionnalShadow(renderer, light->getDirection());
 
         //Since I need to generate it here, I could send it to VS
-        this->generateShadowDatum(light->getDirection());
+        glm::vec2 shadowShift = this->generateShadowDatum(light->getDirection());
 
         m_shadowDatum.texId = shadow.getTexturePair();
-        renderer->addToSpriteShadowsVbo(m_shadowDatum);
+        renderer->addToSpriteShadowsVbo(m_shadowDatum, shadowShift);
+
+        return shadowShift;
     }
+
+    return glm::vec2(0.0);
 }
 
-void IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
+glm::vec2 IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
 {
     if(m_parentNode == nullptr || m_parentNode->getScene() == nullptr)
-        return;
+        return {0.0,0.0};
 
 	glm::vec3 lightDirection = normalize(direction);
 
@@ -286,11 +290,13 @@ void IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
     glm::vec2 totalSize = glm::abs(viewLightDirectionXY)+glm::vec2(m_datum.size.x, m_datum.size.y);
 
     glm::vec2 spritePos;
-    spritePos        = glm::max(glm::vec2(0.0), -viewLightDirectionXY);
+    spritePos = glm::max(glm::vec2(0.0), -viewLightDirectionXY);
 
     m_shadowDatum.position  = m_datum.position;
     m_shadowDatum.size      = glm::vec3(totalSize, m_datum.size.z);
     m_shadowDatum.center    = m_datum.center+spritePos;
+
+    return viewLightDirectionXY;
 }
 
 void IsoSpriteEntity::notify(NotificationSender *sender, NotificationType notification,

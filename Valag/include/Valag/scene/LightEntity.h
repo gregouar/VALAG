@@ -21,9 +21,10 @@ struct LightDatum
     float     radius;
 
     glm::uvec2 shadowMap;
+    glm::vec2  shadowShift;
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
 };
 
 /// I could try to compute an accurate englobing sphere and use early z-testing to discard pixels

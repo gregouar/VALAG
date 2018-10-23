@@ -67,7 +67,7 @@ class IsoSpriteEntity : public ShadowCaster
         IsoSpriteDatum getIsoSpriteDatum();
         //virtual void draw(SceneRenderer *renderer);
         virtual void generateRenderingData(SceneRenderingInstance *renderingInstance) override;
-        virtual void castShadow(SceneRenderer *renderer, LightEntity* light) override;
+        virtual glm::vec2 castShadow(SceneRenderer *renderer, LightEntity* light) override;
 
         virtual void notify(NotificationSender* , NotificationType,
                             size_t dataSize = 0, char* data = nullptr) override;
@@ -76,7 +76,7 @@ class IsoSpriteEntity : public ShadowCaster
         //void updateUBO(SceneRenderer *renderer, size_t frameIndex);
         void cleanup();
         void updateDatum();
-        void generateShadowDatum(glm::vec3 direction);
+        glm::vec2 generateShadowDatum(glm::vec3 direction);
 
 
         //bool checkUpdates(SceneRenderer *renderer, size_t frameIndex);

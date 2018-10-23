@@ -12,6 +12,7 @@ layout(binding = 0, set = 0) uniform ViewUBO {
 layout(push_constant) uniform PER_OBJECT
 {
     vec4 camPosAndZoom;
+    vec2 shadowShift;
 }pc;
 
 layout(location = 0) in vec3 inPos;
@@ -41,11 +42,14 @@ out gl_PerVertex
 void main()
 {
     vec4 spriteViewCenter = viewUbo.view*vec4(inPos-pc.camPosAndZoom.xyz,1.0);
+    spriteViewCenter.xy -= min(pc.shadowShift, 0.0);
     spriteViewCenter.z = inPos.z;
 
     gl_Position = vec4(spriteViewCenter.xyz + vec3((vertPos[gl_VertexIndex] * inSize.xy - inCenter), 0.0), 1.0);
 
     screenPosAndHeight = vec4(gl_Position.xyz, inSize.z);
+
+    vec2 shadowSizeFactor = 2.0/(2.0/viewUbo.screenSizeFactor+abs(pc.shadowShift));
 
     gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
                         + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);

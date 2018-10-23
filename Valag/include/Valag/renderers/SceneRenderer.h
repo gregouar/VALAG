@@ -29,9 +29,9 @@ class SceneRenderer : public AbstractRenderer
         void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
         //I'll need light position and so forth (maybe I'll use push constants, it's like cam pos)...
-        void addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum);
+        void addShadowMapToRender(VRenderTarget* shadowMap/*, const LightDatum &datum*/);
         void addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum);
-        void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum);
+        void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum, glm::vec2 shadowShift);
         void addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum);
 
         void addToSpritesVbo(const IsoSpriteDatum &datum);
@@ -144,7 +144,9 @@ class SceneRenderer : public AbstractRenderer
                 m_toneMappingPass;
 
         //std::list<std::pair<VRenderTarget*, SpriteShadowGenerationDatum> >   m_spriteShadowsToRender;
-        std::list<std::pair<VRenderTarget*, LightDatum> >                   m_shadowMapsToRender;
+        //std::list<std::pair<VRenderTarget*, LightDatum> >       m_shadowMapsToRender;
+
+        std::vector<glm::vec4> m_shadowMapsVboAndShift;
 
         ///I should probably sort by material
         std::vector<DynamicVBO<SpriteShadowGenerationDatum>*>   m_spriteShadowGenerationVbos;

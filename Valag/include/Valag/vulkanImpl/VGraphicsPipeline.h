@@ -47,7 +47,8 @@ class VGraphicsPipeline
         void attachDescriptorSetLayout(VkDescriptorSetLayout setLayout);
         //void createDescriptorSetLayout(VkDescriptorType descType, VkShaderStageFlagBits shaderStage);
 
-        void attachPushConstant(VkFlags shaderStageBit, uint32_t size, uint32_t offset = 0);
+        void attachPushConstant(VkFlags shaderStageBit, uint32_t size);
+        void attachPushConstant(VkFlags shaderStageBit, uint32_t size, uint32_t offset);
 
         void setDepthTest(bool enableWrite, bool enableTest, VkCompareOp compareOp = VK_COMPARE_OP_GREATER);
         void setStencilTest(bool enableTest, VkStencilOpState both);
@@ -60,6 +61,7 @@ class VGraphicsPipeline
         void bind(VkCommandBuffer &cmb);
         void updateViewport(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent, bool alsoUpdateScissor = true);
         void updateScissor(VkCommandBuffer &cmb, glm::vec2 pos, VkExtent2D extent);
+        void updatePushConstant(VkCommandBuffer &cmb, size_t pcIndex, char* data);
 
         VkPipelineLayout getLayout();
 

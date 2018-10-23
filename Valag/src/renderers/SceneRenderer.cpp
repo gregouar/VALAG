@@ -57,10 +57,11 @@ void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstan
     m_renderingInstances.push_back(renderingInstance);
 }
 
-void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum)
+void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap/*, const LightDatum &datum*/)
 {
-    m_shadowMapsToRender.push_back({shadowMap, datum});
+    //m_shadowMapsToRender.push_back({shadowMap, datum});
     m_renderGraph.addDynamicRenderTarget(m_shadowMapsPass,shadowMap);
+    m_shadowMapsVboAndShift.push_back({m_spriteShadowsVbos[m_curFrameIndex]->getSize(),0,0,0});
 }
 
 void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
@@ -71,9 +72,14 @@ void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const S
     //m_spriteShadowsToRender.push_back({spriteShadow, datum});
 }
 
-void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum)
+void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum, glm::vec2 shadowShift)
 {
     m_spriteShadowsVbos[m_curFrameIndex]->push_back(datum);
+    m_shadowMapsVboAndShift.back().y++;
+    if(glm::abs(shadowShift.x) > glm::abs(m_shadowMapsVboAndShift.back().z))
+        m_shadowMapsVboAndShift.back().z = shadowShift.x;
+    if(glm::abs(shadowShift.y) > glm::abs(m_shadowMapsVboAndShift.back().w))
+        m_shadowMapsVboAndShift.back().w = shadowShift.y;
 }
 
 void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
@@ -231,16 +237,26 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 
                 for(auto renderingInstance : m_renderingInstances)
                 {
+                    glm::vec2 shadowShift = {m_shadowMapsVboAndShift[i].z,
+                                             m_shadowMapsVboAndShift[i].w};
+
+                    VkExtent2D extent = m_renderGraph.getExtent(m_shadowMapsPass);
+
                     ///m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
-                    ///I'll need to find something smart to do
-                    m_spriteShadowsPipeline.updateViewport(cmb, {0,0},
-                            m_renderGraph.getExtent(m_shadowMapsPass));
+                    ///I'll need to find something smart to do (in order to have multiple cameras)
+                    m_spriteShadowsPipeline.updateViewport(cmb, {0,0}, extent);
+                    /*m_spriteShadowsPipeline.updateScissor(cmb, glm::min(shadowShift, glm::vec2(0.0)),
+                                                          {extent.width+glm::abs(shadowShift.x),
+                                                           extent.height+glm::abs(shadowShift.y)});*/
 
                     renderingInstance->pushCamPosAndZoom(cmb, m_spriteShadowsPipeline.getLayout(),
                                                         VK_SHADER_STAGE_VERTEX_BIT);
 
-                    vkCmdDraw(cmb, 4, spritesVboSize/*renderingInstance->getSpritesVboSize()*/,
-                                   0, 0/*renderingInstance->getSpritesVboOffset()*/);
+
+                    m_spriteShadowsPipeline.updatePushConstant(cmb, 1, (char*)&shadowShift);
+
+                    vkCmdDraw(cmb, 4, m_shadowMapsVboAndShift[i].y /*spritesVboSize*//*renderingInstance->getSpritesVboSize()*/,
+                                   0, m_shadowMapsVboAndShift[i].x/*0*//*renderingInstance->getSpritesVboOffset()*/);
                 }
             }
 
@@ -248,7 +264,8 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
         }
     }
     m_renderGraph.endRecording(m_shadowMapsPass);
-    m_shadowMapsToRender.clear();
+    //m_shadowMapsToRender.clear();
+    m_shadowMapsVboAndShift.clear();
 
     return (true);
 }
@@ -926,6 +943,7 @@ bool SceneRenderer::createSpriteShadowsPipeline()
     m_spriteShadowsPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
     m_spriteShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec4));
+    m_spriteShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec2));
 
     m_spriteShadowsPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 

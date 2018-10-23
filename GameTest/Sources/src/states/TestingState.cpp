@@ -161,7 +161,7 @@ void TestingState::init()
     m_scene->getRootNode()->attachObject(m_sunLight);
 
     ///Day
-    m_sunLight->setDiffuseColor({1.0,1.0,1.0,1.0});
+    m_sunLight->setDiffuseColor({0.0,1.0,0.0,1.0});
     m_sunLight->setIntensity(15.0);
 
     ///Night
@@ -173,11 +173,12 @@ void TestingState::init()
     m_sunLight->setDirection({.2 ,-1.0,-1.0});
     m_sunLight->enableShadowCasting();
 
-    /*sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
+    /*vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
     m_scene->getRootNode()->attachObject(sunLight);
-    sunLight->setDirection({-.2 ,-1.0,-1.0});
+    sunLight->setDirection({-1.0 ,1.0,-1.0});
+    sunLight->setDiffuseColor({1.0,0.0,0.0,1.0});
+    sunLight->setIntensity(15.0);
     sunLight->enableShadowCasting();*/
-
 
     vlg::LightEntity *cursorLight = m_scene->createLightEntity();
     m_cursorLightNode = m_scene->getRootNode()->createChildNode(0,0,60);
@@ -290,10 +291,10 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
     if(eventsManager->keyPressed(GLFW_KEY_S))
         m_abbeyNode->move(0,0,-100);*/
 
-    if(eventsManager->keyIsPressed(GLFW_KEY_Q))
-        m_sunAngleVelocity = 1.0f;
-    if(eventsManager->keyIsPressed(GLFW_KEY_S))
+    if(eventsManager->keyIsPressed(GLFW_KEY_A))
         m_sunAngleVelocity = -1.0f;
+    if(eventsManager->keyIsPressed(GLFW_KEY_S))
+        m_sunAngleVelocity = 1.0f;
 
 
 

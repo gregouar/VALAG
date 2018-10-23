@@ -155,6 +155,14 @@ void VGraphicsPipeline::attachDescriptorSetLayout(VkDescriptorSetLayout setLayou
 }
 //void createDescriptorSetLayout(VkDescriptorType descType, VkShaderStageFlagBits shaderStage);
 
+//Not super good because I could have different stages (should keep track of offset in both stages separetly...)
+void VGraphicsPipeline::attachPushConstant(VkFlags shaderStageBits, uint32_t size)
+{
+    uint32_t offset = 0;
+    if(!m_attachedPushConstants.empty())
+        offset = m_attachedPushConstants.back().offset+m_attachedPushConstants.back().size;
+    this->attachPushConstant(shaderStageBits, size, offset);
+}
 void VGraphicsPipeline::attachPushConstant(VkFlags shaderStageBits, uint32_t size, uint32_t offset)
 {
     m_attachedPushConstants.push_back(VkPushConstantRange{});
@@ -348,8 +356,16 @@ bool VGraphicsPipeline::init(const VRenderPass *renderPass, uint32_t subpass/*, 
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_attachedDescriptorSetLayouts.size());
     pipelineLayoutInfo.pSetLayouts = m_attachedDescriptorSetLayouts.data();
 
-    pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(m_attachedPushConstants.size());
-    pipelineLayoutInfo.pPushConstantRanges = m_attachedPushConstants.data();
+    VkPushConstantRange truePcRange = {};
+
+    for(auto pcRange : m_attachedPushConstants)
+    {
+        truePcRange.stageFlags |= pcRange.stageFlags;
+        truePcRange.size += pcRange.size;
+    }
+
+    pipelineLayoutInfo.pushConstantRangeCount = !m_attachedPushConstants.empty();//static_cast<uint32_t>(m_attachedPushConstants.size());
+    pipelineLayoutInfo.pPushConstantRanges = &truePcRange;//m_attachedPushConstants.data();
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
@@ -430,6 +446,14 @@ void VGraphicsPipeline::updateScissor(VkCommandBuffer &cmb, glm::vec2 pos, VkExt
     scissor.extent = extent;
 
     vkCmdSetScissor(cmb, 0, 1, &scissor);
+}
+
+void VGraphicsPipeline::updatePushConstant(VkCommandBuffer &cmb, size_t pcIndex, char* data)
+{
+    vkCmdPushConstants(cmb, m_pipelineLayout,
+        m_attachedPushConstants[pcIndex].stageFlags,
+        m_attachedPushConstants[pcIndex].offset,
+        m_attachedPushConstants[pcIndex].size, (void*)data);
 }
 
 VkPipelineLayout VGraphicsPipeline::getLayout()
