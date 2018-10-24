@@ -57,11 +57,11 @@ void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstan
     m_renderingInstances.push_back(renderingInstance);
 }
 
-void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap/*, const LightDatum &datum*/)
+void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, glm::vec2 shadowShift/*, const LightDatum &datum*/)
 {
     //m_shadowMapsToRender.push_back({shadowMap, datum});
     m_renderGraph.addDynamicRenderTarget(m_shadowMapsPass,shadowMap);
-    m_shadowMapsVboAndShift.push_back({m_spriteShadowsVbos[m_curFrameIndex]->getSize(),0,0,0});
+    m_shadowMapsVboAndShift.push_back({m_spriteShadowsVbos[m_curFrameIndex]->getSize(),0,shadowShift.x, shadowShift.y});
 }
 
 void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
@@ -72,14 +72,14 @@ void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const S
     //m_spriteShadowsToRender.push_back({spriteShadow, datum});
 }
 
-void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum, glm::vec2 shadowShift)
+void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum/*, glm::vec2 shadowShift*/)
 {
     m_spriteShadowsVbos[m_curFrameIndex]->push_back(datum);
     m_shadowMapsVboAndShift.back().y++;
-    if(glm::abs(shadowShift.x) > glm::abs(m_shadowMapsVboAndShift.back().z))
+    /*if(glm::abs(shadowShift.x) > glm::abs(m_shadowMapsVboAndShift.back().z))
         m_shadowMapsVboAndShift.back().z = shadowShift.x;
     if(glm::abs(shadowShift.y) > glm::abs(m_shadowMapsVboAndShift.back().w))
-        m_shadowMapsVboAndShift.back().w = shadowShift.y;
+        m_shadowMapsVboAndShift.back().w = shadowShift.y;*/
 }
 
 void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
@@ -237,8 +237,6 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 
                 for(auto renderingInstance : m_renderingInstances)
                 {
-                    glm::vec2 shadowShift = {m_shadowMapsVboAndShift[i].z,
-                                             m_shadowMapsVboAndShift[i].w};
 
                     VkExtent2D extent = m_renderGraph.getExtent(m_shadowMapsPass);
 
@@ -252,7 +250,8 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
                     renderingInstance->pushCamPosAndZoom(cmb, m_spriteShadowsPipeline.getLayout(),
                                                         VK_SHADER_STAGE_VERTEX_BIT);
 
-
+                    glm::vec2 shadowShift = {m_shadowMapsVboAndShift[i].z,
+                                             m_shadowMapsVboAndShift[i].w};
                     m_spriteShadowsPipeline.updatePushConstant(cmb, 1, (char*)&shadowShift);
 
                     vkCmdDraw(cmb, 4, m_shadowMapsVboAndShift[i].y /*spritesVboSize*//*renderingInstance->getSpritesVboSize()*/,
@@ -444,6 +443,7 @@ bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
                 m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
                 renderingInstance->pushCamPosAndZoom(cmb, m_lightingPipeline.getLayout(),
                                                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
 
                 vkCmdDraw(cmb, LIGHT_TRIANGLECOUNT+2, renderingInstance->getLightsVboSize(),
                                0, renderingInstance->getLightsVboOffset());
@@ -1155,7 +1155,11 @@ bool SceneRenderer::createSsgiBNPipelines()
 
         //m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
 
-        m_ssgiBNBlurPipelines[i].addSpecializationDatum(4.0f ,1); //Radius
+        float radius = 4.0f;
+        if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.width);
+        if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.height);
+
+        m_ssgiBNBlurPipelines[i].addSpecializationDatum(radius ,1); //Radius
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(15.0f,1); //Smart thresold
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(static_cast<bool>(i),1); //Vertical
 

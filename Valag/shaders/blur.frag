@@ -17,14 +17,14 @@ void main()
 
     //I could do smart blur by cheking frag pos distance
 
-    outColor =     (texture(srcSampler, gl_FragCoord.xy + offset * 1.0)	* 0.06 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.75)	* 0.09 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.5)	* 0.12 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.25)	* 0.15 +
-                    texture(srcSampler, gl_FragCoord.xy)	* 0.16 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 1.0) 	* 0.06 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.75)	* 0.09 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.5)	* 0.12 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.25)	* 0.15 );
+    outColor =     (texture(srcSampler, inUV/*gl_FragCoord.xy*/ + offset * 1.0)	* 0.06 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ + offset * 0.75)	* 0.09 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ + offset * 0.5)	* 0.12 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ + offset * 0.25)	* 0.15 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/)	* 0.16 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ - offset * 1.0) 	* 0.06 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ - offset * 0.75)	* 0.09 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ - offset * 0.5)	* 0.12 +
+                    texture(srcSampler, inUV/*gl_FragCoord.xy*/ - offset * 0.25)	* 0.15 );
 }
 

@@ -29,9 +29,9 @@ class SceneRenderer : public AbstractRenderer
         void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
         //I'll need light position and so forth (maybe I'll use push constants, it's like cam pos)...
-        void addShadowMapToRender(VRenderTarget* shadowMap/*, const LightDatum &datum*/);
+        void addShadowMapToRender(VRenderTarget* shadowMap, glm::vec2 shadowShift/*, const LightDatum &datum*/);
         void addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum);
-        void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum, glm::vec2 shadowShift);
+        void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum/*, glm::vec2 shadowShift*/);
         void addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum);
 
         void addToSpritesVbo(const IsoSpriteDatum &datum);

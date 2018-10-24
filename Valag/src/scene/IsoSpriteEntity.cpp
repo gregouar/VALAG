@@ -266,7 +266,7 @@ glm::vec2 IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* ligh
         glm::vec2 shadowShift = this->generateShadowDatum(light->getDirection());
 
         m_shadowDatum.texId = shadow.getTexturePair();
-        renderer->addToSpriteShadowsVbo(m_shadowDatum, shadowShift);
+        renderer->addToSpriteShadowsVbo(m_shadowDatum/*, shadowShift*/);
 
         return shadowShift;
     }
@@ -283,16 +283,18 @@ glm::vec2 IsoSpriteEntity::generateShadowDatum(glm::vec3 direction)
 
 	glm::vec2 lightDirectionXY = {lightDirection.x, lightDirection.y};
 
-	glm::vec4 r = m_parentNode->getScene()->getViewMatrix() * glm::vec4(m_datum.size.z*lightDirectionXY / -lightDirection.z, 0.0, 0.0);
-	r.y -= m_datum.size.z * m_parentNode->getScene()->getViewMatrix()[2][1];
-	glm::vec2 viewLightDirectionXY = {r.x, r.y};
+	glm::vec4 v = glm::vec4(lightDirectionXY / -lightDirection.z, 0.0, 0.0);
+	glm::vec4 r = m_parentNode->getScene()->getViewMatrix() * v;
+	//r.y        -=  m_parentNode->getScene()->getViewMatrix()[2][1];
+	glm::vec2 viewLightDirectionXY = {m_datum.size.z * r.x,
+                                      m_datum.size.z *(r.y  - m_parentNode->getScene()->getViewMatrix()[2][1])};
 
     glm::vec2 totalSize = glm::abs(viewLightDirectionXY)+glm::vec2(m_datum.size.x, m_datum.size.y);
 
     glm::vec2 spritePos;
     spritePos = glm::max(glm::vec2(0.0), -viewLightDirectionXY);
 
-    m_shadowDatum.position  = m_datum.position;
+    m_shadowDatum.position  = m_datum.position + glm::vec3(glm::vec2(v.x,v.y)*m_datum.position.z,0.0);
     m_shadowDatum.size      = glm::vec3(totalSize, m_datum.size.z);
     m_shadowDatum.center    = m_datum.center+spritePos;
 

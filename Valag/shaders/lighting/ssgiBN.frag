@@ -126,7 +126,7 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
     for(uint i = 0 ; i < nbrSteps ; ++i)
     {
         curPos += screenRayStep*(i*const_rayLengthFactor+1);
-        float dstFragHeight = texture(samplerPosition, curPos.xy).z;
+        float dstFragHeight = texture(samplerPosition, curPos.xy*viewUbo.screenSizeFactor.xy*0.5).z;
 
         if(curPos.z < dstFragHeight)
             isUnder = true;
@@ -147,11 +147,11 @@ vec3 rayTrace(vec3 screenStart, vec3 ray)
 
 void main()
 {
-    float fragHeight    = texture(samplerPosition, gl_FragCoord.xy).z;
-    vec3  fragNormal    = normalize(texture(samplerNormal, gl_FragCoord.xy).xyz);
+    float fragHeight    = texture(samplerPosition, inUV).z;
+    vec3  fragNormal    = normalize(texture(samplerNormal, inUV).xyz);
 
-    uint d = uint(gl_FragCoord.x) % 2 + 2*(uint(gl_FragCoord.y)%2);
-    uint dp = uint(gl_FragCoord.x) % 4 + 4*(uint(gl_FragCoord.y)%4);
+    uint d = uint(gl_FragCoord.x) % 2 + 2*(uint(inUV)%2);
+    uint dp = uint(gl_FragCoord.x) % 4 + 4*(uint(inUV)%4);
     //d = (d + uint(pc.imgIndex)) % 4;
 
     //d = 1;
@@ -182,7 +182,7 @@ void main()
         vec3 ray = const_rayLength * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
-        vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
+        vec3 c = rayTrace(vec3(inUV, fragHeight), ray);
 
         if(c.z != -1)
         {

@@ -113,11 +113,11 @@ void RenderView::setDepthFactor(float depthFactor)
 
 void RenderView::setExtent(glm::vec2 extent)
 {
-    if(m_viewUbo.screenSizeFactor.x != 2.0f/extent.x
-    || m_viewUbo.screenSizeFactor.y != 2.0f/extent.y)
+    if(m_viewUbo.screenSizeFactor.x != 2.0/extent.x
+    || m_viewUbo.screenSizeFactor.y != 2.0/extent.y)
         for(auto b : m_needToUpdateBuffers) b = true;
-    m_viewUbo.screenSizeFactor.x = 2.0f/extent.x;
-    m_viewUbo.screenSizeFactor.y = 2.0f/extent.y;
+    m_viewUbo.screenSizeFactor.x = 2.0/extent.x;
+    m_viewUbo.screenSizeFactor.y = 2.0/extent.y;
     m_extent = extent;
 }
 

@@ -13,8 +13,8 @@ void main()
 {
     float exposure = 0.8;
 
-    vec3 opac   = texture(samplerHdr,gl_FragCoord.xy).rgb;
-    vec4 alpha  = texture(samplerAlphaHdr,gl_FragCoord.xy);
+    vec3 opac   = texture(samplerHdr,inUV).rgb;
+    vec4 alpha  = texture(samplerAlphaHdr,inUV);
 
     vec3 final  = opac * (1.0f-alpha.a) + alpha.rgb * alpha.a;
 

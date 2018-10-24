@@ -122,10 +122,17 @@ float sampleShadow(vec2 screenPos, float fragZ)
 
     float shadowMap = texture(sampler2DArray(textures[lightShadowMap.x], samp),
                                vec3(shadowPos*shadowSizeFactor,lightShadowMap.y)).x;
-    if(shadowMap > viewUbo.depthOffsetAndFactor.x + (fragZ + 5.0) * viewUbo.depthOffsetAndFactor.y)
+
+
+    //return 1.0 - min(1.0,max(0.0, (depth-shadowDepth)*"<<0.1*PBRTextureAsset::DEPTH_BUFFER_NORMALISER_INV<<"));
+
+    float z = viewUbo.depthOffsetAndFactor.x + fragZ * viewUbo.depthOffsetAndFactor.y;
+    return 1.0 - min(1.0, max(0.0, (shadowMap - z) / (5.0*viewUbo.depthOffsetAndFactor.y)));
+
+    /*if(shadowMap > viewUbo.depthOffsetAndFactor.x + (fragZ + 5.0) * viewUbo.depthOffsetAndFactor.y)
         return 0.0;
 
-    return 1.0;
+    return 1.0;*/
 }
 
 vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBentNormal, vec3 fragRmt)
@@ -160,18 +167,18 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
             int h = int(gl_FragCoord.x)%4+4*(int(gl_FragCoord.y)%4);
 
             float shadowing = 1.0/6.0 * (sampleShadow(projPos, fragPos.z) * 2.0
-                               + sampleShadow(projPos + hashed[h] * 2.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+1)%16] * 2.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+2)%16] * 2.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+3)%16] * 2.0, fragPos.z));
+                               + sampleShadow(projPos + hashed[h] * 3.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+1)%16] * 3.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+2)%16] * 3.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+3)%16] * 3.0, fragPos.z));
 
             if(shadowing > 0.2 && shadowing < 0.8)
             {
                 shadowing = shadowing * 0.5 + 1.0/8.0 * (
-                               + sampleShadow(projPos + hashed[(h+4)%16] * 4.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+5)%16] * 4.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+6)%16] * 4.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+7)%16] * 4.0, fragPos.z));
+                               + sampleShadow(projPos + hashed[(h+4)%16] * 5.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+5)%16] * 5.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+6)%16] * 5.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+7)%16] * 5.0, fragPos.z));
             }
 
             attenuation *= shadowing;
@@ -236,12 +243,12 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
 
 void main()
 {
-    vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy);
-    vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
-    vec4 fragNormal = texture(samplerNormal, gl_FragCoord.xy);
+    vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5);
+    vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5).xyz;
+    vec4 fragNormal = texture(samplerNormal, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5);
     fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
-    vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
-    vec4 fragBentNormal = texture(samplerBentNormal, gl_FragCoord.xy);
+    vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5).xyz;
+    vec4 fragBentNormal = texture(samplerBentNormal, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5);
 
 	fragAlbedo.rgb = pow(fragAlbedo.rgb, vec3(2.2));
 

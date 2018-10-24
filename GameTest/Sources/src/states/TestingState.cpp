@@ -89,7 +89,7 @@ void TestingState::init()
 
     /// SCENE
 
-    m_scene->setAmbientLight({96/255.0,127/255.0,196/255.0,128.0/255.0});
+    m_scene->setAmbientLight({96/255.0,127/255.0,196/255.0,255.0/255.0});
    // m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,128.0/255.0});
     //m_scene->setAmbientLight({16/255.0,32/255.0,255/255.0,96.0/255.0});
 
@@ -161,7 +161,7 @@ void TestingState::init()
     m_scene->getRootNode()->attachObject(m_sunLight);
 
     ///Day
-    m_sunLight->setDiffuseColor({0.0,1.0,0.0,1.0});
+    m_sunLight->setDiffuseColor({1.0,1.0,1.0,1.0});
     m_sunLight->setIntensity(15.0);
 
     ///Night
@@ -171,6 +171,7 @@ void TestingState::init()
     //sunLight->setType(vlg::LightType_Directional);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
     m_sunLight->setDirection({.2 ,-1.0,-1.0});
+    m_sunLight->setShadowMapExtent({1024,1024});
     m_sunLight->enableShadowCasting();
 
     /*vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
@@ -280,16 +281,15 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     m_cursorLightNode->setPosition(worldMousePos);
 
-    if(eventsManager->keyPressed(GLFW_KEY_A))
+    if(eventsManager->keyPressed(GLFW_KEY_Q))
         m_treeEntity->setRotation(m_treeEntity->getRotation()+0.1f);
-    if(eventsManager->keyPressed(GLFW_KEY_Z))
+    if(eventsManager->keyPressed(GLFW_KEY_W))
         m_treeEntity->setRotation(m_treeEntity->getRotation()-0.1f);
 
-
-    /*if(eventsManager->keyPressed(GLFW_KEY_Q))
-        m_abbeyNode->move(0,0,100);
-    if(eventsManager->keyPressed(GLFW_KEY_S))
-        m_abbeyNode->move(0,0,-100);*/
+    if(eventsManager->keyPressed(GLFW_KEY_Z))
+        m_treeNode->move(0,0,10);
+    if(eventsManager->keyPressed(GLFW_KEY_X))
+        m_treeNode->move(0,0,-10);
 
     if(eventsManager->keyIsPressed(GLFW_KEY_A))
         m_sunAngleVelocity = -1.0f;

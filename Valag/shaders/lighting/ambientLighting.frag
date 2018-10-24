@@ -102,22 +102,22 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4
 
 void main()
 {
-    vec4 fragAlbedo = texture(samplerAlbedo, gl_FragCoord.xy);
-    vec3 fragPos    = texture(samplerPosition, gl_FragCoord.xy).xyz;
-    vec4 fragNormal = texture(samplerNormal, gl_FragCoord.xy);
+    vec4 fragAlbedo = texture(samplerAlbedo, inUV);
+    vec3 fragPos    = texture(samplerPosition, inUV).xyz;
+    vec4 fragNormal = texture(samplerNormal, inUV);
     fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
-    vec3 fragRmt    = texture(samplerRmt, gl_FragCoord.xy).xyz;
-    vec4 fragBentNormal = texture(samplerBentNormals, gl_FragCoord.xy);
+    vec3 fragRmt    = texture(samplerRmt, inUV).xyz;
+    vec4 fragBentNormal = texture(samplerBentNormals, inUV);
 
     outColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);
 	outColor.rgb = pow(outColor.rgb, vec3(2.2));
 
 
-    fragAlbedo = texture(samplerAlphaAlbedo, gl_FragCoord.xy);
-    fragPos    = texture(samplerAlphaPosition, gl_FragCoord.xy).xyz;
-    fragNormal = texture(samplerAlphaNormal, gl_FragCoord.xy);
+    fragAlbedo = texture(samplerAlphaAlbedo, inUV);
+    fragPos    = texture(samplerAlphaPosition, inUV).xyz;
+    fragNormal = texture(samplerAlphaNormal, inUV);
     fragNormal.xyz  = normalize(fragNormal.xyz);//This should be already normalized heh
-    fragRmt    = texture(samplerAlphaRmt, gl_FragCoord.xy).xyz;
+    fragRmt    = texture(samplerAlphaRmt, inUV).xyz;
 
     outAlphaColor = computeAmbientLighting(fragAlbedo, fragPos, fragNormal, fragBentNormal, fragRmt);
 	outAlphaColor.rgb = pow(outAlphaColor.rgb, vec3(2.2));

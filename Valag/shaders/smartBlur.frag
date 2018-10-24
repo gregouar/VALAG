@@ -38,8 +38,8 @@ void main()
 {
     vec2 offset = vec2(1-int(vertical), int(vertical)) * radius;
 
-    outColor = texture(srcSampler, gl_FragCoord.xy) * gauss[0];
-    float fragZ = getSamplerPos(gl_FragCoord.xy);
+    outColor = texture(srcSampler, inUV) * gauss[0];
+    float fragZ = getSamplerPos(inUV);
 
     float weight = gauss[0];
     vec2 p;
@@ -48,7 +48,7 @@ void main()
 
     for(uint i = 1 ; i < 5 ; ++i)
     {
-        p = gl_FragCoord.xy+offset*0.25*i;
+        p = inUV+offset*0.25*i;
         diffZ = abs(getSamplerPos(p) - fragZ)/smartThresold;
         diffZ = clamp(2.0 - diffZ*2.0,0.0,1.0);
         //diffZ = step(diffZ, 1.0);
@@ -60,7 +60,7 @@ void main()
             weight   += gauss[i] * diffZ;
         }
 
-        p = gl_FragCoord.xy-offset*0.25*i;
+        p = inUV-offset*0.25*i;
         diffZ = abs(getSamplerPos(p) - fragZ)/smartThresold;
         diffZ = clamp(2.0 - diffZ*2.0,0.0,1.0);
         //diffZ = step(diffZ, 1.0);
@@ -74,15 +74,5 @@ void main()
     }
 
     outColor *= 1.0/weight;
-
-    /*outColor =     (texture(srcSampler, gl_FragCoord.xy + offset * 1.0)	* 0.06 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.75)	* 0.09 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.5)	* 0.12 +
-                    texture(srcSampler, gl_FragCoord.xy + offset * 0.25)	* 0.15 +
-                    texture(srcSampler, gl_FragCoord.xy)	* 0.16 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 1.0) 	* 0.06 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.75)	* 0.09 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.5)	* 0.12 +
-                    texture(srcSampler, gl_FragCoord.xy - offset * 0.25)	* 0.15 );*/
 }
 

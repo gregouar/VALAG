@@ -65,7 +65,8 @@ void main()
     lightPos    = inPos;
     lightColor  = inColor.rgb*inColor.a;
     lightRadiusInv = 1.0/(inRadius*0.01);
-    lightShadowMap = inShadowMap;
+    lightShadowMap      = inShadowMap;
+    lightShadowShift    = inShadowShift;
 }
 
 

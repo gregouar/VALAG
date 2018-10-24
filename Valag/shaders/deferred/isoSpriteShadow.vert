@@ -41,8 +41,9 @@ out gl_PerVertex
 
 void main()
 {
-    vec4 spriteViewCenter = viewUbo.view*vec4(inPos-pc.camPosAndZoom.xyz,1.0);
-    spriteViewCenter.xy -= min(pc.shadowShift, 0.0);
+    vec4 spriteViewCenter = viewUbo.view*vec4(vec3(inPos.xy,0.0)-pc.camPosAndZoom.xyz,1.0);
+    //spriteViewCenter.xy -= min(pc.shadowShift, 0.0);
+    spriteViewCenter.xy -= pc.shadowShift * 0.5;
     spriteViewCenter.z = inPos.z;
 
     gl_Position = vec4(spriteViewCenter.xyz + vec3((vertPos[gl_VertexIndex] * inSize.xy - inCenter), 0.0), 1.0);
@@ -51,7 +52,7 @@ void main()
 
     vec2 shadowSizeFactor = 2.0/(2.0/viewUbo.screenSizeFactor+abs(pc.shadowShift));
 
-    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
+    gl_Position.xyz = gl_Position.xyz * vec3(shadowSizeFactor, viewUbo.depthOffsetAndFactor.y)
                         + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);
 
     fragTexCoord = inTexExtent * vertPos[gl_VertexIndex] + inTexCoord;

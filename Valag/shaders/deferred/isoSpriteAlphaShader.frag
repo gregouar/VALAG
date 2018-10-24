@@ -55,7 +55,7 @@ void main()
     if(outAlbedo.a < .05)
         discard;
 
-    vec2 samplerOpac = texture(samplerOpacPosition, gl_FragCoord.xy).zw;
+    vec2 samplerOpac = texture(samplerOpacPosition, gl_FragCoord.xy*viewUbo.screenSizeFactor.xy*0.5).zw;
 
     if(outAlbedo.a >= .99f)
     {
