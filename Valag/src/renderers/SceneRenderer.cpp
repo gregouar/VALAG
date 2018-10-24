@@ -1157,7 +1157,7 @@ bool SceneRenderer::createSsgiBNPipelines()
 
         float radius = 4.0f;
         if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.width);
-        if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.height);
+        if(i == 1) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.height);
 
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(radius ,1); //Radius
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(15.0f,1); //Smart thresold

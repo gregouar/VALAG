@@ -170,9 +170,6 @@ void main()
     outCollision3 = vec4(0.0);
     outCollision4 = vec4(0.0);
 
-    /** I could do à la Starcraft : use half rays for close (with indpt averaging) and half for longer shots, yay**/
-    //store in outBentNormal.a the local SSAO value and in |xyz| the GI value !
-
     float ao    = 1.0;
     float gio   = 1.0;
 
@@ -182,7 +179,7 @@ void main()
         vec3 ray = const_rayLength * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
-        vec3 c = rayTrace(vec3(inUV, fragHeight), ray);
+        vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
 
         if(c.z != -1)
         {
