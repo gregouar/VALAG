@@ -16,6 +16,8 @@ const char *SceneRenderer::ISOSPRITE_SHADOWGEN_VERTSHADERFILE = "deferred/isoSpr
 const char *SceneRenderer::ISOSPRITE_SHADOWGEN_FRAGSHADERFILE = "deferred/isoSpriteShadowGen.frag.spv";
 const char *SceneRenderer::ISOSPRITE_SHADOW_VERTSHADERFILE = "deferred/isoSpriteShadow.vert.spv";
 const char *SceneRenderer::ISOSPRITE_SHADOW_FRAGSHADERFILE = "deferred/isoSpriteShadow.frag.spv";
+const char *SceneRenderer::MESH_DIRECTSHADOW_VERTSHADERFILE = "deferred/meshDirectShadow.vert.spv";
+const char *SceneRenderer::MESH_DIRECTSHADOW_FRAGSHADERFILE = "deferred/meshDirectShadow.frag.spv";
 const char *SceneRenderer::ISOSPRITE_DEFERRED_VERTSHADERFILE = "deferred/isoSpriteShader.vert.spv";
 const char *SceneRenderer::ISOSPRITE_DEFERRED_FRAGSHADERFILE = "deferred/isoSpriteShader.frag.spv";
 const char *SceneRenderer::MESH_DEFERRED_VERTSHADERFILE = "deferred/meshShader.vert.spv";
@@ -57,11 +59,19 @@ void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstan
     m_renderingInstances.push_back(renderingInstance);
 }
 
-void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, glm::vec2 shadowShift/*, const LightDatum &datum*/)
+void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum)
 {
     //m_shadowMapsToRender.push_back({shadowMap, datum});
     m_renderGraph.addDynamicRenderTarget(m_shadowMapsPass,shadowMap);
-    m_shadowMapsVboAndShift.push_back({m_spriteShadowsVbos[m_curFrameIndex]->getSize(),0,shadowShift.x, shadowShift.y});
+    m_shadowMapsInstances.push_back(ShadowMapRenderingInstance{});
+
+    m_shadowMapsInstances.back().lightPosition = datum.position;
+    m_shadowMapsInstances.back().shadowShift = datum.shadowShift;
+
+    m_shadowMapsInstances.back().spritesVboSize = 0;
+    m_shadowMapsInstances.back().spritesVboOffset = m_spriteShadowsVbos[m_curFrameIndex]->getSize();
+
+    //m_shadowMapsVboAndShift.push_back({m_spriteShadowsVbos[m_curFrameIndex]->getSize(),0,shadowShift.x, shadowShift.y});
 }
 
 void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
@@ -75,7 +85,9 @@ void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const S
 void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum/*, glm::vec2 shadowShift*/)
 {
     m_spriteShadowsVbos[m_curFrameIndex]->push_back(datum);
-    m_shadowMapsVboAndShift.back().y++;
+    m_shadowMapsInstances.back().spritesVboSize++;
+
+    //m_shadowMapsVboAndShift.back().y++;
     /*if(glm::abs(shadowShift.x) > glm::abs(m_shadowMapsVboAndShift.back().z))
         m_shadowMapsVboAndShift.back().z = shadowShift.x;
     if(glm::abs(shadowShift.y) > glm::abs(m_shadowMapsVboAndShift.back().w))
@@ -84,7 +96,14 @@ void SceneRenderer::addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum/*, g
 
 void SceneRenderer::addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum)
 {
-
+    auto foundedSize = m_shadowMapsInstances.back().meshesVboSize.find(mesh);
+    if(foundedSize == m_shadowMapsInstances.back().meshesVboSize.end())
+    {
+        foundedSize = m_shadowMapsInstances.back().meshesVboSize.insert(foundedSize, {mesh,0});
+        m_shadowMapsInstances.back().meshesVboOffset[mesh] = this->getMeshesVboSize(mesh);
+    }
+    this->addToMeshesVbo(mesh,datum);
+    ++foundedSize->second;
 }
 
 void SceneRenderer::addToSpritesVbo(const IsoSpriteDatum &datum)
@@ -156,6 +175,11 @@ bool SceneRenderer::recordToneMappingCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
 {
+    for(auto renderingInstance : m_renderingInstances)
+        renderingInstance->prepareShadowsRendering(this, imageIndex);
+
+    this->uploadVbos();
+
     this->recordShadowCmb(imageIndex);
 
     bool r = true;
@@ -174,20 +198,29 @@ bool SceneRenderer::recordPrimaryCmb(uint32_t imageIndex)
     return r;
 }
 
+void SceneRenderer::uploadVbos()
+{
+    m_spriteShadowGenerationVbos[m_curFrameIndex]->uploadVBO();
+    m_spriteShadowsVbos[m_curFrameIndex]->uploadVBO();
+    m_spritesVbos[m_curFrameIndex]->uploadVBO();
+
+    for(auto &mesh : m_meshesVbos[m_curFrameIndex])
+        mesh.second->uploadVBO();
+
+    m_lightsVbos[m_curFrameIndex]->uploadVBO();
+}
+
 bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 {
-    for(auto renderingInstance : m_renderingInstances)
-        renderingInstance->recordShadows(this, imageIndex); //Probably a bad name for that
-
-    size_t  spriteShadowGenVboSize = m_spriteShadowGenerationVbos[m_curFrameIndex]->uploadVBO();
+    ///Precomputing of sprites shadows
     VBuffer spriteShadowGenInstancesVB = m_spriteShadowGenerationVbos[m_curFrameIndex]->getBuffer();
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                         VTexturesManager::descriptorSet(m_curFrameIndex) };
 
-    //Compute shadow maps here
     VkCommandBuffer cmb = m_renderGraph.startRecording(m_spriteShadowsPass, 0, m_curFrameIndex);
-        if(spriteShadowGenVboSize > 0)
+
+        if(m_spriteShadowGenerationVbos[m_curFrameIndex]->getUploadedSize() > 0)
         {
             m_spriteShadowsGenPipeline.bind(cmb);
 
@@ -208,84 +241,107 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
         }
 
     m_renderGraph.endRecording(m_spriteShadowsPass);
-    //m_spriteShadowsToRender.clear();
 
 
-    size_t  spritesVboSize      = m_spriteShadowsVbos[m_curFrameIndex]->uploadVBO();
+    /// Shadow map rendering
     VBuffer spritesInstancesVB  = m_spriteShadowsVbos[m_curFrameIndex]->getBuffer();
 
     //Start recording
+    ///Should I use multibuffering for shadowMaps ? In theory, yes...
     cmb = m_renderGraph.startRecording(m_shadowMapsPass, /*imageIndex*/ 0, m_curFrameIndex);
 
-    //for(auto renderingInstance : m_renderingInstances)
-    {
-        //Setup viewport (?)
-        //m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
-
-        //Render shadow map
-
-        size_t i = 0;
+        auto shadowMapInstance = m_shadowMapsInstances.begin();
         while(m_renderGraph.nextRenderTarget(m_shadowMapsPass))
         {
-            if(spritesVboSize != 0)
+            VkExtent2D extent = m_renderGraph.getExtent(m_shadowMapsPass);
+            glm::vec2 shadowShift = shadowMapInstance->shadowShift;
+            glm::vec2 lightXYonZ = {};
+
+            if(shadowMapInstance->lightPosition.w == 0)
+            {
+                lightXYonZ = glm::vec2(shadowMapInstance->lightPosition.x,
+                                       shadowMapInstance->lightPosition.y) / shadowMapInstance->lightPosition.z;
+            }
+
+
+            //Mesh shadows drawing
+            m_meshDirectShadowsPipeline.bind(cmb);
+
+            vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    m_meshDirectShadowsPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+
+            for(auto &mesh : m_meshesVbos[m_curFrameIndex])
+            {
+                if(mesh.second->getUploadedSize() != 0)
+                {
+                    VBuffer meshesInstanceVB = mesh.second->getBuffer();
+                    VBuffer vertexBuffer = mesh.first->getVertexBuffer();
+
+                    VkBuffer buffers[] = {vertexBuffer.buffer,
+                                          meshesInstanceVB.buffer};
+                    VkDeviceSize offsets[] = {vertexBuffer.offset,
+                                              meshesInstanceVB.offset};
+
+                    vkCmdBindVertexBuffers(cmb, 0, 2, buffers, offsets);
+
+
+                    VBuffer indexBuffer = mesh.first->getIndexBuffer();
+                    vkCmdBindIndexBuffer(cmb, indexBuffer.buffer,
+                                              indexBuffer.offset, VK_INDEX_TYPE_UINT16);
+
+                    for(auto renderingInstance : m_renderingInstances)
+                    {
+                        m_meshDirectShadowsPipeline.updateViewport(cmb, {0,0}, extent);
+                        //m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
+                        renderingInstance->pushCamPosAndZoom(cmb, m_deferredMeshesPipeline.getLayout());
+                        m_meshDirectShadowsPipeline.updatePushConstant(cmb, 1, (char*)&shadowShift);
+                        m_meshDirectShadowsPipeline.updatePushConstant(cmb, 2, (char*)&lightXYonZ);
+
+                        vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(),
+                                               shadowMapInstance->meshesVboSize[mesh.first],
+                                         0, 0, shadowMapInstance->meshesVboOffset[mesh.first]);
+                    }
+                }
+            }
+
+
+            //Sprite shadows drawing
+            if(m_spriteShadowsVbos[m_curFrameIndex]->getUploadedSize() != 0)
             {
                 vkCmdBindVertexBuffers(cmb, 0, 1, &spritesInstancesVB.buffer, &spritesInstancesVB.offset);
                 m_spriteShadowsPipeline.bind(cmb);
 
-                vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        m_spriteShadowsPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
+               // vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                 //                       m_spriteShadowsPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
                 for(auto renderingInstance : m_renderingInstances)
                 {
-
-                    VkExtent2D extent = m_renderGraph.getExtent(m_shadowMapsPass);
-
                     ///m_renderView.setupViewport(renderingInstance->getViewInfo(), cmb);
                     ///I'll need to find something smart to do (in order to have multiple cameras)
                     m_spriteShadowsPipeline.updateViewport(cmb, {0,0}, extent);
-                    /*m_spriteShadowsPipeline.updateScissor(cmb, glm::min(shadowShift, glm::vec2(0.0)),
-                                                          {extent.width+glm::abs(shadowShift.x),
-                                                           extent.height+glm::abs(shadowShift.y)});*/
 
                     renderingInstance->pushCamPosAndZoom(cmb, m_spriteShadowsPipeline.getLayout(),
                                                         VK_SHADER_STAGE_VERTEX_BIT);
 
-                    glm::vec2 shadowShift = {m_shadowMapsVboAndShift[i].z,
-                                             m_shadowMapsVboAndShift[i].w};
                     m_spriteShadowsPipeline.updatePushConstant(cmb, 1, (char*)&shadowShift);
 
-                    vkCmdDraw(cmb, 4, m_shadowMapsVboAndShift[i].y /*spritesVboSize*//*renderingInstance->getSpritesVboSize()*/,
-                                   0, m_shadowMapsVboAndShift[i].x/*0*//*renderingInstance->getSpritesVboOffset()*/);
+                    vkCmdDraw(cmb, 4, shadowMapInstance->spritesVboSize,
+                                   0, shadowMapInstance->spritesVboOffset);
                 }
             }
-
-            i++;
+            ++shadowMapInstance;
         }
-    }
+
     m_renderGraph.endRecording(m_shadowMapsPass);
-    //m_shadowMapsToRender.clear();
-    m_shadowMapsVboAndShift.clear();
+    m_shadowMapsInstances.clear();
 
     return (true);
 }
 
 bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
 {
-    size_t  spritesVboSize      = m_spritesVbos[m_curFrameIndex]->uploadVBO();
+    size_t  spritesVboSize      = m_spritesVbos[m_curFrameIndex]->getUploadedSize();
     VBuffer spritesInstancesVB  = m_spritesVbos[m_curFrameIndex]->getBuffer();
-
-    std::vector<size_t>     meshesVboSize(m_meshesVbos[m_curFrameIndex].size());
-    std::vector<VBuffer>    meshesInstanceVB(m_meshesVbos[m_curFrameIndex].size());
-
-    ///I could put this in recording to save time
-    size_t i = 0;
-    for(auto &mesh : m_meshesVbos[m_curFrameIndex])
-    {
-        meshesVboSize[i]    = mesh.second->uploadVBO();
-        meshesInstanceVB[i] = mesh.second->getBuffer();
-        i++;
-
-    }
 
     VkDescriptorSet descriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
                                         VTexturesManager::descriptorSet(m_curFrameIndex) };
@@ -299,22 +355,22 @@ bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
 
         m_deferredMeshesPipeline.bind(cmb);
 
-        size_t j = 0;
         for(auto &mesh : m_meshesVbos[m_curFrameIndex])
         {
-            if(meshesVboSize[j] != 0)
+            if(mesh.second->getUploadedSize() != 0)
             {
+                VBuffer meshesInstanceVB = mesh.second->getBuffer();
                 VBuffer vertexBuffer = mesh.first->getVertexBuffer();
+
+                VkBuffer buffers[] = {vertexBuffer.buffer,
+                                      meshesInstanceVB.buffer};
+                VkDeviceSize offsets[] = {vertexBuffer.offset,
+                                          meshesInstanceVB.offset};
+
+                vkCmdBindVertexBuffers(cmb, 0, 2, buffers, offsets);
+
+
                 VBuffer indexBuffer = mesh.first->getIndexBuffer();
-
-                ///I could bind both in one call though
-                //Mesh vertex buffer
-                vkCmdBindVertexBuffers(cmb, 0, 1, &vertexBuffer.buffer,
-                                                  &vertexBuffer.offset);
-                //Instance vertex buffer
-                vkCmdBindVertexBuffers(cmb, 1, 1, &meshesInstanceVB[j].buffer,
-                                                  &meshesInstanceVB[j].offset);
-
                 vkCmdBindIndexBuffer(cmb, indexBuffer.buffer,
                                           indexBuffer.offset, VK_INDEX_TYPE_UINT16);
 
@@ -326,10 +382,7 @@ bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
                     vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), renderingInstance->getMeshesVboSize(mesh.first),
                                      0, 0, renderingInstance->getMeshesVboOffset(mesh.first));
                 }
-                //vkCmdDrawIndexed(cmb, mesh.first->getIndexCount(), meshesVboSize[j], 0, 0, 0);
             }
-
-            j++;
         }
 
         if(spritesVboSize != 0)
@@ -417,7 +470,7 @@ bool SceneRenderer::recordDeferredCmb(uint32_t imageIndex)
 
 bool SceneRenderer::recordLightingCmb(uint32_t imageIndex)
 {
-    size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex]->uploadVBO();
+    size_t  lightsVboSize       = m_lightsVbos[m_curFrameIndex]->getUploadedSize();
     VBuffer lightsInstancesVB   = m_lightsVbos[m_curFrameIndex]->getBuffer();
 
     VkDescriptorSet lightDescriptorSets[] = {m_renderView.getDescriptorSet(m_curFrameIndex),
@@ -632,6 +685,8 @@ bool SceneRenderer::createGraphicsPipeline()
         return (false);
     if(!this->createSpriteShadowsPipeline())
         return (false);
+    if(!this->createMeshDirectShadowsPipeline())
+        return (false);
     if(!this->createDeferredSpritesPipeline())
         return (false);
     if(!this->createDeferredMeshesPipeline())
@@ -730,6 +785,7 @@ bool SceneRenderer::createAttachments()
 
 void SceneRenderer::prepareShadowRenderPass()
 {
+    ///Sprite  shadows tracing
     VFramebufferAttachmentType spriteShadowType;
     spriteShadowType.format = VK_FORMAT_R8G8B8A8_UNORM;
     spriteShadowType.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -738,7 +794,25 @@ void SceneRenderer::prepareShadowRenderPass()
     m_renderGraph.addAttachmentType(m_spriteShadowsPass, spriteShadowType,
                                     VK_ATTACHMENT_STORE_OP_STORE, false);
 
+    /*///Sprite shadow blurring
 
+    // blur horizontal
+    m_spriteShadowsBlurPasses[0] = m_renderGraph.addRenderPass();
+
+    m_renderGraph.addAttachmentType(m_spriteShadowsBlurPasses[0], spriteShadowType,
+                                    VK_ATTACHMENT_STORE_OP_STORE, false);
+    m_renderGraph.addNewAttachments()
+    //m_renderGraph.transferAttachmentsToUniforms(m_spriteShadowsPass, m_spriteShadowsBlurPasses[0], 0);
+
+    // blur vertical
+    m_spriteShadowsBlurPasses[1] = m_renderGraph.addRenderPass();
+
+    m_renderGraph.addAttachmentType(m_spriteShadowsBlurPasses[1], spriteShadowType,
+                                    VK_ATTACHMENT_STORE_OP_STORE, false);
+    //m_renderGraph.transferAttachmentsToUniforms(m_spriteShadowsBlurPasses[0], m_spriteShadowsBlurPasses[1], 0);*/
+
+
+    ///Shadow maps rendering
     VFramebufferAttachmentType shadowMapType;
     shadowMapType.format = VK_FORMAT_D24_UNORM_S8_UINT;
     shadowMapType.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -920,7 +994,33 @@ bool SceneRenderer::createSpriteShadowsGenPipeline()
     m_spriteShadowsGenPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_spriteShadowsGenPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
-    return m_spriteShadowsGenPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass));
+    if(!m_spriteShadowsGenPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass)))
+        return (false);
+
+    /*///Horizontal and vertical blur
+    for(size_t i = 0 ; i < 2 ; ++i)
+    {
+        std::ostringstream vertShaderPath,fragShaderPath;
+        vertShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_VERTSHADERFILE;
+        fragShaderPath << VApp::DEFAULT_SHADERPATH << BLUR_FRAGSHADERFILE;
+
+        m_spriteShadowsBlurPipelines[i].createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+        m_spriteShadowsBlurPipelines[i].createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        float radius = 4.0f/1024.0;
+        //if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.width);
+        //if(i == 1) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.height);
+
+        m_spriteShadowsBlurPipelines[i].addSpecializationDatum(radius ,1); //Radius
+        m_spriteShadowsBlurPipelines[i].addSpecializationDatum(static_cast<bool>(i),1); //Vertical
+
+        m_spriteShadowsBlurPipelines[i].attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNBlurPasses[i]));
+
+        if(!m_spriteShadowsBlurPipelines[i].init(m_renderGraph.getRenderPass(m_ssgiBNBlurPasses[i])))
+            return (false);
+    }*/
+
+    return (true);
 }
 
 bool SceneRenderer::createSpriteShadowsPipeline()
@@ -948,8 +1048,52 @@ bool SceneRenderer::createSpriteShadowsPipeline()
     m_spriteShadowsPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
 
     return m_spriteShadowsPipeline.init(m_renderGraph.getRenderPass(m_shadowMapsPass));
-
 }
+
+bool SceneRenderer::createMeshDirectShadowsPipeline()
+{
+    std::ostringstream vertShaderPath,fragShaderPath;
+    vertShaderPath << VApp::DEFAULT_SHADERPATH << MESH_DIRECTSHADOW_VERTSHADERFILE;
+    fragShaderPath << VApp::DEFAULT_SHADERPATH << MESH_DIRECTSHADOW_FRAGSHADERFILE;
+
+    m_meshDirectShadowsPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+    m_meshDirectShadowsPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    std::vector<VkVertexInputBindingDescription> bindingDescriptions =
+                {  MeshVertex::getBindingDescription(),
+                    MeshDatum::getBindingDescription() };
+
+    auto vertexAttributeDescriptions = MeshVertex::getAttributeDescriptions();
+    auto instanceAttributeDescriptions = MeshDatum::getAttributeDescriptions();
+
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    attributeDescriptions.insert(attributeDescriptions.end(),
+                                 vertexAttributeDescriptions.begin(),
+                                 vertexAttributeDescriptions.end());
+
+    attributeDescriptions.insert(attributeDescriptions.end(),
+                                 instanceAttributeDescriptions.begin(),
+                                 instanceAttributeDescriptions.end());
+
+    m_meshDirectShadowsPipeline.setVertexInput(bindingDescriptions.size(), bindingDescriptions.data(),
+                                            attributeDescriptions.size(), attributeDescriptions.data());
+
+    m_meshDirectShadowsPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
+
+    m_meshDirectShadowsPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+    m_meshDirectShadowsPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+    m_meshDirectShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec4));
+    m_meshDirectShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec2));
+    m_meshDirectShadowsPipeline.attachPushConstant(VK_SHADER_STAGE_VERTEX_BIT , sizeof(glm::vec2));
+
+    m_meshDirectShadowsPipeline.setDepthTest(true, true, VK_COMPARE_OP_GREATER);
+
+    return m_meshDirectShadowsPipeline.init(m_renderGraph.getRenderPass(m_shadowMapsPass));
+}
+
+
 
 bool SceneRenderer::createDeferredSpritesPipeline()
 {
@@ -1009,8 +1153,6 @@ bool SceneRenderer::createDeferredMeshesPipeline()
                                             attributeDescriptions.size(), attributeDescriptions.data());
 
     m_deferredMeshesPipeline.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false);
-
-    //m_deferredMeshesPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent(), true);
 
     m_deferredMeshesPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
     m_deferredMeshesPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
@@ -1356,6 +1498,7 @@ void SceneRenderer::cleanup()
 
     m_spriteShadowsGenPipeline.destroy();
     m_spriteShadowsPipeline.destroy();
+    m_meshDirectShadowsPipeline.destroy();
     m_deferredSpritesPipeline.destroy();
     m_deferredMeshesPipeline.destroy();
     m_alphaDetectPipeline.destroy();

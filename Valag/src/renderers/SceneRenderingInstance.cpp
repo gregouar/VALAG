@@ -119,7 +119,7 @@ glm::vec4 SceneRenderingInstance::getCamPosAndZoom()
     return glm::vec4(m_camPos, m_camZoom);
 }
 
-void SceneRenderingInstance::recordShadows(SceneRenderer *renderer, uint32_t imageIndex)
+void SceneRenderingInstance::prepareShadowsRendering(SceneRenderer *renderer, uint32_t imageIndex)
 {
     for(auto light : m_renderedShadowLights)
     {

@@ -89,7 +89,7 @@ void TestingState::init()
 
     /// SCENE
 
-    m_scene->setAmbientLight({96/255.0,127/255.0,196/255.0,255.0/255.0});
+    m_scene->setAmbientLight({96/255.0,127/255.0,196/255.0,2.0});
    // m_scene->setAmbientLight({96/255.0,127/255.0,255/255.0,128.0/255.0});
     //m_scene->setAmbientLight({16/255.0,32/255.0,255/255.0,96.0/255.0});
 
@@ -148,8 +148,12 @@ void TestingState::init()
 
     //m_quackEntities.push_back(vlg::MeshEntity());
     //m_quackEntities.back().setMesh(m_quackMesh);
+
+    vlg::MeshEntity *quackEntity = m_scene->createMeshEntity(m_quackMesh);
+    quackEntity->setShadowCasting(vlg::ShadowCasting_All);
+
     m_quackNode = m_scene->getRootNode()->createChildNode(250,450);
-    m_quackNode->attachObject(m_scene->createMeshEntity(m_quackMesh));
+    m_quackNode->attachObject(quackEntity);
     m_quackNode->scale(5.0f);
 
     vlg::MaterialAsset *groundSand = vlg::MaterialsHandler::instance()->loadAssetFromFile("../data/wetSandXML.txt",loadType);
@@ -287,9 +291,9 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_treeEntity->setRotation(m_treeEntity->getRotation()-0.1f);
 
     if(eventsManager->keyPressed(GLFW_KEY_Z))
-        m_treeNode->move(0,0,10);
+        m_quackNode->move(0,0,10);
     if(eventsManager->keyPressed(GLFW_KEY_X))
-        m_treeNode->move(0,0,-10);
+        m_quackNode->move(0,0,-10);
 
     if(eventsManager->keyIsPressed(GLFW_KEY_A))
         m_sunAngleVelocity = -1.0f;
@@ -297,6 +301,10 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
         m_sunAngleVelocity = 1.0f;
 
 
+    if(eventsManager->keyIsPressed(GLFW_KEY_O))
+        m_sunLight->disableShadowCasting();
+    else
+        m_sunLight->enableShadowCasting();
 
     if(eventsManager->keyIsPressed(GLFW_KEY_DOWN))
         m_camVelocity.y = 200.0;

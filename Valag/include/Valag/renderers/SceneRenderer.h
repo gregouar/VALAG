@@ -20,6 +20,17 @@
 
 namespace vlg
 {
+
+struct ShadowMapRenderingInstance
+{
+    glm::vec4 lightPosition;
+    glm::vec2 shadowShift;
+    size_t    spritesVboSize;
+    size_t    spritesVboOffset;
+    std::map<VMesh*, size_t>    meshesVboSize; //I would gain perf by pairing them
+    std::map<VMesh*, size_t>    meshesVboOffset;
+};
+
 class SceneRenderer : public AbstractRenderer
 {
     public:
@@ -29,7 +40,7 @@ class SceneRenderer : public AbstractRenderer
         void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
         //I'll need light position and so forth (maybe I'll use push constants, it's like cam pos)...
-        void addShadowMapToRender(VRenderTarget* shadowMap, glm::vec2 shadowShift/*, const LightDatum &datum*/);
+        void addShadowMapToRender(VRenderTarget* shadowMap, const LightDatum &datum);
         void addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum);
         void addToSpriteShadowsVbo(const IsoSpriteShadowDatum &datum/*, glm::vec2 shadowShift*/);
         void addToMeshShadowsVbo(VMesh *mesh, const MeshDatum &datum);
@@ -73,6 +84,7 @@ class SceneRenderer : public AbstractRenderer
         //Pipelines
         bool createSpriteShadowsGenPipeline();
         bool createSpriteShadowsPipeline();
+        bool createMeshDirectShadowsPipeline();
         //Deferred
         bool createDeferredSpritesPipeline();
         bool createDeferredMeshesPipeline();
@@ -89,6 +101,8 @@ class SceneRenderer : public AbstractRenderer
 
         virtual bool    recordPrimaryCmb(uint32_t imageIndex) override;
 
+        virtual void    uploadVbos();
+
         virtual bool    recordShadowCmb(uint32_t imageIndex);
         virtual bool    recordDeferredCmb(uint32_t imageIndex);  ///Deferred, Alpha Detect, Alpha deferred
         virtual bool    recordLightingCmb(uint32_t imageIndex);  ///Lighting, Alpha Lighting
@@ -98,7 +112,9 @@ class SceneRenderer : public AbstractRenderer
 
     private:
         VGraphicsPipeline   m_spriteShadowsGenPipeline,
-                            m_spriteShadowsPipeline;
+                            //m_spriteShadowsBlurPipelines[2],
+                            m_spriteShadowsPipeline,
+                            m_meshDirectShadowsPipeline;
 
         VGraphicsPipeline   m_deferredSpritesPipeline,
                             m_deferredMeshesPipeline,
@@ -131,6 +147,7 @@ class SceneRenderer : public AbstractRenderer
         //VFramebufferAttachment m_SSGIBlurLightingAttachment[2];
 
         size_t  m_spriteShadowsPass,
+                //m_spriteShadowsBlurPasses[2],
                 m_shadowMapsPass,
                 m_deferredPass,
                 m_alphaDetectPass,
@@ -146,7 +163,6 @@ class SceneRenderer : public AbstractRenderer
         //std::list<std::pair<VRenderTarget*, SpriteShadowGenerationDatum> >   m_spriteShadowsToRender;
         //std::list<std::pair<VRenderTarget*, LightDatum> >       m_shadowMapsToRender;
 
-        std::vector<glm::vec4> m_shadowMapsVboAndShift;
 
         ///I should probably sort by material
         std::vector<DynamicVBO<SpriteShadowGenerationDatum>*>   m_spriteShadowGenerationVbos;
@@ -155,12 +171,15 @@ class SceneRenderer : public AbstractRenderer
         std::vector<std::map<VMesh* ,DynamicVBO<MeshDatum>*> >  m_meshesVbos;
         std::vector<DynamicVBO<LightDatum>*>                    m_lightsVbos;
 
-        std::list<SceneRenderingInstance*>   m_renderingInstances;
+        std::list<SceneRenderingInstance*>      m_renderingInstances;
+        std::list<ShadowMapRenderingInstance>   m_shadowMapsInstances;
 
         static const char *ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
         static const char *ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
         static const char *ISOSPRITE_SHADOW_VERTSHADERFILE;
         static const char *ISOSPRITE_SHADOW_FRAGSHADERFILE;
+        static const char *MESH_DIRECTSHADOW_VERTSHADERFILE;
+        static const char *MESH_DIRECTSHADOW_FRAGSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_VERTSHADERFILE;
         static const char *ISOSPRITE_DEFERRED_FRAGSHADERFILE;
         static const char *MESH_DEFERRED_VERTSHADERFILE;

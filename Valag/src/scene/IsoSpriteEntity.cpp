@@ -263,6 +263,7 @@ glm::vec2 IsoSpriteEntity::castShadow(SceneRenderer *renderer, LightEntity* ligh
         VTexture shadow = m_spriteModel->getDirectionnalShadow(renderer, light->getDirection());
 
         //Since I need to generate it here, I could send it to VS
+        //Also I should maybe store it somewhere instead of recomputing it each time
         glm::vec2 shadowShift = this->generateShadowDatum(light->getDirection());
 
         m_shadowDatum.texId = shadow.getTexturePair();

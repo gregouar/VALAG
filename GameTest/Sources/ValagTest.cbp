@@ -144,6 +144,8 @@
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteShadow.vert" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteShadowGen.frag" />
 		<Unit filename="../../Valag/shaders/deferred/isoSpriteShadowGen.vert" />
+		<Unit filename="../../Valag/shaders/deferred/meshDirectShadow.frag" />
+		<Unit filename="../../Valag/shaders/deferred/meshDirectShadow.vert" />
 		<Unit filename="../../Valag/shaders/deferred/meshShader.frag" />
 		<Unit filename="../../Valag/shaders/deferred/meshShader.vert" />
 		<Unit filename="../../Valag/shaders/instancingShader.frag" />

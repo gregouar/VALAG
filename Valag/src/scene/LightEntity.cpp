@@ -92,7 +92,7 @@ VTexture LightEntity::generateShadowMap(SceneRenderer* renderer, std::list<Shado
         this->recreateShadowMap(renderer);
 
     //This could cause artifacts since we are using last shadowShift
-    renderer->addShadowMapToRender(m_shadowMap.renderTarget, m_datum.shadowShift/*, m_datum*/);
+    renderer->addShadowMapToRender(m_shadowMap.renderTarget, m_datum);
 
     m_datum.shadowShift = {0,0};
 
@@ -198,12 +198,20 @@ void LightEntity::setShadowMapExtent(glm::vec2 extent)
 
 void LightEntity::enableShadowCasting()
 {
-    m_castShadow = true;
+    if(!m_castShadow)
+    {
+        m_castShadow = true;
+        this->updateDatum();
+    }
 }
 
 void LightEntity::disableShadowCasting()
 {
-    m_castShadow = false;
+    if(m_castShadow)
+    {
+        m_castShadow = false;
+        this->updateDatum();
+    }
 }
 
 
@@ -232,8 +240,11 @@ void LightEntity::updateDatum()
 
     m_datum.radius    = m_radius;
 
-    m_datum.shadowMap = {m_shadowMap.texture.getTextureId(),
-                         m_shadowMap.texture.getTextureLayer()};
+    if(m_castShadow)
+        m_datum.shadowMap = {m_shadowMap.texture.getTextureId(),
+                             m_shadowMap.texture.getTextureLayer()};
+    else
+        m_datum.shadowMap = {0,0};
 }
 
 void LightEntity::recreateShadowMap(SceneRenderer* renderer)

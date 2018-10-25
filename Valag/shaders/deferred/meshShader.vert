@@ -69,8 +69,9 @@ void main()
     fragTBN     = mat3(T, B, N);
 
     gl_Position = viewUbo.view*(fragWorldPos - vec4(pc.camPosAndZoom.xyz,0.0));
-    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, 0.0)
-                        + vec3(viewUbo.screenOffset, 0.0);
+    gl_Position.z = fragWorldPos.z;
+    gl_Position.xyz = gl_Position.xyz * vec3(viewUbo.screenSizeFactor, viewUbo.depthOffsetAndFactor.y)
+                        + vec3(viewUbo.screenOffset, viewUbo.depthOffsetAndFactor.x);
 
     fragWorldPos = vec4(fragWorldPos.xyz/*/fragWorldPos.w*/, 1.0);
 

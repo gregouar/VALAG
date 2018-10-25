@@ -30,23 +30,10 @@ layout (set = 1, binding = 5) uniform sampler2D samplerAlphaPosition;
 layout (set = 1, binding = 6) uniform sampler2D samplerAlphaNormal;
 layout (set = 1, binding = 7) uniform sampler2D samplerAlphaRmt;*/
 
-/*layout(set = 1, binding = 5) uniform AmbientLightingUbo {
-    //vec4 viewPos;
-    vec4 ambientLight;
-    bool enableEnvMap;
-    //uvec2 envMap;
-} ubo;*/
-
-
-
 layout(push_constant) uniform PER_OBJECT
 {
     vec4 camPosAndZoom;
 }pc;
-
-
-//layout(binding = 0, set = 1) uniform sampler samp;
-//layout(binding = 1, set = 1) uniform texture2DArray textures[128];
 
 layout(location = 0) flat in vec4  lightPos;
 layout(location = 1) flat in vec3  lightColor;
@@ -55,26 +42,25 @@ layout(location = 3) flat in uvec2  lightShadowMap;
 layout(location = 4) flat in vec2   lightShadowShift;
 
 layout(location = 0) out vec4 outColor;
-//layout(location = 1) out vec4 outColorAlpha;
 
 
 vec2 hashed[16] = vec2[](
     vec2(.92, .09),
     vec2(-.51,-.10),
     vec2(-.70,.22),
-    vec2(-.97, .03),
-    vec2(-.42, .75),
-    vec2(.64,1.0),
+    vec2(.97, -.03),
+    vec2(.42, .75),
+    vec2(-.64,-1.0),
     vec2(-.56,.86),
     vec2(.45,-.15),
     vec2(.21,.67),
-    vec2(.46,.77),
-    vec2(.65, -.57),
-    vec2(-.88, .6),
-    vec2(-.53,.12),
-    vec2(.71,.08),
-    vec2(.05,-.82),
-    vec2(-.41,-.14)
+    vec2(-.46,-.77),
+    vec2(-.65, .57),
+    vec2(.88, -.6),
+    vec2(.53,.12),
+    vec2(-.71,-.08),
+    vec2(-.05,.82),
+    vec2(.41,-.14)
 );
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -127,7 +113,7 @@ float sampleShadow(vec2 screenPos, float fragZ)
     //return 1.0 - min(1.0,max(0.0, (depth-shadowDepth)*"<<0.1*PBRTextureAsset::DEPTH_BUFFER_NORMALISER_INV<<"));
 
     float z = viewUbo.depthOffsetAndFactor.x + fragZ * viewUbo.depthOffsetAndFactor.y;
-    return 1.0 - min(1.0, max(0.0, (shadowMap - z) / (5.0*viewUbo.depthOffsetAndFactor.y)));
+    return 1.0 - min(1.0, max(0.0, (shadowMap - z) / (20.0*viewUbo.depthOffsetAndFactor.y)));
 
     /*if(shadowMap > viewUbo.depthOffsetAndFactor.x + (fragZ + 5.0) * viewUbo.depthOffsetAndFactor.y)
         return 0.0;
@@ -164,24 +150,25 @@ vec4 ComputeLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4 fragBe
             projPos.y   -= fragPos.z * viewUbo.view[2][1];
             projPos     -= (viewUbo.view * vec4(v,0.0)).xy;
 
-            int h = int(gl_FragCoord.x)%4+4*(int(gl_FragCoord.y)%4);
+            //int h = int(gl_FragCoord.x)%4+4*(int(gl_FragCoord.y)%4);
+            int h = int(fragPos.x)%4 + 4*(int(fragPos.y)%4);
 
             float shadowing = 1.0/6.0 * (sampleShadow(projPos, fragPos.z) * 2.0
-                               + sampleShadow(projPos + hashed[h] * 3.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+1)%16] * 3.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+2)%16] * 3.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+3)%16] * 3.0, fragPos.z));
+                               + sampleShadow(projPos + hashed[h] * 6.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+1)%16] * 6.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+2)%16] * 6.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+3)%16] * 6.0, fragPos.z));
 
             if(shadowing > 0.2 && shadowing < 0.8)
             {
                 shadowing = shadowing * 0.5 + 1.0/8.0 * (
-                               + sampleShadow(projPos + hashed[(h+4)%16] * 5.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+5)%16] * 5.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+6)%16] * 5.0, fragPos.z)
-                               + sampleShadow(projPos + hashed[(h+7)%16] * 5.0, fragPos.z));
+                               + sampleShadow(projPos + hashed[(h+4)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+5)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+6)%16] * 4.0, fragPos.z)
+                               + sampleShadow(projPos + hashed[(h+7)%16] * 4.0, fragPos.z));
             }
 
-            attenuation *= shadowing;
+            attenuation *= shadowing * shadowing;
         }
     }
     else

@@ -32,7 +32,7 @@ class SceneRenderingInstance
         const ViewInfo &getViewInfo();
         glm::vec4       getCamPosAndZoom();
 
-        void recordShadows(SceneRenderer *renderer, uint32_t imageIndex);
+        void prepareShadowsRendering(SceneRenderer *renderer, uint32_t imageIndex);
         void pushCamPosAndZoom(VkCommandBuffer cmb, VkPipelineLayout layout, VkFlags shaderStageBit = VK_SHADER_STAGE_VERTEX_BIT);
 
     protected:

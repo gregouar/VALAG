@@ -37,12 +37,20 @@ void main()
     if(outAlbedo.a < .99f)
         discard;
 
-    vec4  heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp),
-                               vec3(fragUV,fragHeightTexId.y));
-    float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
-    float fragHeight = fragWorldPos.z + height * fragTexThickness;
+    float fragHeight = fragWorldPos.z;
+    if(fragTexThickness > 0)
+    {
+        vec4  heightPixel = texture(sampler2DArray(textures[fragHeightTexId.x], samp),
+                                   vec3(fragUV,fragHeightTexId.y));
 
-    gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight*viewUbo.depthOffsetAndFactor.y;
+        //This should depend on TBN...
+        float height = (heightPixel.r + heightPixel.g + heightPixel.b) * 0.33333333;
+        fragHeight += height * fragTexThickness * (fragTBN*vec3(0.0,0.0,1.0)).z;
+
+        gl_FragDepth = viewUbo.depthOffsetAndFactor.x + fragHeight*viewUbo.depthOffsetAndFactor.y;
+    } else {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 
     outPosition     = vec4(fragWorldPos.xy, fragHeight, 0.0);
 

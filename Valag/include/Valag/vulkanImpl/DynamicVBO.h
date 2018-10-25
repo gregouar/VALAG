@@ -20,6 +20,7 @@ template<class T> class DynamicVBO
         size_t uploadVBO(); //return buffer size
 
         size_t  getSize();
+        size_t  getUploadedSize();
         VBuffer getBuffer();
 
     protected:
@@ -30,6 +31,7 @@ template<class T> class DynamicVBO
         size_t m_chunkSize;
 
         size_t m_curSize;
+        size_t m_lastSize;
         std::vector<T> m_content;
         VBuffer m_buffer;
 };

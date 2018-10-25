@@ -4,7 +4,7 @@
 #include <Vulkan/vulkan.h>
 #include <array>
 
-#include "Valag/scene/SceneEntity.h"
+#include "Valag/scene/ShadowCaster.h"
 
 namespace vlg
 {
@@ -30,7 +30,7 @@ struct MeshDatum
     static std::array<VkVertexInputAttributeDescription, 11> getAttributeDescriptions();
 };
 
-class MeshEntity : public SceneEntity
+class MeshEntity : public ShadowCaster
 {
     friend class SceneNode;
 
@@ -50,6 +50,9 @@ class MeshEntity : public SceneEntity
                             size_t dataSize = 0, char* data = nullptr) override;
 
         virtual void generateRenderingData(SceneRenderingInstance *renderingInstance);
+
+        virtual glm::vec2 castShadow(SceneRenderer *renderer, LightEntity* light) override;
+
 
     protected:
         void cleanup();

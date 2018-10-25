@@ -119,7 +119,6 @@ class IsoSpriteModel : public NotificationListener, public NotificationSender
 
         glm::vec2 m_shadowMapExtent;
         std::map<Direction, std::pair<VRenderableTexture, bool> > m_directionnalShadows;
-
 };
 
 }

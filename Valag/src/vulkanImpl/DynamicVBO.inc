@@ -6,7 +6,8 @@ namespace vlg
 template<typename T>
 DynamicVBO<T>::DynamicVBO(size_t chunkSize) :
     m_chunkSize(chunkSize),
-    m_curSize(0)
+    m_curSize(0),
+    m_lastSize(0)
 {
     //ctor
 }
@@ -33,15 +34,22 @@ size_t DynamicVBO<T>::uploadVBO()
         VBuffersAllocator::writeBuffer(m_buffer,m_content.data(),
                                        m_curSize*sizeof(T),false);
 
-    size_t oldSize = m_curSize;
+    m_lastSize = m_curSize;
     m_curSize = 0;
-    return oldSize;
+    return m_lastSize;
 }
+
 
 template<typename T>
 size_t DynamicVBO<T>::getSize()
 {
     return m_curSize;
+}
+
+template<typename T>
+size_t DynamicVBO<T>::getUploadedSize()
+{
+    return m_lastSize;
 }
 
 
