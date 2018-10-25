@@ -52,7 +52,9 @@ class TestingState : public vlg::GameState, public Singleton<TestingState>
         vlg::IsoSpriteEntity *m_treeEntity;//, m_abbeyEntity;
         vlg::MeshAsset       *m_quackMesh;
         //std::list<vlg::MeshEntity>  m_quackEntities;
-        vlg::SceneNode      *m_treeNode, *m_abbeyNode, *m_quackNode;
+
+        vlg::MeshEntity     *m_shadowBoxEntity;
+        vlg::SceneNode      *m_treeNode, *m_abbeyNode, *m_quackNode, *m_shadowBoxNode;
 
         //std::list<vlg::IsoSpriteEntity> m_forestEntities;
 

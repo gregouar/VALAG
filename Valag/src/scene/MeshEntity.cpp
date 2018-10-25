@@ -104,7 +104,8 @@ std::array<VkVertexInputAttributeDescription, 11> MeshDatum::getAttributeDescrip
 MeshEntity::MeshEntity() :
     m_mesh(nullptr),
     m_color(1.0,1.0,1.0,1.0),
-    m_rmt(1.0,1.0,1.0)
+    m_rmt(1.0,1.0,1.0),
+    m_scale(1.0,1.0,1.0)
 {
     this->updateDatum();
 }
@@ -149,15 +150,33 @@ void MeshEntity::setRmt(glm::vec3 rmt)
     }
 }
 
+void MeshEntity::setScale(float scale)
+{
+    this->setScale({scale, scale, scale});
+}
+
+void MeshEntity::setScale(glm::vec3 scale)
+{
+    if(m_scale != scale)
+    {
+        m_scale = scale;
+        this->updateDatum();
+    }
+}
+
 MeshDatum MeshEntity::getMeshDatum()
 {
     return m_datum;
 }
 
+glm::vec3 MeshEntity::getScale()
+{
+    return m_scale;
+}
 
 void MeshEntity::generateRenderingData(SceneRenderingInstance *renderingInstance)
 {
-    if(m_mesh != nullptr && m_mesh->isLoaded())
+    if(m_mesh != nullptr && m_mesh->isLoaded() && m_datum.albedo_color.a > 0)
         renderingInstance->addToMeshesVbo(m_mesh->getMesh(), this->getMeshDatum());
 }
 
@@ -204,6 +223,11 @@ void MeshEntity::updateDatum()
     m_datum.rmt_color     = m_rmt;
     m_datum.texThickness  = 0.0;
 
+    m_datum.albedo_texId = {};
+    m_datum.height_texId = {};
+    m_datum.normal_texId = {};
+    m_datum.rmt_texId = {};
+
     MaterialAsset* material = m_mesh->getMaterial();
     if(material != nullptr && material->isLoaded())
     {
@@ -221,16 +245,19 @@ void MeshEntity::updateDatum()
             m_datum.texThickness = material->getHeightFactor();
     }
 
-    float scale = m_mesh->getScale();
+    glm::vec3 scale = m_scale * m_mesh->getScale();
 
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0), m_parentNode->getGlobalPosition());
-    modelMatrix = glm::scale(modelMatrix, glm::vec3(scale));
-    modelMatrix = glm::scale(modelMatrix, m_parentNode->getScale());
+    glm::mat4 modelMatrix = glm::mat4(1.0);
 
-    //I should use quaternion
+    modelMatrix = glm::translate(modelMatrix, m_parentNode->getGlobalPosition());
+
+    //I should use quaternion (and also inherits rotations from parents)
     modelMatrix = glm::rotate(modelMatrix, m_parentNode->getEulerRotation().x, glm::vec3(1.0,0.0,0.0));
     modelMatrix = glm::rotate(modelMatrix, m_parentNode->getEulerRotation().y, glm::vec3(0.0,1.0,0.0));
     modelMatrix = glm::rotate(modelMatrix, m_parentNode->getEulerRotation().z, glm::vec3(0.0,0.0,1.0));
+
+    modelMatrix = glm::scale(modelMatrix, scale);
+    modelMatrix = glm::scale(modelMatrix, m_parentNode->getScale());
 
     m_datum.model_0 = modelMatrix[0];
     m_datum.model_1 = modelMatrix[1];

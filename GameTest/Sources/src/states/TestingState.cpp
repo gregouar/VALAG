@@ -111,8 +111,7 @@ void TestingState::init()
     m_abbeyModel->setTextureRect({0,0},{1,1});
     m_abbeyModel->setTextureCenter({1920/2,1080/2});
 
-
-    m_abbeyNode =  m_scene->getRootNode()->createChildNode({0,100,-1});
+    m_abbeyNode = m_scene->getRootNode()->createChildNode({0,100,-1});
     vlg::IsoSpriteEntity *abbeyEntity = m_scene->createIsoSpriteEntity(m_abbeyModel);
     abbeyEntity->setShadowCasting(vlg::ShadowCasting_OnlyDirectional);
     m_abbeyNode->attachObject(abbeyEntity);
@@ -160,6 +159,43 @@ void TestingState::init()
     vlg::MeshAsset     *groundMesh = vlg::MeshesHandler::makeQuad({-512,-512},{2048,2048},groundSand,{0,0},{4.0,4.0});
     //m_groundSand.setMesh(groundMesh);
     m_scene->getRootNode()->createChildNode({0,0,-2})->attachObject(m_scene->createMeshEntity(groundMesh));
+
+
+    vlg::MeshAsset *shadowBoxModel = vlg::MeshesHandler::makeBox({0,0,0},{1,1,1},nullptr);
+    vlg::MeshAsset *shadowPlaneModel = vlg::MeshesHandler::makeQuad({0,0},{1,1},nullptr);
+
+    vlg::MeshEntity *shadowBox, *shadowPlane;
+    ///Adding shadowBox for the abbey:
+    {
+        shadowBox = m_scene->createMeshEntity(shadowBoxModel);
+        shadowBox->setColor(vlg::Color(0.0));
+        shadowBox->setShadowCasting(vlg::ShadowCasting_All);
+        shadowBox->setScale({30,560,165});
+        m_abbeyNode->createChildNode({-200,-250,0})->attachObject(shadowBox);
+    }
+    {
+        shadowBox = m_scene->createMeshEntity(shadowBoxModel);
+        shadowBox->setColor(vlg::Color(0.0));
+        shadowBox->setShadowCasting(vlg::ShadowCasting_All);
+        shadowBox->setScale({120,110,250});
+        m_abbeyNode->createChildNode({-200,286,0})->attachObject(shadowBox);
+    }
+    {//Small roof
+        shadowBox = m_scene->createMeshEntity(shadowBoxModel);
+        shadowBox->setColor(vlg::Color(0.0));
+        shadowBox->setShadowCasting(vlg::ShadowCasting_All);
+        shadowBox->setScale({200,500,10});
+        vlg::SceneNode *node = m_abbeyNode->createChildNode({-210,-210,180});
+        node->setRotation({0,0.55,0});
+        node->attachObject(shadowBox);
+    }
+
+    m_shadowBoxEntity = m_scene->createMeshEntity(shadowBoxModel);
+    m_shadowBoxEntity->setRmt({1.0,0.0,0.0});
+    m_shadowBoxEntity->setScale(10);
+    m_shadowBoxEntity->setShadowCasting(vlg::ShadowCasting_All);
+    m_shadowBoxNode = m_scene->getRootNode()->createChildNode({0,0,0});
+    m_shadowBoxNode->attachObject(m_shadowBoxEntity);
 
     m_sunLight = m_scene->createLightEntity(vlg::LightType_Directional);
     m_scene->getRootNode()->attachObject(m_sunLight);
@@ -285,6 +321,11 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     m_cursorLightNode->setPosition(worldMousePos);
 
+
+    if(eventsManager->keyIsPressed(GLFW_KEY_I))
+        std::cout<<worldMousePos.x<<" "<<worldMousePos.y<<std::endl;
+
+
     if(eventsManager->keyPressed(GLFW_KEY_Q))
         m_treeEntity->setRotation(m_treeEntity->getRotation()+0.1f);
     if(eventsManager->keyPressed(GLFW_KEY_W))
@@ -335,15 +376,41 @@ void TestingState::handleEvents(const EventsManager *eventsManager)
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_LEFT))
     {
-        /*(++m_testingSprites.begin())->setPosition(eventsManager->mousePosition());
-        (++m_testingSprites.begin())->setSize({256,256});*/
-        m_treeNode->setPosition(worldMousePos);
+       // m_treeNode->setPosition(worldMousePos);
+        m_shadowBoxNode->setPosition(worldMousePos);
+        std::cout<<"pos : "<<m_shadowBoxNode->getPosition().x<<" "
+                           <<m_shadowBoxNode->getPosition().y<<std::endl;
     }
 
     if(eventsManager->mouseButtonIsPressed(GLFW_MOUSE_BUTTON_RIGHT))
     {
         //m_abbeyNode->setPosition(eventsManager->mousePosition());
-        m_quackNode->setPosition(worldMousePos);
+        //m_quackNode->setPosition(worldMousePos);
+
+        glm::vec2 p = {m_shadowBoxNode->getPosition().x,
+                       m_shadowBoxNode->getPosition().y};
+
+
+        if(eventsManager->keyIsPressed(GLFW_KEY_LEFT_SHIFT))
+        {
+            float h = worldMousePos.y - p.y;
+
+            m_shadowBoxEntity->setScale({m_shadowBoxEntity->getScale().x,
+                                         m_shadowBoxEntity->getScale().y,
+                                         -h});
+        }
+        else
+        {
+            m_shadowBoxEntity->setScale({worldMousePos.x - p.x,
+                                         worldMousePos.y - p.y,
+                                         m_shadowBoxEntity->getScale().z});
+        }
+
+        std::cout<<"pos : "<<m_shadowBoxNode->getPosition().x<<" "
+                           <<m_shadowBoxNode->getPosition().y<<std::endl;
+        std::cout<<"scale : "<<m_shadowBoxEntity->getScale().x<<" "
+                           <<m_shadowBoxEntity->getScale().y<<" "
+                           <<m_shadowBoxEntity->getScale().z<<std::endl;
     }
 
     /*if(eventsManager->mouseButtonReleased(GLFW_MOUSE_BUTTON_RIGHT))

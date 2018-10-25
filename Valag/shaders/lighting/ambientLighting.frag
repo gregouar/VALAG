@@ -2,6 +2,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 layout (constant_id = 0) const int envMapMipsCount = 1;
+layout (constant_id = 1) const float const_aoIntensity = 1;
+layout (constant_id = 2) const float const_gioIntensity = 1;
+
 
 layout (set = 0, binding = 0) uniform sampler2D samplerAlbedo;
 layout (set = 0, binding = 1) uniform sampler2D samplerPosition;
@@ -81,7 +84,7 @@ vec4 computeAmbientLighting(vec4 fragAlbedo, vec3 fragPos, vec4 fragNormal, vec4
     vec3 kD = (1.0 - F)*(1.0 - fragRmt.g);
     //kD *= pow(fragBentNormal.a,2.0);
     vec3 irradiance = ambientLighting;
-    float occlusion = max(min(pow(fragBentNormal.a,2.0), pow(1.0-abs(fragBentNormal.z),2.0)), fragNormal.w); //We dont want to occlude truly transparent fragments
+    float occlusion = max(min(pow(fragBentNormal.a,const_aoIntensity), pow(1.0-abs(fragBentNormal.z),const_gioIntensity)), fragNormal.w); //We dont want to occlude truly transparent fragments
 
     vec3 reflectionView = reflect(-/*ortho_viewDirection*/viewDirection, fragNormal.xyz);
     //reflectionView += mix(vec3(0.0),rVec,fragRmt.r*.25);

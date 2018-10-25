@@ -449,6 +449,10 @@ bool MeshAsset::generateModel(  std::vector<MeshVertex> &vertexList,
         commandPoolName = COMMANDPOOL_MESHESLOADING;
 
     m_meshLoaded = m_mesh->generateMesh(vertexList, indexList,commandPoolName);
+
+    if(m_meshLoaded && m_materialsLoaded)
+        m_loaded = true;
+
     return m_meshLoaded;
 }
 

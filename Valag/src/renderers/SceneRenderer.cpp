@@ -1363,6 +1363,7 @@ bool SceneRenderer::createAlphaLightingPipeline()
     m_alphaLightingPipeline.addSpecializationDatum(2.0f, 1); //SSAO intensity
     m_alphaLightingPipeline.addSpecializationDatum(4.0f, 1); //GIAO intensity
 
+
     auto bindingDescription = LightDatum::getBindingDescription();
     auto attributeDescriptions = LightDatum::getAttributeDescriptions();
     m_alphaLightingPipeline.setVertexInput(1, &bindingDescription,
@@ -1406,6 +1407,9 @@ bool SceneRenderer::createAmbientLightingPipeline()
     fragShaderPath << VApp::DEFAULT_SHADERPATH << AMBIENTLIGHTING_FRAGSHADERFILE;
 
     m_ambientLightingPipeline.addSpecializationDatum(PBRToolbox::ENVMAP_FILTERINGMIPSCOUNT, 1);
+    m_ambientLightingPipeline.addSpecializationDatum(2.0f, 1); //SSAO intensity
+    m_ambientLightingPipeline.addSpecializationDatum(1.0f, 1); //GIAO intensity
+
 
     m_ambientLightingPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
     m_ambientLightingPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);

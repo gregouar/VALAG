@@ -44,7 +44,11 @@ class MeshEntity : public ShadowCaster
         void setColor(Color color);
         void setRmt(glm::vec3 rmt);
 
+        void setScale(float scale);
+        void setScale(glm::vec3 scale);
+
         MeshDatum getMeshDatum();
+        glm::vec3 getScale();
 
         virtual void notify(NotificationSender* , NotificationType,
                             size_t dataSize = 0, char* data = nullptr) override;
@@ -64,6 +68,8 @@ class MeshEntity : public ShadowCaster
 
         Color       m_color;
         glm::vec3   m_rmt;
+
+        glm::vec3   m_scale;
 };
 
 }
