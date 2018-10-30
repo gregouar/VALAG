@@ -12,8 +12,12 @@
 namespace vlg
 {
 
+const float SceneRenderer::SSGI_SIZE_FACTOR = 0.5;
+
 const char *SceneRenderer::ISOSPRITE_SHADOWGEN_VERTSHADERFILE = "deferred/isoSpriteShadowGen.vert.spv";
 const char *SceneRenderer::ISOSPRITE_SHADOWGEN_FRAGSHADERFILE = "deferred/isoSpriteShadowGen.frag.spv";
+const char *SceneRenderer::ISOSPRITE_SHADOWFILT_VERTSHADERFILE = "deferred/isoSpriteShadowFilt.vert.spv";
+const char *SceneRenderer::ISOSPRITE_SHADOWFILT_FRAGSHADERFILE = "deferred/isoSpriteShadowFilt.frag.spv";
 const char *SceneRenderer::ISOSPRITE_SHADOW_VERTSHADERFILE = "deferred/isoSpriteShadow.vert.spv";
 const char *SceneRenderer::ISOSPRITE_SHADOW_FRAGSHADERFILE = "deferred/isoSpriteShadow.frag.spv";
 const char *SceneRenderer::MESH_DIRECTSHADOW_VERTSHADERFILE = "deferred/meshDirectShadow.vert.spv";
@@ -54,6 +58,15 @@ SceneRenderer::~SceneRenderer()
     this->cleanup();
 }
 
+void SceneRenderer::update(size_t frameIndex)
+{
+    for(auto renderableTexture : m_spriteShadowBufs[frameIndex])
+        VTexturesManager::freeTexture(renderableTexture);
+    m_spriteShadowBufs[frameIndex].clear();
+
+    AbstractRenderer::update(frameIndex);
+}
+
 void SceneRenderer::addRenderingInstance(SceneRenderingInstance *renderingInstance)
 {
     m_renderingInstances.push_back(renderingInstance);
@@ -76,8 +89,21 @@ void SceneRenderer::addShadowMapToRender(VRenderTarget* shadowMap, const LightDa
 
 void SceneRenderer::addSpriteShadowToRender(VRenderTarget* spriteShadow, const SpriteShadowGenerationDatum &datum)
 {
-    m_renderGraph.addDynamicRenderTarget(m_spriteShadowsPass,spriteShadow);
+    m_spriteShadowBufs[m_curFrameIndex].push_back(VRenderableTexture());
+
+    VTexturesManager::allocRenderableTexture(spriteShadow->getExtent().width, spriteShadow->getExtent().height,
+                                                 VK_FORMAT_R8G8B8A8_UNORM,
+                                                 this->getSpriteShadowsRenderPass(),
+                                                &m_spriteShadowBufs[m_curFrameIndex].back());
+
+    //m_renderGraph.addDynamicRenderTarget(m_spriteShadowsPass,spriteShadow); //
+    m_renderGraph.addDynamicRenderTarget(m_spriteShadowsPass,m_spriteShadowBufs[m_curFrameIndex].back().renderTarget); //Raytracing
+    m_renderGraph.addDynamicRenderTarget(m_spriteShadowsPass,spriteShadow); //Filtering
     m_spriteShadowGenerationVbos[m_curFrameIndex]->push_back(datum);
+
+    SpriteShadowGenerationDatum filteredDatum = datum;
+    filteredDatum.albedo_texId = m_spriteShadowBufs[m_curFrameIndex].back().texture.getTexturePair();
+    m_spriteShadowGenerationVbos[m_curFrameIndex]->push_back(filteredDatum);
 
     //m_spriteShadowsToRender.push_back({spriteShadow, datum});
 }
@@ -222,8 +248,6 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
 
         if(m_spriteShadowGenerationVbos[m_curFrameIndex]->getUploadedSize() > 0)
         {
-            m_spriteShadowsGenPipeline.bind(cmb);
-
             vkCmdBindDescriptorSets(cmb,VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     m_spriteShadowsGenPipeline.getLayout(),0,2, descriptorSets, 0, nullptr);
 
@@ -233,9 +257,21 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
             size_t i = 0;
             while(m_renderGraph.nextRenderTarget(m_spriteShadowsPass))
             {
+                //Raytracing
+                m_spriteShadowsGenPipeline.bind(cmb);
                 m_spriteShadowsGenPipeline.updateViewport(cmb, {0,0},
                         m_renderGraph.getExtent(m_spriteShadowsPass));
                 vkCmdDraw(cmb, 3, 1, 0, i);
+
+                i++;
+
+                //Filtering
+                m_renderGraph.nextRenderTarget(m_spriteShadowsPass);
+                m_spriteShadowFilteringPipeline.bind(cmb);
+                m_spriteShadowFilteringPipeline.updateViewport(cmb, {0,0},
+                        m_renderGraph.getExtent(m_spriteShadowsPass));
+                vkCmdDraw(cmb, 3, 1, 0, i);
+
                 i++;
             }
         }
@@ -243,7 +279,7 @@ bool SceneRenderer::recordShadowCmb(uint32_t imageIndex)
     m_renderGraph.endRecording(m_spriteShadowsPass);
 
 
-    /// Shadow map rendering
+    ///Shadow map rendering
     VBuffer spritesInstancesVB  = m_spriteShadowsVbos[m_curFrameIndex]->getBuffer();
 
     //Start recording
@@ -627,21 +663,25 @@ bool SceneRenderer::init()
     m_renderView.setDepthFactor(1024*1024);
     m_renderView.setScreenOffset(glm::vec3(0.0f, 0.0f, 0.5f));
 
-    m_spriteShadowGenerationVbos.resize(m_targetWindow->getFramesCount());
+    size_t framesCount = m_targetWindow->getFramesCount();
+
+    m_spriteShadowBufs.resize(m_targetWindow->getFramesCount());
+
+    m_spriteShadowGenerationVbos.resize(framesCount);
     for(auto &vbo : m_spriteShadowGenerationVbos)
         vbo = new DynamicVBO<SpriteShadowGenerationDatum>(32);
 
-    m_spriteShadowsVbos.resize(m_targetWindow->getFramesCount());
+    m_spriteShadowsVbos.resize(framesCount);
     for(auto &vbo : m_spriteShadowsVbos)
         vbo = new DynamicVBO<IsoSpriteShadowDatum>(128);
 
-    m_spritesVbos.resize(m_targetWindow->getFramesCount());
+    m_spritesVbos.resize(framesCount);
     for(auto &vbo : m_spritesVbos)
         vbo = new DynamicVBO<IsoSpriteDatum>(256);
 
-    m_meshesVbos.resize(m_targetWindow->getFramesCount());
+    m_meshesVbos.resize(framesCount);
 
-    m_lightsVbos.resize(m_targetWindow->getFramesCount());
+    m_lightsVbos.resize(framesCount);
     for(auto &vbo : m_lightsVbos)
         vbo = new DynamicVBO<LightDatum>(128);
 
@@ -653,6 +693,9 @@ bool SceneRenderer::init()
 
     if(!AbstractRenderer::init())
         return (false);
+
+    /*m_filteringShadowsTarget.addAttachments({m_filteringShadowsAttachment});
+    m_filteringShadowsTarget.init(1, m_renderGraph.getRenderPass(m_spriteShadowsPass));*/
 
    // m_ambientLightingDescVersion.resize(m_targetWindow->getSwapchainSize());
     for(size_t i = 0 ; i < m_targetWindow->getSwapchainSize() ; ++i)
@@ -713,53 +756,53 @@ bool SceneRenderer::createGraphicsPipeline()
 
 bool SceneRenderer::createAttachments()
 {
-    size_t imagesCount  = m_targetWindow->getSwapchainSize();
+    //size_t imagesCount  = m_targetWindow->getSwapchainSize();
     uint32_t width      = m_targetWindow->getSwapchainExtent().width;
     uint32_t height     = m_targetWindow->getSwapchainExtent().height;
 
-    m_deferredDepthAttachments.resize(imagesCount);
-    //m_alphaDetectAttachments.resize(imagesCount);
+    //m_deferredDepthAttachments.resize(imagesCount);
+
+    ///Need to replace this by variable value that increase when necessary
+    /*if(!VulkanHelpers::createAttachment(2048, 2048, VK_FORMAT_R8G8B8A8_UNORM,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_filteringShadowsAttachment))
+        return (false);*/
+
+    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_D24_UNORM_S8_UINT,
+                                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_deferredDepthAttachment/*[i]*/))
+        return (false);
 
     for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
     {
-        m_albedoAttachments[a].resize(imagesCount);
+        /*m_albedoAttachments[a].resize(imagesCount);
         m_positionAttachments[a].resize(imagesCount);
         m_normalAttachments[a].resize(imagesCount);
         m_rmtAttachments[a].resize(imagesCount);
-        m_hdrAttachements[a].resize(imagesCount);
+        m_hdrAttachements[a].resize(imagesCount);*/
 
-        for(size_t i = 0 ; i < imagesCount ; ++i)
-        {
-            if(a == 0)
+        /*for(size_t i = 0 ; i < imagesCount ; ++i)
+        {*/
+            /*if(a == 0)
             {
-                if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_D24_UNORM_S8_UINT,
-                                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_deferredDepthAttachments[i]))
-                    return (false);
-
-                /*if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8_UNORM,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_alphaDetectAttachments[i]))
-                    return (false);*/
-            }
+            }*/
 
             if(!
                 VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_albedoAttachments[a][i]) &
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_albedoAttachments[a]/*[i]*/) &
                 VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_positionAttachments[a][i]) &
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_positionAttachments[a]/*[i]*/) &
                 VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[a][i]) &
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_normalAttachments[a]/*[i]*/) &
                 VulkanHelpers::createAttachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[a][i]) &
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_rmtAttachments[a]/*[i]*/) &
                 VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[a][i])
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_hdrAttachements[a]/*[i]*/)
             )
             return (false);
-        }
+        /*}*/
     }
 
-    //I should probably change this since it's not accu anymore (and use multibuffering)
-    if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_SNORM,
-                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiAccuBentNormalsAttachment))
+    if(!VulkanHelpers::createAttachment(width*SSGI_SIZE_FACTOR, height*SSGI_SIZE_FACTOR, VK_FORMAT_R16G16B16A16_SNORM,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiBentNormalsAttachment))
         return (false);
 
     //We put the attachment in read only for the first pass
@@ -771,7 +814,7 @@ bool SceneRenderer::createAttachments()
         return (false);
 
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
-        if(!VulkanHelpers::createAttachment(width, height, VK_FORMAT_R16G16B16A16_UNORM,
+        if(!VulkanHelpers::createAttachment(width*SSGI_SIZE_FACTOR, height*SSGI_SIZE_FACTOR, VK_FORMAT_R16G16B16A16_UNORM,
                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_ssgiCollisionsAttachments[i]))
             return (false);
 
@@ -793,6 +836,7 @@ void SceneRenderer::prepareShadowRenderPass()
     m_spriteShadowsPass = m_renderGraph.addDynamicRenderPass();
     m_renderGraph.addAttachmentType(m_spriteShadowsPass, spriteShadowType,
                                     VK_ATTACHMENT_STORE_OP_STORE, false);
+
 
     /*///Sprite shadow blurring
 
@@ -830,7 +874,7 @@ void SceneRenderer::prepareDeferredRenderPass()
     m_renderGraph.addNewAttachments(m_deferredPass, m_positionAttachments[0]);
     m_renderGraph.addNewAttachments(m_deferredPass, m_normalAttachments[0]);
     m_renderGraph.addNewAttachments(m_deferredPass, m_rmtAttachments[0]);
-    m_renderGraph.addNewAttachments(m_deferredPass, m_deferredDepthAttachments);
+    m_renderGraph.addNewAttachments(m_deferredPass, m_deferredDepthAttachment);
 }
 
 void SceneRenderer::prepareAlphaDetectRenderPass()
@@ -862,7 +906,7 @@ void SceneRenderer::prepareSsgiBNRenderPasses()
     /// compute bent normals
     m_ssgiBNPass = m_renderGraph.addRenderPass();
 
-    m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiAccuBentNormalsAttachment,
+    m_renderGraph.addNewAttachments(m_ssgiBNPass, m_ssgiBentNormalsAttachment,
                                     VK_ATTACHMENT_STORE_OP_STORE/*, VK_ATTACHMENT_LOAD_OP_LOAD*/);
 
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
@@ -975,27 +1019,49 @@ void SceneRenderer::prepareToneMappingRenderPass()
 
 bool SceneRenderer::createSpriteShadowsGenPipeline()
 {
-    std::ostringstream vertShaderPath,fragShaderPath;
-    vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
-    fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
+    {
+        std::ostringstream vertShaderPath,fragShaderPath;
+        vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
+        fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
 
-    m_spriteShadowsGenPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
-    m_spriteShadowsGenPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+        m_spriteShadowsGenPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+        m_spriteShadowsGenPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(128), 1); //Nbr ray steps
-    m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(8), 1); //Nbr search steps
-    m_spriteShadowsGenPipeline.addSpecializationDatum(0.02f, 1); //Ray collision thresold
+        m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(256), 1); //Nbr ray steps
+        m_spriteShadowsGenPipeline.addSpecializationDatum(uint32_t(4), 1); //Nbr search steps
+        m_spriteShadowsGenPipeline.addSpecializationDatum(0.01f, 1); //Ray collision threshold
 
-    auto bindingDescription = SpriteShadowGenerationDatum::getBindingDescription();
-    auto attributeDescriptions = SpriteShadowGenerationDatum::getAttributeDescriptions();
-    m_spriteShadowsGenPipeline.setVertexInput(1, &bindingDescription,
-                                    attributeDescriptions.size(), attributeDescriptions.data());
+        auto bindingDescription = SpriteShadowGenerationDatum::getBindingDescription();
+        auto attributeDescriptions = SpriteShadowGenerationDatum::getAttributeDescriptions();
+        m_spriteShadowsGenPipeline.setVertexInput(1, &bindingDescription,
+                                        attributeDescriptions.size(), attributeDescriptions.data());
 
-    m_spriteShadowsGenPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
-    m_spriteShadowsGenPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+        m_spriteShadowsGenPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+        m_spriteShadowsGenPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
 
-    if(!m_spriteShadowsGenPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass)))
-        return (false);
+        if(!m_spriteShadowsGenPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass)))
+            return (false);
+    }
+
+    {
+        std::ostringstream vertShaderPath,fragShaderPath;
+        vertShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWFILT_VERTSHADERFILE;
+        fragShaderPath << VApp::DEFAULT_SHADERPATH << ISOSPRITE_SHADOWFILT_FRAGSHADERFILE;
+
+        m_spriteShadowFilteringPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
+        m_spriteShadowFilteringPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        auto bindingDescription = SpriteShadowGenerationDatum::getBindingDescription();
+        auto attributeDescriptions = SpriteShadowGenerationDatum::getAttributeDescriptions();
+        m_spriteShadowFilteringPipeline.setVertexInput(1, &bindingDescription,
+                                        attributeDescriptions.size(), attributeDescriptions.data());
+
+        m_spriteShadowFilteringPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
+        m_spriteShadowFilteringPipeline.attachDescriptorSetLayout(VTexturesManager::descriptorSetLayout());
+
+        if(!m_spriteShadowFilteringPipeline.init(m_renderGraph.getRenderPass(m_spriteShadowsPass)))
+            return (false);
+    }
 
     /*///Horizontal and vertical blur
     for(size_t i = 0 ; i < 2 ; ++i)
@@ -1268,11 +1334,15 @@ bool SceneRenderer::createSsgiBNPipelines()
         m_ssgiBNPipeline.addSpecializationDatum(1.0f, 1); //Ray length factor
         m_ssgiBNPipeline.addSpecializationDatum(20.0f, 1); //Ray threshold
         m_ssgiBNPipeline.addSpecializationDatum(2.0f, 1); //Ray threshold factor
+        m_ssgiBNPipeline.addSpecializationDatum(SSGI_SIZE_FACTOR, 1); //Ray threshold factor
 
         m_ssgiBNPipeline.createShader(vertShaderPath.str(), VK_SHADER_STAGE_VERTEX_BIT);
         m_ssgiBNPipeline.createShader(fragShaderPath.str(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        m_ssgiBNPipeline.setStaticExtent(m_targetWindow->getSwapchainExtent());
+        VkExtent2D extent = m_targetWindow->getSwapchainExtent();
+        extent.width  *= SSGI_SIZE_FACTOR;
+        extent.height *= SSGI_SIZE_FACTOR;
+        m_ssgiBNPipeline.setStaticExtent(extent);
 
         m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderView.getDescriptorSetLayout());
         m_ssgiBNPipeline.attachDescriptorSetLayout(m_renderGraph.getDescriptorLayout(m_ssgiBNPass));
@@ -1298,8 +1368,8 @@ bool SceneRenderer::createSsgiBNPipelines()
         //m_ssgiBNBlurPipelines[i].setSpecializationInfo(specializationInfo, 1);
 
         float radius = 4.0f;
-        if(i == 0) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.width);
-        if(i == 1) radius /= float(m_ssgiAccuBentNormalsAttachment.extent.height);
+        if(i == 0) radius /= float(m_ssgiBentNormalsAttachment.extent.width);
+        if(i == 1) radius /= float(m_SSGIBlurBentNormalsAttachments[0].extent.height);
 
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(radius ,1); //Radius
         m_ssgiBNBlurPipelines[i].addSpecializationDatum(15.0f,1); //Smart thresold
@@ -1466,7 +1536,7 @@ void SceneRenderer::cleanup()
             delete meshVbo.second;
     m_meshesVbos.clear();
 
-    for(auto attachement : m_deferredDepthAttachments)
+    /*for(auto attachement : m_deferredDepthAttachments)
         VulkanHelpers::destroyAttachment(attachement);
     m_deferredDepthAttachments.clear();
 
@@ -1491,9 +1561,23 @@ void SceneRenderer::cleanup()
         for(auto attachement : m_hdrAttachements[a])
             VulkanHelpers::destroyAttachment(attachement);
         m_hdrAttachements[a].clear();
+    }*/
+
+    //m_filteringShadowsTarget.destroy();
+
+    //VulkanHelpers::destroyAttachment(m_filteringShadowsAttachment);
+    VulkanHelpers::destroyAttachment(m_deferredDepthAttachment);
+
+    for(size_t a = 0 ; a < NBR_ALPHA_LAYERS ; ++a)
+    {
+        VulkanHelpers::destroyAttachment(m_albedoAttachments[a]);
+        VulkanHelpers::destroyAttachment(m_positionAttachments[a]);
+        VulkanHelpers::destroyAttachment(m_normalAttachments[a]);
+        VulkanHelpers::destroyAttachment(m_rmtAttachments[a]);
+        VulkanHelpers::destroyAttachment(m_hdrAttachements[a]);
     }
 
-    VulkanHelpers::destroyAttachment(m_ssgiAccuBentNormalsAttachment);
+    VulkanHelpers::destroyAttachment(m_ssgiBentNormalsAttachment);
     VulkanHelpers::destroyAttachment(m_ssgiAccuLightingAttachment);
     for(size_t i = 0 ; i < NBR_SSGI_SAMPLES ; ++i)
         VulkanHelpers::destroyAttachment(m_ssgiCollisionsAttachments[i]);
@@ -1501,6 +1585,7 @@ void SceneRenderer::cleanup()
         VulkanHelpers::destroyAttachment(m_SSGIBlurBentNormalsAttachments[i]);
 
     m_spriteShadowsGenPipeline.destroy();
+    m_spriteShadowFilteringPipeline.destroy();
     m_spriteShadowsPipeline.destroy();
     m_meshDirectShadowsPipeline.destroy();
     m_deferredSpritesPipeline.destroy();

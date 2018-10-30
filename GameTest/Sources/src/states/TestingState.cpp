@@ -166,14 +166,14 @@ void TestingState::init()
 
     vlg::MeshEntity *shadowBox, *shadowPlane;
     ///Adding shadowBox for the abbey:
-    {
+    {//Tower next to small roof
         shadowBox = m_scene->createMeshEntity(shadowBoxModel);
         shadowBox->setColor(vlg::Color(0.0));
         shadowBox->setShadowCasting(vlg::ShadowCasting_All);
         shadowBox->setScale({30,560,165});
         m_abbeyNode->createChildNode({-200,-250,0})->attachObject(shadowBox);
     }
-    {
+    {//Wall behind small roof
         shadowBox = m_scene->createMeshEntity(shadowBoxModel);
         shadowBox->setColor(vlg::Color(0.0));
         shadowBox->setShadowCasting(vlg::ShadowCasting_All);
@@ -189,6 +189,21 @@ void TestingState::init()
         node->setRotation({0,0.55,0});
         node->attachObject(shadowBox);
     }
+    {//Front wall
+        shadowBox = m_scene->createMeshEntity(shadowBoxModel);
+        shadowBox->setColor(vlg::Color(0.0));
+        shadowBox->setShadowCasting(vlg::ShadowCasting_All);
+        shadowBox->setScale({550,60,130});
+        m_abbeyNode->createChildNode({-90,600,0})->attachObject(shadowBox);
+    }
+    {//Big building
+        shadowBox = m_scene->createMeshEntity(shadowBoxModel);
+        shadowBox->setColor(vlg::Color(0.0));
+        shadowBox->setShadowCasting(vlg::ShadowCasting_All);
+        shadowBox->setScale({760,245,335});
+        m_abbeyNode->createChildNode({-200,-470,0})->attachObject(shadowBox);
+    }
+
 
     m_shadowBoxEntity = m_scene->createMeshEntity(shadowBoxModel);
     m_shadowBoxEntity->setRmt({1.0,0.0,0.0});
@@ -211,7 +226,7 @@ void TestingState::init()
     //sunLight->setType(vlg::LightType_Directional);
     //m_sunLight.setDirection({-1.0,0.0,-1.0});
     m_sunLight->setDirection({.2 ,-1.0,-1.0});
-    m_sunLight->setShadowMapExtent({1024,1024});
+    m_sunLight->setShadowMapExtent({1920,1080});
     m_sunLight->enableShadowCasting();
 
     /*vlg::LightEntity* sunLight = m_scene->createLightEntity(vlg::LightType_Directional);

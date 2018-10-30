@@ -77,7 +77,7 @@ vec4 rayTrace(vec3 screenStart, vec3 ray)
     {
         curPos     += screenRayStep;
         dstFrag     = sampleHeight(curPos.xy);
-        dstHeight   = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333*dstFrag.a; //*spriteSize.z;
+        dstHeight   = (dstFrag.x+dstFrag.y+dstFrag.z)*0.3333 /* *dstFrag.a*/; //*spriteSize.z;
 
         if(dstFrag.a > 0.9)
         {

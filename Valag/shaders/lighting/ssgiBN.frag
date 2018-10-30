@@ -5,6 +5,7 @@ layout (constant_id = 0) const float const_rayLength          = 25.0;
 layout (constant_id = 1) const float const_rayLengthFactor    = 0.0;
 layout (constant_id = 2) const float const_rayThreshold        = 15.0;
 layout (constant_id = 3) const float const_rayThresholdFactor  = 0.0;
+layout (constant_id = 4) const float const_sizeFactor          = 1.0;
 
 layout(set = 0, binding = 0) uniform ViewUBO {
     mat4 view;
@@ -179,7 +180,7 @@ void main()
         vec3 ray = const_rayLength * (rot * samplesHemisphere[/*d*4+*/(i+pc.imgIndex)%16]);
         //vec3 ray = fragNormal*15.0;
 
-        vec3 c = rayTrace(vec3(gl_FragCoord.xy, fragHeight), ray);
+        vec3 c = rayTrace(vec3(gl_FragCoord.xy/const_sizeFactor, fragHeight), ray);
 
         if(c.z != -1)
         {

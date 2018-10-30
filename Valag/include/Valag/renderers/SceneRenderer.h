@@ -37,6 +37,8 @@ class SceneRenderer : public AbstractRenderer
         SceneRenderer(RenderWindow *targetWindow, RendererName name, RenderereOrder order);
         virtual ~SceneRenderer();
 
+        virtual void update(size_t frameIndex) override;
+
         void addRenderingInstance(SceneRenderingInstance *renderingInstance);
 
         //I'll need light position and so forth (maybe I'll use push constants, it's like cam pos)...
@@ -112,6 +114,7 @@ class SceneRenderer : public AbstractRenderer
 
     private:
         VGraphicsPipeline   m_spriteShadowsGenPipeline,
+                            m_spriteShadowFilteringPipeline,
                             //m_spriteShadowsBlurPipelines[2],
                             m_spriteShadowsPipeline,
                             m_meshDirectShadowsPipeline;
@@ -129,18 +132,19 @@ class SceneRenderer : public AbstractRenderer
                             m_ambientLightingPipeline,
                             m_toneMappingPipeline;
 
-        std::vector<VFramebufferAttachment> m_deferredDepthAttachments;
-        std::vector<VFramebufferAttachment> m_albedoAttachments[NBR_ALPHA_LAYERS],
+        /*VFramebufferAttachment m_filteringShadowsAttachment;
+        VRenderTarget          m_filteringShadowsTarget;*/
+
+        std::vector<std::list<VRenderableTexture> > m_spriteShadowBufs;
+
+        /*std::vector<*/VFramebufferAttachment/*>*/ m_deferredDepthAttachment;
+        /*std::vector<*/VFramebufferAttachment/*>*/ m_albedoAttachments[NBR_ALPHA_LAYERS],
                                             m_positionAttachments[NBR_ALPHA_LAYERS], //The opac.a contains existence of truly trasparent frag, the alpha.a contains alphaAlbedo.a
                                             m_normalAttachments[NBR_ALPHA_LAYERS], //The opac.a = 0 and alpha.a contains existence of truly transparent frag
                                             m_rmtAttachments[NBR_ALPHA_LAYERS];
-        std::vector<VFramebufferAttachment> m_hdrAttachements[NBR_ALPHA_LAYERS];
+        /*std::vector<*/VFramebufferAttachment/*>*/ m_hdrAttachements[NBR_ALPHA_LAYERS];
 
-
-        //Need to think how to deal with multibuffering
-        //Use blitting to move accordingly to camera ? Could also add velocity map...
-        //After testing GI, if accu doesn't look good, I should add multibuffering
-        VFramebufferAttachment m_ssgiAccuBentNormalsAttachment;
+        VFramebufferAttachment m_ssgiBentNormalsAttachment;
         VFramebufferAttachment m_ssgiAccuLightingAttachment;
         VFramebufferAttachment m_ssgiCollisionsAttachments[NBR_SSGI_SAMPLES];
         VFramebufferAttachment m_SSGIBlurBentNormalsAttachments[2];
@@ -174,8 +178,12 @@ class SceneRenderer : public AbstractRenderer
         std::list<SceneRenderingInstance*>      m_renderingInstances;
         std::list<ShadowMapRenderingInstance>   m_shadowMapsInstances;
 
+        static const float SSGI_SIZE_FACTOR;
+
         static const char *ISOSPRITE_SHADOWGEN_VERTSHADERFILE;
         static const char *ISOSPRITE_SHADOWGEN_FRAGSHADERFILE;
+        static const char *ISOSPRITE_SHADOWFILT_VERTSHADERFILE;
+        static const char *ISOSPRITE_SHADOWFILT_FRAGSHADERFILE;
         static const char *ISOSPRITE_SHADOW_VERTSHADERFILE;
         static const char *ISOSPRITE_SHADOW_FRAGSHADERFILE;
         static const char *MESH_DIRECTSHADOW_VERTSHADERFILE;
